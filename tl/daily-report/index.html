@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ежедневный отчёт</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; font-size: 13px; color: #222; background: #fff; padding: 20px; }
+
+.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.toolbar label { font-size: 12px; color: #555; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.btn { padding: 5px 14px; border: 1px solid #1a73e8; border-radius: 4px; background: #1a73e8; color: #fff; cursor: pointer; font-size: 13px; }
+.btn:hover { background: #1557b0; }
+.btn-sec { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.btn-sec:hover { background: #e8f0fe; }
+.btn-red { background: #fff; color: #c00; border: 1px solid #c00; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.btn-red:hover { background: #fce8e6; }
+#save-status { font-size: 12px; font-weight: 600; min-width: 160px; }
+
+.day-block { margin-bottom: 32px; }
+.day-header { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #e0e0e0; }
+.date-icon { width: 22px; height: 22px; background: #1a73e8; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+
+table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+th { background: #f8f8f8; font-weight: 600; font-size: 12px; padding: 7px 10px; text-align: center; border-bottom: 2px solid #ddd; color: #444; white-space: nowrap; }
+th:first-child { text-align: left; }
+td { padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center; }
+td:first-child { text-align: left; font-weight: 500; }
+tr.total-row td { font-weight: 700; background: #f0f4ff; border-top: 2px solid #c5cfe8; }
+.zero { color: #bbb; }
+.nz { color: #1a1a1a; font-weight: 500; }
+
+.col-hl { background: #fff3cd !important; }
+.row-hl td { background: #e8f4fd !important; }
+tr.total-row.row-hl td { background: #d0e8f8 !important; }
+.cell-hl { background: #ffd700 !important; color: #000 !important; font-weight: 700 !important; }
+
+.providers { font-size: 12px; color: #444; padding: 8px 12px; background: #f9f9f9; border-left: 3px solid #1a73e8; border-radius: 0 4px 4px 0; }
+.providers strong { color: #1a73e8; }
+.providers span { display: inline-block; margin-right: 12px; }
+
+.add-btn { display: block; width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 6px; background: none; cursor: pointer; font-size: 13px; color: #888; margin-top: 8px; }
+.add-btn:hover { border-color: #1a73e8; color: #1a73e8; background: #f0f7ff; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: flex-start; justify-content: center; padding-top: 30px; overflow-y: auto; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 8px; padding: 24px; width: 580px; max-width: 96vw; margin-bottom: 30px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
+.modal h3 { margin-bottom: 14px; font-size: 15px; }
+.tabs { display: flex; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+.tab { flex: 1; padding: 8px; border: none; cursor: pointer; font-size: 13px; background: #f5f5f5; color: #555; }
+.tab.on { background: #1a73e8; color: #fff; font-weight: 600; }
+textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; font-family: monospace; margin-bottom: 10px; resize: vertical; }
+.modal input, .modal select { width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; font-size: 13px; }
+.modal label { font-size: 12px; color: #555; display: block; margin-bottom: 3px; }
+.preview { background: #f0f7ff; border: 1px solid #c0d8f8; border-radius: 6px; padding: 10px 12px; font-size: 12px; margin-bottom: 12px; line-height: 1.9; display: none; }
+.preview b { color: #1a73e8; }
+.col-hdr { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 24px; gap: 5px; margin-bottom: 4px; }
+.col-hdr span { font-size: 11px; color: #888; text-align: center; }
+.col-hdr span:first-child { text-align: left; }
+.prow { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 24px; gap: 5px; margin-bottom: 5px; align-items: center; }
+.prow input { margin-bottom: 0; padding: 5px 4px; text-align: center; }
+.prow input:first-child { text-align: left; padding: 5px 8px; }
+.rm { width: 24px; height: 24px; border: none; background: #fee; color: #c00; border-radius: 4px; cursor: pointer; font-size: 15px; }
+.mactions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+.mactions button { padding: 7px 18px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.bsave { background: #1a73e8; color: #fff; border: none; }
+.bcancel { background: #fff; color: #555; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <label><input type="checkbox" id="hl-on" checked> Подсветка</label>
+  <button class="btn-sec" onclick="openModal(-1)">+ Добавить день</button>
+  <button class="btn-sec" onclick="doExport()">⬇ Экспорт HTML</button>
+  <button class="btn-red" onclick="clearAll()">🗑 Очистить всё</button>
+  <span id="save-status"></span>
+</div>
+
+<div id="container"></div>
+<button class="add-btn" onclick="openModal(-1)">+ Добавить новый день</button>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="mtitle">Добавить день</h3>
+    <div class="tabs">
+      <button class="tab on" id="t-paste" onclick="switchTab('paste')">📋 Вставить текст смены</button>
+      <button class="tab" id="t-manual" onclick="switchTab('manual')">✏️ Вручную</button>
+    </div>
+
+    <div id="p-paste">
+      <label style="font-weight:600;color:#1a73e8;">Вставьте текст из отчёта смены:</label>
+      <textarea id="paste-area" rows="16" placeholder="📅 22.03.2026
+🕒 Дневная смена (9:00 – 21:00)
+Не работает сайт:
+GAMA — 2
+CAT — 1
+Не работают слоты:
+DADDY — 2
+Трудности с провайдерами:
+Playson — 1
+Pragmatic Play — 1
+Другое:
+CAT — 1"></textarea>
+      <div class="preview" id="preview"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sec" style="flex:1;padding:8px" onclick="doPreview()">👁 Предпросмотр</button>
+        <button class="btn" style="flex:2;padding:8px;font-size:14px" onclick="doPaste()">✅ Добавить в отчёт</button>
+      </div>
+    </div>
+
+    <div id="p-manual" style="display:none">
+      <label>Дата</label><input type="date" id="m-date">
+      <label>Период</label>
+      <select id="m-period">
+        <option>день + ночь</option><option>Дневная смена</option>
+        <option>Ночная смена</option><option>день</option><option>ночь</option>
+      </select>
+      <label>Провайдеры (через запятую: Pragmatic Play — 3, NetEnt — 1)</label>
+      <input type="text" id="m-prov" placeholder="Pragmatic Play — 3, NetEnt — 1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <strong>Проекты</strong>
+        <button class="btn-sec" style="padding:3px 10px;font-size:12px" onclick="addRow()">+ Строка</button>
+      </div>
+      <div class="col-hdr">
+        <span>Проект</span><span>Чат</span><span>Слоты</span><span>Сайт</span>
+        <span>Вывод</span><span>Депозит</span><span>Провайд.</span><span>Другое</span><span></span>
+      </div>
+      <div id="prows"></div>
+      <div class="mactions">
+        <button class="bcancel" onclick="closeModal()">Отмена</button>
+        <button class="bsave" onclick="saveManual()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLS = ['Чат','Слоты','Сайт','Вывод','Депозит','Провайдеры','Другое'];
+const CAT = [
+  [/не работает чат/i,            0],
+  [/не работают слоты/i,          1],
+  [/не работает сайт/i,           2],
+  [/не может.{0,10}вывод/i,       3],
+  [/не может.{0,10}депозит/i,     4],
+  [/трудности.{0,10}провайдер/i,  5],
+  [/другое/i,                     6],
+];
+const KEY = 'rpt_v3';
+let days = [], editIdx = -1;
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+function save() {
+  const st = document.getElementById('save-status');
+  try {
+    localStorage.setItem(KEY, JSON.stringify(days));
+    if (st) { st.style.color = 'green'; st.textContent = '✓ Сохранено (' + days.length + ' дн.)'; setTimeout(() => { st.textContent = ''; }, 3000); }
+  } catch(e) {
+    if (st) { st.style.color = 'red'; st.textContent = '⚠ Не сохранилось: ' + e.message; }
+  }
+}
+
+function load() {
+  try {
+    const r = localStorage.getItem(KEY);
+    if (r) { const p = JSON.parse(r); if (Array.isArray(p)) days = p; }
+  } catch(e) {}
+}
+
+// ── Parser ───────────────────────────────────────────────────────────────────
+function parseText(raw) {
+  const lines = raw.split('\n').map(l => l.replace(/^[\s📅🕒]+/, '').trim()).filter(Boolean);
+  let date = '', period = '';
+  const proj = {}, prov = {};
+  let col = -1, isProv = false;
+
+  for (const line of lines) {
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(line)) { date = line; continue; }
+    if (!line.includes('—') && !line.endsWith(':') && /смена|дневн|ноч|9:00|21:00/i.test(line)) {
+      period = line.replace(/\s*\(.*?\)/g, '').trim(); continue;
+    }
+    if (line.endsWith(':')) {
+      const h = line.slice(0,-1).toLowerCase();
+      isProv = false; col = -1;
+      for (const [rx, idx] of CAT) { if (rx.test(h)) { col = idx; isProv = idx===5; break; } }
+      continue;
+    }
+    const m = line.match(/^(.+?)\s*[—–-]\s*(\d+)$/);
+    if (m) {
+      const name = m[1].trim(), n = parseInt(m[2]);
+      if (isProv) { prov[name] = (prov[name]||0) + n; }
+      else if (col >= 0) { if (!proj[name]) proj[name]=[0,0,0,0,0,0,0]; proj[name][col]+=n; }
+    }
+  }
+  const providers = Object.entries(prov).map(([k,v])=>`${k} — ${v}`).join(', ');
+  const projects = Object.entries(proj).map(([name,vals])=>({name,vals}))
+    .sort((a,b)=>b.vals.reduce((x,y)=>x+y,0)-a.vals.reduce((x,y)=>x+y,0));
+  return {date, period, providers, projects};
+}
+
+// ── Paste tab ─────────────────────────────────────────────────────────────────
+function doPreview() {
+  const d = parseText(document.getElementById('paste-area').value);
+  const box = document.getElementById('preview');
+  let h = `<b>📅</b> ${d.date||'<i style="color:#c00">не найдена</i>'} &nbsp; <b>🕒</b> ${d.period||'—'}<br>`;
+  if (d.providers) {
+    const cnt = d.providers.split(',').reduce((a,p)=>{const m=p.match(/—\s*(\d+)/);return a+(m?+m[1]:1);},0);
+    h += `<b>Провайдеры (${cnt}):</b> ${d.providers}<br>`;
+  }
+  h += '<b>Проекты:</b><br>';
+  if (!d.projects.length) h += '<i style="color:#c00">Не найдено. Проверьте формат: НАЗВАНИЕ — 2</i>';
+  else d.projects.forEach(p=>{
+    const parts = p.vals.map((v,i)=>v?`${COLS[i]}: ${v}`:'').filter(Boolean);
+    h += `&nbsp;• <b>${p.name}</b> — ${parts.join(', ')}<br>`;
+  });
+  box.innerHTML = h; box.style.display = 'block';
+}
+
+function doPaste() {
+  const text = document.getElementById('paste-area').value.trim();
+  if (!text) { alert('Вставьте текст смены'); return; }
+  const d = parseText(text);
+  if (!d.date) { alert('Не найдена дата.\nФормат строки: 22.03.2026'); return; }
+  if (!d.projects.length) { alert('Не найдено ни одного проекта.\nФормат строки: НАЗВАНИЕ — 2'); return; }
+  if (editIdx >= 0) days[editIdx] = d; else days.push(d);
+  closeModal(); save(); render();
+}
+
+// ── Manual tab ────────────────────────────────────────────────────────────────
+function addRow(name='', vals=[0,0,0,0,0,0,0]) {
+  const d = document.createElement('div'); d.className = 'prow';
+  d.innerHTML = `<input type="text" value="${name}" placeholder="Проект">
+    ${vals.map(v=>`<input type="number" value="${v}" min="0">`).join('')}
+    <button class="rm" onclick="this.parentElement.remove()">×</button>`;
+  document.getElementById('prows').appendChild(d);
+}
+
+function saveManual() {
+  const dr = document.getElementById('m-date').value;
+  if (!dr) { alert('Укажите дату'); return; }
+  const dp = dr.split('-');
+  const day = {
+    date: `${dp[2]}.${dp[1]}.${dp[0]}`,
+    period: document.getElementById('m-period').value,
+    providers: document.getElementById('m-prov').value.trim(),
+    projects: []
+  };
+  document.getElementById('prows').querySelectorAll('.prow').forEach(row => {
+    const inp = row.querySelectorAll('input');
+    const name = inp[0].value.trim();
+    if (name) day.projects.push({name, vals: Array.from(inp).slice(1).map(i=>parseInt(i.value)||0)});
+  });
+  if (editIdx >= 0) days[editIdx] = day; else days.push(day);
+  closeModal(); save(); render();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  document.getElementById('p-paste').style.display  = t==='paste'  ? '' : 'none';
+  document.getElementById('p-manual').style.display = t==='manual' ? '' : 'none';
+  document.getElementById('t-paste').className  = 'tab' + (t==='paste'  ? ' on' : '');
+  document.getElementById('t-manual').className = 'tab' + (t==='manual' ? ' on' : '');
+}
+
+function openModal(di) {
+  editIdx = di;
+  document.getElementById('mtitle').textContent = di < 0 ? 'Добавить день' : 'Редактировать день';
+  document.getElementById('preview').style.display = 'none';
+  document.getElementById('paste-area').value = '';
+  if (di >= 0) {
+    switchTab('manual');
+    const d = days[di], p = d.date.split('.');
+    document.getElementById('m-date').value = p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : '';
+    document.getElementById('m-period').value = d.period;
+    document.getElementById('m-prov').value = d.providers || '';
+    document.getElementById('prows').innerHTML = '';
+    d.projects.forEach(p => addRow(p.name, p.vals));
+  } else { switchTab('paste'); }
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+document.getElementById('overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function cntProv(s) { return s.split(',').reduce((a,p)=>{const m=p.match(/—\s*(\d+)/);return a+(m?+m[1]:1);},0); }
+function fmtProv(s) { return s.split(',').map(p=>`<span>${p.trim()}</span>`).join(''); }
+
+function render() {
+  const c = document.getElementById('container'); c.innerHTML = '';
+  days.forEach((day, di) => {
+    const tots = day.projects.reduce((acc,p)=>p.vals.map((v,i)=>acc[i]+v), new Array(7).fill(0));
+    const tot  = tots.reduce((a,b)=>a+b,0);
+    const num  = (day.date||'').split('.')[0];
+    const bl   = document.createElement('div'); bl.className = 'day-block';
+    bl.innerHTML = `
+      <div class="day-header">
+        <div class="date-icon">${num}</div>
+        <span>${day.date} (${day.period})</span>
+        <button onclick="openModal(${di})" style="margin-left:auto;padding:2px 10px;font-size:11px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#555">Редактировать</button>
+        <button onclick="delDay(${di})" style="padding:2px 10px;font-size:11px;border:1px solid #f99;border-radius:4px;background:#fff;cursor:pointer;color:#c00">Удалить</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Проект</th>
+          ${COLS.map((col,ci)=>`<th data-di="${di}" data-ci="${ci}">${col}</th>`).join('')}
+          <th>Всего</th>
+        </tr></thead>
+        <tbody>
+          ${day.projects.map((p,pi)=>`
+            <tr data-di="${di}" data-pi="${pi}">
+              <td>${p.name}</td>
+              ${p.vals.map((v,ci)=>`<td data-di="${di}" data-ci="${ci}" class="${v?'nz':'zero'}">${v}</td>`).join('')}
+              <td class="${p.vals.reduce((a,b)=>a+b,0)?'nz':'zero'}">${p.vals.reduce((a,b)=>a+b,0)}</td>
+            </tr>`).join('')}
+        </tbody>
+        <tfoot>
+          <tr class="total-row" data-di="${di}">
+            <td>Всего</td>
+            ${tots.map((v,ci)=>`<td data-di="${di}" data-ci="${ci}">${v}</td>`).join('')}
+            <td>${tot}</td>
+          </tr>
+        </tfoot>
+      </table>
+      ${day.providers ? `<div class="providers"><strong>Провайдеры (${cntProv(day.providers)}):</strong><br>${fmtProv(day.providers)}</div>` : ''}`;
+    c.appendChild(bl);
+  });
+  attachHL();
+}
+
+// ── Hover highlight ───────────────────────────────────────────────────────────
+function clrHL() {
+  document.querySelectorAll('.col-hl').forEach(c=>c.classList.remove('col-hl'));
+  document.querySelectorAll('.row-hl').forEach(r=>r.classList.remove('row-hl'));
+  document.querySelectorAll('.cell-hl').forEach(c=>c.classList.remove('cell-hl'));
+}
+function attachHL() {
+  document.querySelectorAll('td[data-di],th[data-di]').forEach(cell => {
+    cell.addEventListener('mouseenter', function() {
+      if (!document.getElementById('hl-on').checked) return;
+      clrHL();
+      const {di, ci} = this.dataset;
+      if (ci != null) document.querySelectorAll(`[data-di="${di}"][data-ci="${ci}"]`).forEach(c=>c.classList.add('col-hl'));
+      this.closest('tr')?.classList.add('row-hl');
+      this.classList.add('cell-hl');
+    });
+    cell.addEventListener('mouseleave', clrHL);
+  });
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function delDay(di) { if (confirm('Удалить этот день?')) { days.splice(di,1); save(); render(); } }
+function clearAll() { if (confirm('Удалить все данные?')) { days=[]; save(); render(); } }
+
+function doExport() {
+  const clone = document.documentElement.cloneNode(true);
+
+  const scripts = clone.querySelectorAll("script");
+  scripts.forEach(s => {
+    if (s.innerHTML.includes("const KEY")) {
+      s.innerHTML = `
+const COLS = ${JSON.stringify(COLS)};
+const KEY = '${KEY}';
+let days = ${JSON.stringify(days)};
+render();
+`;
+    }
+  });
+
+  const blob = new Blob([clone.outerHTML], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'report_' + new Date().toISOString().slice(0,10) + '.html';
+  a.click();
+}
+
+// ── Init ──
+load();
+render();
+</script>
+</body>
+</html>

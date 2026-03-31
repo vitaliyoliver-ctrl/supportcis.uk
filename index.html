@@ -105,11 +105,15 @@
     }
 
     .header-sub {
-      font-size: 14px;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 11px;
       font-weight: 300;
+      color: transparent;
+      background: linear-gradient(90deg, var(--tl), var(--support), var(--ops));
+      -webkit-background-clip: text;
+      background-clip: text;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
     }
 
     /* Карточки */
@@ -197,8 +201,8 @@
 
     .card-desc {
       font-size: 13px;
-      color: var(--muted);
-      line-height: 1.6;
+      color: #9ca3b0;
+      line-height: 1.7;
       position: relative;
       z-index: 1;
     }
@@ -309,7 +313,7 @@
       <div class="card-icon">⚡</div>
       <div class="card-badge"><span class="badge-dot"></span>TL Access</div>
       <div class="card-title">For TL Support</div>
-      <div class="card-desc">Инструменты и аналитика для тимлидов. Доступ по подтверждению почты.</div>
+      <div class="card-desc">Инструменты и аналитика для тимлидов. Доступно только для TL.</div>
       <div class="card-arrow">→</div>
     </a>
 
@@ -318,7 +322,7 @@
       <div class="card-icon">💬</div>
       <div class="card-badge"><span class="badge-dot"></span>Support Access</div>
       <div class="card-title">For Support</div>
-      <div class="card-desc">Ресурсы и инструменты для команды поддержки. Доступен всем сотрудникам.</div>
+      <div class="card-desc">Ресурсы и инструменты для команды поддержки. Доступно всем сотрудникам по рабочей почте @velvix.org.</div>
       <div class="card-arrow">→</div>
     </a>
 
@@ -334,7 +338,7 @@
   </div>
 
   <div class="footer">
-    © 2026 Velvix · Внутреннее использование · <span style="color: #4f8ef7;">v0.01</span>
+    © 2026 Velvix · Внутреннее использование
   </div>
 
 </div>

@@ -96,22 +96,22 @@ body.editing .tree-node-actions{display:flex;}
 .tna-del:hover{background:rgba(180,40,40,.25);}
 
 /* connector lines */
-.tree-children-wrap{display:flex;justify-content:center;position:relative;}
 .tree-v-line{width:1px;height:18px;background:#b0b8d8;margin:0 auto;}
-.tree-h-bar{display:flex;align-items:flex-start;justify-content:center;position:relative;margin-top:0;}
-/* horizontal connector: draw border on top half of each child-drop */
+.tree-h-bar{display:flex;align-items:flex-start;justify-content:center;}
 .tree-child-col{display:flex;flex-direction:column;align-items:center;padding:0 8px;position:relative;}
-/* middle children get full top border on drop */
-.tree-child-col .tree-child-drop{position:relative;}
-.tree-child-col .tree-child-drop::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;border-top:1px solid #b0b8d8;}
-/* first child: right half only */
-.tree-child-col.first-child .tree-child-drop::before{left:50%;right:0;}
-/* last child: left half only */
-.tree-child-col.last-child .tree-child-drop::before{left:0;right:50%;}
-/* only child: no horizontal line needed */
-.tree-child-col.only-child .tree-child-drop::before{display:none;}
-.tree-child-col{display:flex;flex-direction:column;align-items:center;padding:0 8px;}
+/* Each child has a short vertical drop on top */
 .tree-child-drop{width:1px;height:18px;background:#b0b8d8;margin:0 auto;}
+/* Horizontal line between siblings: use border-top on .tree-child-col except first */
+.tree-h-bar .tree-child-col{border-top:1px solid #b0b8d8;margin-top:0;}
+/* First child: only right half */
+.tree-h-bar .tree-child-col:first-child{border-top:none;position:relative;}
+.tree-h-bar .tree-child-col:first-child::after{content:'';position:absolute;top:0;left:50%;right:0;height:1px;background:#b0b8d8;}
+/* Last child: only left half */
+.tree-h-bar .tree-child-col:last-child{border-top:none;position:relative;}
+.tree-h-bar .tree-child-col:last-child::after{content:'';position:absolute;top:0;left:0;right:50%;height:1px;background:#b0b8d8;}
+/* Only child: no horizontal line */
+.tree-h-bar .tree-child-col:first-child:last-child{border-top:none;}
+.tree-h-bar .tree-child-col:first-child:last-child::after{display:none;}
 
 /* level colors */
 .lv-head{background:#eeeaff;border-color:#7060d0;} .lv-head .tn-title{color:#3020a0;font-size:13px;}
@@ -725,8 +725,6 @@ function buildTreeDOM(node, deptId, path) {
 
   // Children
   if (node.children && node.children.length > 0) {
-    var n = node.children.length;
-
     // vertical line from node down to h-connector
     var vline = document.createElement('div');
     vline.className = 'tree-v-line';
@@ -738,11 +736,6 @@ function buildTreeDOM(node, deptId, path) {
     node.children.forEach(function(child, i) {
       var col = document.createElement('div');
       col.className = 'tree-child-col';
-      // mark first/last for CSS border trick
-      if (n === 1) col.classList.add('only-child');
-      else if (i === 0) col.classList.add('first-child');
-      else if (i === n - 1) col.classList.add('last-child');
-
       var drop = document.createElement('div');
       drop.className = 'tree-child-drop';
       col.appendChild(drop);

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SupportCIS — For Operations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0c10; --surface: #111318; --border: rgba(255,255,255,0.07);
+      --text: #e8eaf0; --muted: #6b7280; --accent: #f59e42; --glow: rgba(245,158,66,0.18);
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: hidden; }
+    .bg-grid { position: fixed; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; z-index: 0; }
+    .bg-glow { position: fixed; width: 500px; height: 500px; border-radius: 50%; filter: blur(120px); opacity: 0.1; pointer-events: none; z-index: 0; background: var(--accent); top: -100px; left: -100px; }
+    .wrapper { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; }
+    .back { position: fixed; top: 24px; left: 24px; display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: 13px; font-family: 'Mulish', sans-serif; transition: color 0.2s; z-index: 10; }
+    .back:hover { color: var(--text); }
+    .header { text-align: center; margin-bottom: 56px; animation: fadeDown 0.7s ease both; }
+    .section-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--glow); color: var(--accent); border: 1px solid rgba(245,158,66,0.2); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 2s ease infinite; }
+    .header h1 { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .header p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .cards { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 380px; width: 100%; }
+    .card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px 28px; cursor: pointer; text-decoration: none; color: inherit; overflow: hidden; transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; animation: fadeUp 0.6s 0.1s ease both; }
+    .card::before { content: ''; position: absolute; inset: 0; background: var(--glow); opacity: 0; transition: opacity 0.3s ease; border-radius: inherit; }
+    .card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 8px 40px var(--glow), 0 0 0 1px var(--accent); }
+    .card:hover::before { opacity: 1; }
+    .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; background: var(--glow); border: 1px solid rgba(255,255,255,0.06); position: relative; z-index: 1; }
+    .card-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; position: relative; z-index: 1; }
+    .card-desc { font-size: 12px; color: var(--muted); line-height: 1.6; position: relative; z-index: 1; }
+    .card-arrow { position: absolute; bottom: 24px; right: 24px; color: var(--muted); font-size: 16px; transition: all 0.3s ease; z-index: 1; }
+    .card:hover .card-arrow { color: var(--accent); transform: translateX(3px); }
+    .footer { margin-top: 56px; text-align: center; font-size: 12px; color: var(--muted); animation: fadeUp 0.6s 0.3s ease both; }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<a href="/" class="back">← Назад на главную</a>
+<div class="wrapper">
+  <div class="header">
+    <div class="section-badge"><span class="badge-dot"></span>Ops Access</div>
+    <h1>For Operations</h1>
+    <p>Структура и процессы операционного отдела</p>
+  </div>
+  <div class="cards">
+    <a href="/operations" class="card">
+      <div class="card-icon">⚙️</div>
+      <div class="card-title">Operations Structure</div>
+      <div class="card-desc">Организационная структура, процессы и регламенты операционного отдела</div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+  <div class="footer">© 2026 Velvix · Внутреннее использование · <span style="color: var(--accent);">v0.01</span></div>
+</div>
+</body>
+</html>

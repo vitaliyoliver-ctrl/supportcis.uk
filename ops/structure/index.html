@@ -99,6 +99,17 @@ body.editing .tree-node-actions{display:flex;}
 .tree-children-wrap{display:flex;justify-content:center;position:relative;}
 .tree-v-line{width:1px;height:18px;background:#b0b8d8;margin:0 auto;}
 .tree-h-bar{display:flex;align-items:flex-start;justify-content:center;position:relative;margin-top:0;}
+/* horizontal connector: draw border on top half of each child-drop */
+.tree-child-col{display:flex;flex-direction:column;align-items:center;padding:0 8px;position:relative;}
+/* middle children get full top border on drop */
+.tree-child-col .tree-child-drop{position:relative;}
+.tree-child-col .tree-child-drop::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;border-top:1px solid #b0b8d8;}
+/* first child: right half only */
+.tree-child-col.first-child .tree-child-drop::before{left:50%;right:0;}
+/* last child: left half only */
+.tree-child-col.last-child .tree-child-drop::before{left:0;right:50%;}
+/* only child: no horizontal line needed */
+.tree-child-col.only-child .tree-child-drop::before{display:none;}
 .tree-child-col{display:flex;flex-direction:column;align-items:center;padding:0 8px;}
 .tree-child-drop{width:1px;height:18px;background:#b0b8d8;margin:0 auto;}
 
@@ -714,26 +725,24 @@ function buildTreeDOM(node, deptId, path) {
 
   // Children
   if (node.children && node.children.length > 0) {
-    // vertical line from node down
+    var n = node.children.length;
+
+    // vertical line from node down to h-connector
     var vline = document.createElement('div');
     vline.className = 'tree-v-line';
     wrap.appendChild(vline);
 
-    // children row
     var hbar = document.createElement('div');
     hbar.className = 'tree-h-bar';
-    hbar.style.position = 'relative';
 
     node.children.forEach(function(child, i) {
       var col = document.createElement('div');
       col.className = 'tree-child-col';
-      col.style.display = 'flex';
-      col.style.flexDirection = 'column';
-      col.style.alignItems = 'center';
-      col.style.padding = '0 8px';
-      col.style.position = 'relative';
+      // mark first/last for CSS border trick
+      if (n === 1) col.classList.add('only-child');
+      else if (i === 0) col.classList.add('first-child');
+      else if (i === n - 1) col.classList.add('last-child');
 
-      // top connector drop per child
       var drop = document.createElement('div');
       drop.className = 'tree-child-drop';
       col.appendChild(drop);
@@ -742,30 +751,6 @@ function buildTreeDOM(node, deptId, path) {
     });
 
     wrap.appendChild(hbar);
-
-    // Draw horizontal line connecting children via ResizeObserver after paint
-    requestAnimationFrame(function() {
-      var cols = hbar.querySelectorAll(':scope > .tree-child-col');
-      if (cols.length < 2) return;
-      var hbarRect = hbar.getBoundingClientRect();
-      var firstRect = cols[0].getBoundingClientRect();
-      var lastRect = cols[cols.length-1].getBoundingClientRect();
-      var x1 = firstRect.left + firstRect.width/2 - hbarRect.left;
-      var x2 = lastRect.left + lastRect.width/2 - hbarRect.left;
-      var y = 0;
-      // create SVG overlay
-      var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-      svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:1px;overflow:visible;pointer-events:none;';
-      var line = document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1', x1);
-      line.setAttribute('y1', y);
-      line.setAttribute('x2', x2);
-      line.setAttribute('y2', y);
-      line.setAttribute('stroke', '#b0b8d8');
-      line.setAttribute('stroke-width', '1');
-      svg.appendChild(line);
-      hbar.appendChild(svg);
-    });
   }
 
   return wrap;

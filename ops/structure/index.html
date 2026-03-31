@@ -144,6 +144,7 @@ body.editing .add-row-btn{display:block;}
   <div class="pill">FTE: <b id="fteTotal">402.5</b></div>
   <div class="pill">Отделов: <b>10</b></div>
   <button class="btn" id="editBtn" onclick="toggleEdit()">✎ Редактировать</button>
+  <span id="saveStatus" style="font-size:12px;color:#22c55e;opacity:0;transition:opacity 0.5s;padding:5px 10px;"></span>
   <button class="btn dl-btn" onclick="downloadHTML()">⬇ Скачать HTML</button>
 </div>
 <div class="edit-hint" id="editHint"></div>
@@ -196,6 +197,7 @@ body.editing .add-row-btn{display:block;}
 
 <script>
 // ── DATA ──
+var API_URL = 'https://ops-structure-api.vitaliy-barkhanskiy.workers.dev/';
 var DATA = [
   {id:'cc',label:'Call Center',total:'SG 85 / NC 15',pfx:'cc',roles:[['Head CC','1'],['Head SG','1'],['TL Active','3'],['Manager Active','30'],['Head Awol','0'],['TL Awol','3'],['Manager Awol','16'],['QA TL','1'],['QA','4'],['IVM Manager','2'],['Coach','1'],['Statistician','4'],['Head NC','1'],['TL NC','1'],['Manager NC','14']]},
   {id:'pv',label:'PreVIP',total:'ALL: 29',pfx:'pv',roles:[['Head','1'],['TL','3'],['Manager','25']]},
@@ -299,11 +301,12 @@ function saveEdit(el) {
   var val = el.textContent.trim();
   var d = DATA.find(function(x){ return x.id === id; });
   if (!d) return;
-  if (field === 'label') { d.label = val; recalcAll(); }
-  else if (field === 'rn') { d.roles[+el.dataset.idx][0] = val; }
+  if (field === 'label') { d.label = val; recalcAll(); saveToAPI(); }
+  else if (field === 'rn') { d.roles[+el.dataset.idx][0] = val; saveToAPI(); }
   else if (field === 'rc') {
     d.roles[+el.dataset.idx][1] = val;
     recalcAll();
+    saveToAPI();
   }
 }
 
@@ -358,6 +361,7 @@ function delRow(id, idx) {
   }
   if (wasOpen) document.querySelector('.dept-col[data-id="'+id+'"]').classList.add('open');
   recalcAll();
+  saveToAPI();
 }
 
 function addRow(id) {
@@ -372,6 +376,7 @@ function addRow(id) {
   }
   document.querySelector('.dept-col[data-id="'+id+'"]').classList.add('open');
   recalcAll();
+  saveToAPI();
   // focus last rn
   var rows = document.querySelectorAll('.dept-col[data-id="'+id+'"] .rn');
   if (rows.length) rows[rows.length-1].focus();
@@ -801,10 +806,47 @@ function buildCrmSplit(r) {
     + '</div>';
 }
 
+// ── SAVE TO API ──
+var saveTimer = null;
+function saveToAPI() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function() {
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(DATA)
+    }).then(function(r) {
+      if (r.ok) showSaveStatus('✓ Сохранено', '#22c55e');
+      else showSaveStatus('✗ Ошибка', '#ef4444');
+    }).catch(function() {
+      showSaveStatus('✗ Нет связи', '#ef4444');
+    });
+  }, 800);
+}
+
+function showSaveStatus(msg, color) {
+  var el = document.getElementById('saveStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color;
+  el.style.opacity = '1';
+  setTimeout(function() { el.style.opacity = '0'; }, 2500);
+}
+
 // ── INIT ──
-render();
-recalcAll();
-setTimeout(drawConnectors, 120);
+fetch(API_URL)
+  .then(function(r) { return r.json(); })
+  .then(function(json) {
+    DATA = json;
+    render();
+    recalcAll();
+    setTimeout(drawConnectors, 120);
+  })
+  .catch(function() {
+    render();
+    recalcAll();
+    setTimeout(drawConnectors, 120);
+  });
 window.addEventListener('resize', drawConnectors);
 
 function drawConnectors() {

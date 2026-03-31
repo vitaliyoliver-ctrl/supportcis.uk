@@ -21,8 +21,6 @@ body{padding:20px 16px 40px;min-height:100vh;}
 .btn.save-btn:hover{background:#102818;}
 .btn.load-btn{border-color:#40602a;color:#88cc44;background:#141e0c;}
 .btn.load-btn:hover{background:#182410;}
-.btn.dl-btn{border-color:#7060c0;color:#5040a0;background:#f0eeff;}
-.btn.dl-btn:hover{background:#e4e0ff;}
 #loadInput{display:none;}
 
 /* edit mode hint */
@@ -145,7 +143,6 @@ body.editing .add-row-btn{display:block;}
   <div class="pill">Отделов: <b>10</b></div>
   <button class="btn" id="editBtn" onclick="toggleEdit()">✎ Редактировать</button>
   <span id="saveStatus" style="font-size:12px;color:#22c55e;opacity:0;transition:opacity 0.5s;padding:5px 10px;"></span>
-  <button class="btn dl-btn" onclick="downloadHTML()">⬇ Скачать HTML</button>
 </div>
 <div class="edit-hint" id="editHint"></div>
 
@@ -392,21 +389,6 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeDeta
 
 
 
-// ── DOWNLOAD HTML ──
-function downloadHTML() {
-  // sync any active edits
-  document.querySelectorAll('[contenteditable="true"]').forEach(function(el){ saveEdit(el); });
-
-  var dataStr = JSON.stringify(DATA);
-  var src = document.documentElement.outerHTML;
-  // replace DATA declaration with current data
-  src = src.replace(/var DATA = \[[\s\S]*?\];/, 'var DATA = '+dataStr+';');
-  var blob = new Blob([src], {type:'text/html'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'org_structure.html';
-  a.click();
-}
 
 
 // ── SUPPORT TREE ──

@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Зал славы поддержки</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FFD700;
+    --gold-dark: #C5A000;
+    --silver: #C0C0C0;
+    --bronze: #CD7F32;
+    --bg-deep: #0B0E17;
+    --bg-card: #12162A;
+    --bg-row: #181D35;
+    --bg-row-alt: #1E2440;
+    --text-primary: #F0EDE6;
+    --text-muted: #8A8FA8;
+    --accent-cyan: #00E5FF;
+    --accent-purple: #A855F7;
+    --accent-pink: #F43F9E;
+    --accent-green: #22C55E;
+    --accent-lime: #84CC16;
+    --accent-yellow: #EAB308;
+    --accent-orange: #F97316;
+    --accent-red: #EF4444;
+    --glow-gold: rgba(255, 215, 0, 0.25);
+    --glow-cyan: rgba(0, 229, 255, 0.15);
+    --glow-green: rgba(34, 197, 94, 0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(0, 229, 255, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 0%, rgba(255, 215, 0, 0.04) 0%, transparent 40%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    width: 100%;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+    animation: fadeDown 0.8s ease-out;
+  }
+
+  .header .trophy { font-size: 56px; margin-bottom: 8px; filter: drop-shadow(0 0 20px var(--glow-gold)); animation: pulse 2.5s ease-in-out infinite; }
+
+  .header h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 42px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--gold) 0%, #FFF1A8 40%, var(--gold-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+  }
+
+  .header .subtitle {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .divider { width: 120px; height: 2px; margin: 20px auto 0; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+  /* ─── Mode switcher ─── */
+  .mode-switcher {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 32px;
+    animation: fadeDown 0.8s ease-out 0.05s both;
+  }
+
+  .mode-btn {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    padding: 14px 40px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+
+  .mode-btn:first-child { border-radius: 10px 0 0 10px; border-right: none; }
+  .mode-btn:last-child  { border-radius: 0 10px 10px 0; border-left: none; }
+
+  .mode-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+
+  .mode-btn.active {
+    background: var(--bg-card);
+    color: var(--gold);
+    border-color: rgba(255,215,0,0.25);
+    box-shadow: 0 0 20px var(--glow-gold);
+  }
+
+  /* ─── Mode sections ─── */
+  .mode-section { display: none; }
+  .mode-section.active { display: block; animation: fadeUp 0.4s ease-out; }
+
+  /* ─── Tabs ─── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 32px;
+    animation: fadeDown 0.8s ease-out 0.1s both;
+  }
+
+  .tab {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 12px 28px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px 8px 0 0;
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+
+  .tab:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+
+  .tab.active {
+    background: var(--bg-card);
+    color: var(--gold);
+    border-bottom-color: var(--bg-card);
+    box-shadow: 0 -2px 12px var(--glow-gold);
+  }
+
+  /* ─── Tab content ─── */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeUp 0.5s ease-out; }
+
+  /* ─── Section headers ─── */
+  .section-header {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    padding: 16px 24px;
+    margin-top: 28px;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-header:first-child { margin-top: 0; }
+  .section-header .icon { font-size: 22px; }
+  .section-header .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.12), transparent); }
+
+  .section-material { color: var(--gold); }
+  .section-nonmaterial { color: var(--accent-cyan); }
+  .section-special { color: var(--accent-purple); }
+  .section-sales { color: var(--accent-green); }
+
+  /* ─── Table ─── */
+  .table-wrapper {
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    box-shadow: 0 4px 60px rgba(0, 0, 0, 0.5), 0 0 80px var(--glow-cyan);
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  /* Фиксированные ширины для таблиц чемпионата */
+  #tab-feb table:not(.table-special),
+  #tab-jan table:not(.table-special),
+  #tab-dec table:not(.table-special) {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  #tab-feb table:not(.table-special) th:nth-child(1),
+  #tab-jan table:not(.table-special) th:nth-child(1),
+  #tab-dec table:not(.table-special) th:nth-child(1) { width: 8%; }
+
+  #tab-feb table:not(.table-special) th:nth-child(2),
+  #tab-jan table:not(.table-special) th:nth-child(2),
+  #tab-dec table:not(.table-special) th:nth-child(2) { width: 15%; }
+
+  #tab-feb table:not(.table-special) th:nth-child(3),
+  #tab-jan table:not(.table-special) th:nth-child(3),
+  #tab-dec table:not(.table-special) th:nth-child(3) { width: 12%; }
+
+  #tab-feb table:not(.table-special) th:nth-child(4),
+  #tab-jan table:not(.table-special) th:nth-child(4),
+  #tab-dec table:not(.table-special) th:nth-child(4) { width: 12%; }
+
+  #tab-feb table:not(.table-special) th:nth-child(5),
+  #tab-jan table:not(.table-special) th:nth-child(5),
+  #tab-dec table:not(.table-special) th:nth-child(5) { width: 12%; }
+
+  #tab-feb table:not(.table-special) th:nth-child(6),
+  #tab-jan table:not(.table-special) th:nth-child(6),
+  #tab-dec table:not(.table-special) th:nth-child(6) { width: 20%; }
+
+  #tab-feb table:not(.table-special) th:nth-child(7),
+  #tab-jan table:not(.table-special) th:nth-child(7),
+  #tab-dec table:not(.table-special) th:nth-child(7) { width: 21%; }
+
+  thead th {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    padding: 16px 24px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  thead th:first-child { text-align: center; width: 64px; }
+  thead th:nth-child(3),
+  thead th:nth-child(4),
+  thead th:nth-child(5),
+  thead th:nth-child(6) { text-align: right; }
+  thead th:last-child { text-align: center; }
+
+  .table-special thead th:first-child { text-align: left; width: auto; }
+  .table-special thead th:nth-child(2) { text-align: center; }
+  .table-special thead th:last-child { text-align: left; }
+
+  tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  tbody tr:nth-child(odd) { background: var(--bg-row); }
+  tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+  tbody tr:hover { background: rgba(168, 85, 247, 0.08); transform: scale(1.003); }
+
+  td { padding: 16px 24px; font-size: 15px; vertical-align: middle; }
+
+  td:first-child {
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+  }
+
+  td:nth-child(3),
+  td:nth-child(4),
+  td:nth-child(5),
+  td:nth-child(6) {
+    text-align: right;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--accent-cyan);
+    opacity: 0.8;
+  }
+
+  td:last-child { text-align: center; }
+
+  .table-special td:first-child { text-align: left; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700; }
+  .table-special td:nth-child(2) { text-align: center; }
+  .table-special td:last-child { text-align: left; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+
+  /* Выравнивание для таблиц чемпионата (материальные и нематериальные) */
+  #tab-feb table:not(.table-special) thead th:nth-child(2),
+  #tab-jan table:not(.table-special) thead th:nth-child(2),
+  #tab-dec table:not(.table-special) thead th:nth-child(2) { text-align: left; }
+  
+  #tab-feb table:not(.table-special) td:nth-child(2),
+  #tab-jan table:not(.table-special) td:nth-child(2),
+  #tab-dec table:not(.table-special) td:nth-child(2) { text-align: left; font-family: 'Nunito', sans-serif; font-weight: 700; }
+
+  .name { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; }
+
+  .place-1 { color: var(--gold); text-shadow: 0 0 12px var(--glow-gold); }
+  .place-2 { color: var(--silver); text-shadow: 0 0 10px rgba(192,192,192,0.3); }
+  .place-3 { color: var(--bronze); text-shadow: 0 0 10px rgba(205,127,50,0.3); }
+  .place-other { color: var(--text-muted); }
+
+  tr.row-1 { background: linear-gradient(90deg, rgba(255,215,0,0.08), transparent 60%) !important; }
+  tr.row-2 { background: linear-gradient(90deg, rgba(192,192,192,0.06), transparent 60%) !important; }
+  tr.row-3 { background: linear-gradient(90deg, rgba(205,127,50,0.06), transparent 60%) !important; }
+
+  .medal { display: inline-block; font-size: 24px; line-height: 1; }
+  .name-gold { color: var(--gold); }
+  .name-silver { color: var(--silver); }
+  .name-bronze { color: var(--bronze); }
+
+  .prize-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .prize-money {
+    background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
+    border: 1px solid rgba(255,215,0,0.3);
+    color: var(--gold);
+  }
+
+  .prize-time {
+    background: linear-gradient(135deg, rgba(0,229,255,0.12), rgba(0,229,255,0.04));
+    border: 1px solid rgba(0,229,255,0.25);
+    color: var(--accent-cyan);
+  }
+
+  .prize-food {
+    background: linear-gradient(135deg, rgba(244,63,158,0.12), rgba(244,63,158,0.04));
+    border: 1px solid rgba(244,63,158,0.25);
+    color: var(--accent-pink);
+  }
+
+  /* ─── Placeholder ─── */
+  .placeholder {
+    text-align: center;
+    padding: 80px 40px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 4px 60px rgba(0,0,0,0.5);
+  }
+
+  .placeholder .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.6; }
+  .placeholder h3 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .placeholder p { color: var(--text-muted); opacity: 0.6; font-size: 15px; }
+
+  /* ─── Footer ─── */
+  .footer {
+    text-align: center;
+    margin-top: 32px;
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+  }
+
+  /* ─── Animations ─── */
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-30px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
+  .table-wrapper { animation: fadeUp 0.5s ease-out both; }
+
+  /* ─── Sales Rating ─── */
+  .sales-table thead th {
+    text-align: right;
+    width: auto;
+  }
+  .sales-table thead th:nth-child(1) { text-align: center; width: 52px; }
+  .sales-table thead th:nth-child(2) { text-align: left; width: 130px; }
+  .sales-table thead th:nth-child(3),
+  .sales-table thead th:nth-child(4),
+  .sales-table thead th:nth-child(5) { text-align: right; }
+  .sales-table thead th:nth-child(6),
+  .sales-table thead th:nth-child(7),
+  .sales-table thead th:nth-child(8) { text-align: right; }
+  .sales-table thead th:last-child { text-align: right; }
+
+  .sales-table td {
+    text-align: right;
+    font-size: 14px;
+    padding: 13px 16px;
+  }
+  .sales-table td:nth-child(1) { text-align: center; font-size: 18px; padding: 13px 10px; width: 52px; }
+  .sales-table td:nth-child(2) { text-align: left; font-weight: 700; font-size: 15px; padding: 13px 16px; }
+  .sales-table td:nth-child(3) { color: var(--text-primary); opacity: 1; font-family: 'Nunito', sans-serif; }
+
+  .sales-table tbody tr:nth-child(odd) { background: var(--bg-row); }
+  .sales-table tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+  .sales-table tbody tr:hover { background: rgba(34, 197, 94, 0.06); transform: scale(1.002); }
+
+  /* top-3 row backgrounds for sales */
+  tr.sales-row-1 { background: linear-gradient(90deg, rgba(255,215,0,0.07), transparent 70%) !important; }
+  tr.sales-row-2 { background: linear-gradient(90deg, rgba(192,192,192,0.05), transparent 70%) !important; }
+  tr.sales-row-3 { background: linear-gradient(90deg, rgba(205,127,50,0.05), transparent 70%) !important; }
+
+  .pct-green {
+    color: var(--accent-green);
+    font-weight: 700;
+  }
+  .pct-red {
+    color: var(--accent-red);
+    font-weight: 700;
+  }
+
+  .bonus-cell {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    color: var(--gold);
+    font-size: 14px;
+  }
+  .bonus-cell.zero {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .rank-icon { font-size: 20px; line-height: 1; }
+
+  .sales-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: flex-end;
+    padding: 10px 8px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .legend-green { background: var(--accent-green); }
+  .legend-red { background: var(--accent-red); }
+
+  .sales-legend-block {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s ease-out both;
+  }
+  .legend-formula-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    margin-bottom: 4px;
+  }
+  .legend-formula-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    letter-spacing: 0.3px;
+  }
+  .legend-formula-desc strong { color: var(--gold); }
+  .legend-tables {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .legend-table-wrap { flex: 1; min-width: 200px; }
+  .legend-table-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .legend-table-title span { text-transform: none; letter-spacing: 0; font-family: 'Nunito', sans-serif; font-size: 11px; opacity: 0.7; }
+  .legend-table { border-collapse: collapse; width: 100%; }
+  .legend-table tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .legend-table td { padding: 5px 10px; font-size: 13px; }
+  .legend-table td:first-child { font-weight: 700; }
+  .legend-table td:last-child { color: var(--text-muted); font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 1px; }
+
+  .sales-table thead th.sortable { cursor: pointer; }
+  .sales-table thead th:hover { color: var(--text-primary); }
+  .sort-arrow { font-size: 11px; opacity: 0.8; }
+
+  @media (max-width: 640px) {
+    .header h1 { font-size: 26px; letter-spacing: 2px; }
+    .header .subtitle { font-size: 11px; letter-spacing: 3px; }
+    .mode-btn { padding: 11px 18px; font-size: 12px; letter-spacing: 1px; }
+    .tab { padding: 10px 16px; font-size: 12px; letter-spacing: 1px; }
+    thead th, td { padding: 12px 10px; }
+    .name { font-size: 14px; }
+    td:nth-child(3) { font-size: 12px; }
+    .prize-badge { font-size: 11px; padding: 4px 8px; }
+    .section-header { font-size: 14px; padding: 14px 12px; }
+    .sales-table td { font-size: 12px; padding: 10px 8px; }
+  }
+
+  /* ─── CSAT Formula Block ─── */
+  .csat-formula-block {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 12px 24px;
+    margin: 0 auto 20px;
+    max-width: 900px;
+    animation: fadeUp 0.5s ease-out both;
+    text-align: center;
+  }
+  .csat-formula-eq {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 6px 0 10px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  .formula-op {
+    color: var(--text-muted);
+    font-size: 16px;
+    font-weight: 300;
+  }
+  .formula-part {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+  .formula-csat  { background: rgba(0,229,255,0.1);  color: var(--accent-cyan);   border: 1px solid rgba(0,229,255,0.2); }
+  .formula-avg   { background: rgba(168,85,247,0.1); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.2); }
+  .formula-first { background: rgba(255,215,0,0.1);  color: var(--gold);          border: 1px solid rgba(255,215,0,0.2); }
+  .csat-formula-weights {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .weight-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .weight-csat  { background: rgba(0,229,255,0.12);  color: var(--accent-cyan); }
+  .weight-avg   { background: rgba(168,85,247,0.12); color: var(--accent-purple); }
+  .weight-first { background: rgba(255,215,0,0.12);  color: var(--gold); }
+  .csat-calc-btn {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(168,85,247,0.15));
+    border: 1px solid rgba(0,229,255,0.3);
+    color: var(--accent-cyan);
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .csat-calc-btn:hover {
+    background: linear-gradient(135deg, rgba(0,229,255,0.25), rgba(168,85,247,0.25));
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0,229,255,0.2);
+  }
+
+  /* ─── Calculator Modal ─── */
+  .calc-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+  }
+  .calc-modal-overlay.active { display: flex; }
+  .calc-modal {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 420px;
+    margin: 20px;
+    box-shadow: 0 0 40px rgba(0,229,255,0.1), 0 20px 60px rgba(0,0,0,0.6);
+    animation: fadeUp 0.3s ease-out;
+  }
+  .calc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .calc-modal-header span {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+  }
+  .calc-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .calc-close-btn:hover { color: var(--text-primary); }
+  .calc-inputs { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+  .calc-input-group label {
+    display: block;
+    font-size: 11px;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+  .calc-input-group input {
+    width: 100%;
+    background: var(--bg-row);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .calc-input-group input:focus { border-color: var(--accent-cyan); }
+  .calc-run-btn {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(168,85,247,0.2));
+    border: 1px solid rgba(0,229,255,0.4);
+    color: var(--accent-cyan);
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+  .calc-run-btn:hover {
+    background: linear-gradient(135deg, rgba(0,229,255,0.3), rgba(168,85,247,0.3));
+    box-shadow: 0 0 16px rgba(0,229,255,0.2);
+  }
+  .calc-result {
+    background: var(--bg-row);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .calc-result-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .calc-result-value {
+    font-family: 'Oswald', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+  .calc-result-breakdown {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .calc-result-breakdown span {
+    background: rgba(255,255,255,0.04);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="trophy">🏆</div>
+    <h1>Зал славы поддержки</h1>
+    <div class="subtitle">Лучшие операторы по итогам чемпионата</div>
+    <div class="divider"></div>
+  </div>
+
+  <!-- ─── Mode Switcher ─── -->
+  <div class="mode-switcher">
+    <div class="mode-btn active" onclick="switchMode('championship')">🏆 Чемпионат</div>
+    <div class="mode-btn" onclick="switchMode('sales')">💰 Рейтинг продаж</div>
+  </div>
+
+  <!-- ==================== РЕЖИМ: ЧЕМПИОНАТ ==================== -->
+  <div id="mode-championship" class="mode-section active">
+
+    <!-- Формула чемпионского балла -->
+    <div class="csat-formula-block">
+      <div class="legend-formula-title">💡 Как считается Чемпионский балл</div>
+      <div class="csat-formula-eq">
+        <span class="formula-part formula-csat">(КСАТ / 77%) × 60%</span>
+        <span class="formula-op">+</span>
+        <span class="formula-part formula-avg">(1 + (60 − Среднее) / 60) × 25%</span>
+        <span class="formula-op">+</span>
+        <span class="formula-part formula-first">(1 + (20 − Принятие) / 20) × 15%</span>
+      </div>
+      <div class="csat-formula-weights">
+        <span class="weight-pill weight-csat">КСАТ — 60%</span>
+        <span class="weight-pill weight-avg">Среднее время ответа — 25%</span>
+        <span class="weight-pill weight-first">Принятие — 15%</span>
+      </div>
+      <button class="csat-calc-btn" onclick="openCalc()">🧮 Калькулятор чемпионского балла</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab" onclick="switchTab('dec')">Декабрь 2025</div>
+      <div class="tab" onclick="switchTab('jan')">Январь 2026</div>
+      <div class="tab active" onclick="switchTab('feb')">Февраль 2026</div>
+    </div>
+
+    <!-- ==================== ФЕВРАЛЬ ==================== -->
+    <div id="tab-feb" class="tab-content active">
+
+      <div class="section-header section-material">
+        <span class="icon">💰</span>
+        <span>Материальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>КСАТ</th>
+              <th>Принятие</th>
+              <th>Среднее</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-1">
+              <td><span class="medal">🥇</span></td>
+              <td><span class="name name-gold">Ashton</span></td>
+              <td>86.50%</td>
+              <td>3.75</td>
+              <td>25.75</td>
+              <td>1 338 609 307</td>
+              <td><span class="prize-badge prize-money">3 000 грн</span></td>
+            </tr>
+            <tr class="row-2">
+              <td><span class="medal">🥈</span></td>
+              <td><span class="name name-silver">Tom</span></td>
+              <td>97.50%</td>
+              <td>11.00</td>
+              <td>36.75</td>
+              <td>1 324 115 260</td>
+              <td><span class="prize-badge prize-money">2 000 грн</span></td>
+            </tr>
+            <tr class="row-3">
+              <td><span class="medal">🥉</span></td>
+              <td><span class="name name-bronze">Kenzo</span></td>
+              <td>91.00%</td>
+              <td>7.00</td>
+              <td>39.00</td>
+              <td>1 294 090 909</td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-nonmaterial">
+        <span class="icon">⭐</span>
+        <span>Нематериальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>КСАТ</th>
+              <th>Принятие</th>
+              <th>Среднее</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="place-other">4</span></td>
+              <td><span class="name">Chadwick</span></td>
+              <td>91.75%</td>
+              <td>8.25</td>
+              <td>40.25</td>
+              <td>1 285 351 732</td>
+              <td><span class="prize-badge prize-time">Уйти на 3 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">5</span></td>
+              <td><span class="name">Trinity</span></td>
+              <td>84.00%</td>
+              <td>4.33</td>
+              <td>37.33</td>
+              <td>1 266 489 899</td>
+              <td><span class="prize-badge prize-food">2 обеда по 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">6</span></td>
+              <td><span class="name">Shane</span></td>
+              <td>91.00%</td>
+              <td>7.00</td>
+              <td>48.00</td>
+              <td>1 256 590 909</td>
+              <td><span class="prize-badge prize-time">Уйти на 2 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">7</span></td>
+              <td><span class="name">Christine</span></td>
+              <td>90.00%</td>
+              <td>6.25</td>
+              <td>49.25</td>
+              <td>1 249 215 368</td>
+              <td><span class="prize-badge prize-food">1 обед 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">8</span></td>
+              <td><span class="name">Skylar</span></td>
+              <td>89.00%</td>
+              <td>13.50</td>
+              <td>38.50</td>
+              <td>1 231 839 827</td>
+              <td><span class="prize-badge prize-time">Уйти на 1 ч раньше</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-special">
+        <span class="icon">🌟</span>
+        <span>Вне конкурса — за особые заслуги</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table-special">
+          <thead>
+            <tr>
+              <th>Оператор</th>
+              <th>Приз</th>
+              <th>За что</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Ren / Глеб</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Лучший КСАТ на НК, отличные показатели</td>
+            </tr>
+            <tr>
+              <td><span class="name">Shin</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Активное участие в развитии НК, заполнение кондфло, обучения</td>
+            </tr>
+            <tr>
+              <td><span class="name">Lucas</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Один из лучших показателей команды, активное участие в процессах, таски</td>
+            </tr>
+            <tr>
+              <td><span class="name">Reed</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Хорошая и стабильная работа с жалобами + новые обязанности</td>
+            </tr>
+            <tr>
+              <td><span class="name">Luciana / Ольга</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Один из лучших показателей НК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Frey / Ева</span></td>
+              <td><span class="prize-badge prize-time">Уйти на 3 ч раньше</span></td>
+              <td>Один из лучших показателей НК</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ==================== ЯНВАРЬ ==================== -->
+    <div id="tab-jan" class="tab-content">
+
+      <div class="section-header section-material">
+        <span class="icon">💰</span>
+        <span>Материальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-1">
+              <td><span class="medal">🥇</span></td>
+              <td><span class="name name-gold">Tom</span></td>
+              <td>1 307 061 688</td>
+              <td><span class="prize-badge prize-money">3 000 грн</span></td>
+            </tr>
+            <tr class="row-2">
+              <td><span class="medal">🥈</span></td>
+              <td><span class="name name-silver">Kenzo</span></td>
+              <td>1 293 008 658</td>
+              <td><span class="prize-badge prize-money">2 000 грн</span></td>
+            </tr>
+            <tr class="row-3">
+              <td><span class="medal">🥉</span></td>
+              <td><span class="name name-bronze">Trinity</span></td>
+              <td>1 290 435 606</td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-nonmaterial">
+        <span class="icon">⭐</span>
+        <span>Нематериальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="place-other">4</span></td>
+              <td><span class="name">Christine</span></td>
+              <td>1 142 953 580</td>
+              <td><span class="prize-badge prize-food">2 обеда по 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">5</span></td>
+              <td><span class="name">Ashton</span></td>
+              <td>1 130 371 456</td>
+              <td><span class="prize-badge prize-time">Уйти на 3 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">6</span></td>
+              <td><span class="name">Silvia</span></td>
+              <td>1 093 195 268</td>
+              <td><span class="prize-badge prize-time">Уйти на 1 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">7</span></td>
+              <td><span class="name">Scott</span></td>
+              <td>1 091 181 313</td>
+              <td><span class="prize-badge prize-time">Уйти на 2 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">8</span></td>
+              <td><span class="name">Chadwick</span></td>
+              <td>1 086 804 045</td>
+              <td><span class="prize-badge prize-food">1 обед 2 часа</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-special">
+        <span class="icon">🌟</span>
+        <span>Вне конкурса — за особые заслуги</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table-special">
+          <thead>
+            <tr>
+              <th>Оператор</th>
+              <th>Приз</th>
+              <th>За что</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Frey</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Один из лучших показателей на НК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Shin</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Активное участие в развитии НК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Richard</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Стабильно хорошие показатели, активное вовлечение в развитие СГ</td>
+            </tr>
+            <tr>
+              <td><span class="name">River</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Разработка приложений для сапорта</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ==================== ДЕКАБРЬ ==================== -->
+    <div id="tab-dec" class="tab-content">
+
+      <div class="section-header section-material">
+        <span class="icon">💰</span>
+        <span>Материальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-1">
+              <td><span class="medal">🥇</span></td>
+              <td><span class="name name-gold">Chandler</span></td>
+              <td>1 664 866 712</td>
+              <td><span class="prize-badge prize-money">3 000 грн</span></td>
+            </tr>
+            <tr class="row-2">
+              <td><span class="medal">🥈</span></td>
+              <td><span class="name name-silver">Melvin</span></td>
+              <td>1 580 317 224</td>
+              <td><span class="prize-badge prize-money">2 000 грн</span></td>
+            </tr>
+            <tr class="row-3">
+              <td><span class="medal">🥉</span></td>
+              <td><span class="name name-bronze">Trinity</span></td>
+              <td>1 548 663 102</td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-nonmaterial">
+        <span class="icon">⭐</span>
+        <span>Нематериальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="place-other">4</span></td>
+              <td><span class="name">Kenzo</span></td>
+              <td>1 136 710 623</td>
+              <td><span class="prize-badge prize-time">Уйти на 3 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">5</span></td>
+              <td><span class="name">Christine</span></td>
+              <td>1 127 988 010</td>
+              <td><span class="prize-badge prize-food">2 обеда по 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">6</span></td>
+              <td><span class="name">Felicia</span></td>
+              <td>1 090 023 522</td>
+              <td><span class="prize-badge prize-time">Уйти на 1 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">7</span></td>
+              <td><span class="name">Tom</span></td>
+              <td>1 087 760 375</td>
+              <td><span class="prize-badge prize-food">1 обед 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">8</span></td>
+              <td><span class="name">Ashton</span></td>
+              <td>1 063 593 968</td>
+              <td><span class="prize-badge prize-time">Уйти на 2 ч раньше</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-special">
+        <span class="icon">🌟</span>
+        <span>Вне конкурса — за особые заслуги</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table-special">
+          <thead>
+            <tr>
+              <th>Оператор</th>
+              <th>Приз</th>
+              <th>За что</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Rudy</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Один из лучших показателей на НК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Denzel</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Лучший КСАТ</td>
+            </tr>
+            <tr>
+              <td><span class="name">Plover</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>За активную помощь на НК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Fabio</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>За активную помощь на НК</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div><!-- /mode-championship -->
+
+  <!-- ==================== РЕЖИМ: РЕЙТИНГ ПРОДАЖ ==================== -->
+  <div id="mode-sales" class="mode-section">
+
+    <div class="tabs" id="sales-tabs">
+      <div class="tab active" onclick="switchSalesTab('jan')">Январь 2026</div>
+      <div class="tab" onclick="switchSalesTab('feb')">Февраль 2026</div>
+      <div class="tab" onclick="switchSalesTab('mar')">Март 2026</div>
+    </div>
+
+    <!-- Легенда / Формула -->
+    <div class="sales-legend-block">
+      <div class="legend-formula-title">💡 Как считается бонус</div>
+      <div class="legend-formula-desc">Бонус = Продажи × $5 × К₁ (предпрод) × К₂ (продажи)</div>
+      <div class="legend-tables">
+        <div class="legend-table-wrap">
+          <div class="legend-table-title">Конверсия в предпродажу (К₁)<br><span>% чатов, где был оффер</span></div>
+          <table class="legend-table">
+            <tr><td><span style="color:#EF4444">≤ 5%</span></td><td>× 0.0</td></tr>
+            <tr><td><span style="color:#F97316">5 – 10%</span></td><td>× 0.5</td></tr>
+            <tr><td><span style="color:#EAB308">10 – 18%</span></td><td>× 0.9</td></tr>
+            <tr><td><span style="color:#84CC16">18 – 24%</span></td><td>× 1.0</td></tr>
+            <tr><td><span style="color:#22C55E">≥ 25%</span></td><td>× 1.1</td></tr>
+          </table>
+        </div>
+        <div class="legend-table-wrap">
+          <div class="legend-table-title">Конверсия в продажу (К₂)<br><span>% продаж от всей базы чатов</span></div>
+          <table class="legend-table">
+            <tr><td><span style="color:#EF4444">≤ 1%</span></td><td>× 0.5</td></tr>
+            <tr><td><span style="color:#F97316">1 – 2.5%</span></td><td>× 0.8</td></tr>
+            <tr><td><span style="color:#EAB308">2.5 – 3.0%</span></td><td>× 1.0</td></tr>
+            <tr><td><span style="color:#84CC16">3.0 – 3.5%</span></td><td>× 1.1</td></tr>
+            <tr><td><span style="color:#84CC16">3.5 – 4.0%</span></td><td>× 1.2</td></tr>
+            <tr><td><span style="color:#22C55E">≥ 4%</span></td><td>× 1.3</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ПРОДАЖИ: ЯНВАРЬ ==================== -->
+    <div id="stab-jan" class="tab-content active">
+      <div class="section-header section-sales" style="margin-top: 16px;">
+        <span class="icon">📈</span>
+        <span>Рейтинг продаж — Январь 2026</span>
+        <span class="line"></span>
+      </div>
+      <div class="table-wrapper">
+        <table class="sales-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Оператор</th>
+              <th>Всего чатов</th>
+              <th>Предпродажи</th>
+              <th>Продажи</th>
+              <th title="Продажи / Предпродажи">Прод / Предпрод</th>
+              <th title="Предпродажи / Всего чатов">Предпрод / Тотал</th>
+              <th title="Продажи / Всего чатов">Прод / Тотал</th>
+              <th>Бонус ($)</th>
+            </tr>
+          </thead>
+          <tbody id="sales-jan-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== ПРОДАЖИ: ФЕВРАЛЬ ==================== -->
+    <div id="stab-feb" class="tab-content">
+      <div class="section-header section-sales" style="margin-top: 16px;">
+        <span class="icon">📈</span>
+        <span>Рейтинг продаж — Февраль 2026</span>
+        <span class="line"></span>
+      </div>
+      <div class="table-wrapper">
+        <table class="sales-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Оператор</th>
+              <th>Всего чатов</th>
+              <th>Предпродажи</th>
+              <th>Продажи</th>
+              <th title="Продажи / Предпродажи">Прод / Предпрод</th>
+              <th title="Предпродажи / Всего чатов">Предпрод / Тотал</th>
+              <th title="Продажи / Всего чатов">Прод / Тотал</th>
+              <th>Бонус ($)</th>
+            </tr>
+          </thead>
+          <tbody id="sales-feb-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== ПРОДАЖИ: МАРТ ==================== -->
+    <div id="stab-mar" class="tab-content">
+      <div class="section-header section-sales" style="margin-top: 16px;">
+        <span class="icon">📈</span>
+        <span>Рейтинг продаж — Март 2026</span>
+        <span class="line"></span>
+      </div>
+      <div class="table-wrapper">
+        <table class="sales-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Оператор</th>
+              <th>Всего чатов</th>
+              <th>Предпродажи</th>
+              <th>Продажи</th>
+              <th title="Продажи / Предпродажи">Прод / Предпрод</th>
+              <th title="Предпродажи / Всего чатов">Предпрод / Тотал</th>
+              <th title="Продажи / Всего чатов">Прод / Тотал</th>
+              <th>Бонус ($)</th>
+            </tr>
+          </thead>
+          <tbody id="sales-mar-body"><tr><td colspan="9" style="text-align:center;padding:60px 20px;color:var(--text-muted);font-family:'Oswald',sans-serif;letter-spacing:2px;font-size:14px;">ДАННЫЕ ЕЩЁ НЕ ДОБАВЛЕНЫ</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /mode-sales -->
+
+  <div class="footer">✦ Поздравляем всех победителей ✦</div>
+
+</div>
+
+<!-- ==================== КАЛЬКУЛЯТОР ЧЕМПИОНСКОГО БАЛЛА ==================== -->
+<div id="calc-modal-overlay" class="calc-modal-overlay" onclick="closeCalcOutside(event)">
+  <div class="calc-modal">
+    <div class="calc-modal-header">
+      <span>🧮 Калькулятор</span>
+      <button class="calc-close-btn" onclick="closeCalc()">✕</button>
+    </div>
+    <div class="calc-inputs">
+      <div class="calc-input-group">
+        <label>КСАТ (%)</label>
+        <input type="number" id="calc-csat" placeholder="напр. 97.5" min="0" max="100" step="0.1">
+      </div>
+      <div class="calc-input-group">
+        <label>Принятие — время первого ответа (мин)</label>
+        <input type="number" id="calc-first" placeholder="напр. 4" min="0" step="0.1">
+      </div>
+      <div class="calc-input-group">
+        <label>Среднее — время между ответами (мин)</label>
+        <input type="number" id="calc-avg" placeholder="напр. 26" min="0" step="0.1">
+      </div>
+    </div>
+    <button class="calc-run-btn" onclick="calcChampScore()">Рассчитать</button>
+    <div id="calc-result" class="calc-result" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ─── CSAT Calculator ───
+function openCalc() {
+  document.getElementById('calc-modal-overlay').classList.add('active');
+}
+function closeCalc() {
+  document.getElementById('calc-modal-overlay').classList.remove('active');
+}
+function closeCalcOutside(e) {
+  if (e.target === document.getElementById('calc-modal-overlay')) closeCalc();
+}
+function calcChampScore() {
+  const csat  = parseFloat(document.getElementById('calc-csat').value);
+  const first = parseFloat(document.getElementById('calc-first').value);
+  const avg   = parseFloat(document.getElementById('calc-avg').value);
+  const resultEl = document.getElementById('calc-result');
+  resultEl.style.display = 'block';
+  if (isNaN(csat) || isNaN(first) || isNaN(avg)) {
+    resultEl.innerHTML = '<span style="color:var(--accent-red);font-family:\'Nunito\',sans-serif;font-size:13px;">Пожалуйста, заполните все поля</span>';
+    return;
+  }
+  const csatDec = csat / 100;
+  const sCsat  = (csatDec / 0.77) * 0.60;
+  const sAvg   = (1 + (60 - avg) / 60) * 0.25;
+  const sFirst = (1 + (20 - first) / 20) * 0.15;
+  const score  = sCsat + sAvg + sFirst;
+  const scoreBillions = Math.round(score * 1000000000);
+  const csatBillions = Math.round(sCsat * 1000000000);
+  const avgBillions = Math.round(sAvg * 1000000000);
+  const firstBillions = Math.round(sFirst * 1000000000);
+  resultEl.innerHTML = `
+    <div class="calc-result-label">Чемпионский балл</div>
+    <div class="calc-result-value">${scoreBillions.toLocaleString('ru')}</div>
+    <div class="calc-result-breakdown">
+      <span>КСАТ: +${csatBillions.toLocaleString('ru')}</span>
+      <span>Среднее: +${avgBillions.toLocaleString('ru')}</span>
+      <span>Принятие: +${firstBillions.toLocaleString('ru')}</span>
+    </div>
+  `;
+}
+
+// ─── Championship tabs ───
+function switchTab(month) {
+  document.querySelectorAll('#mode-championship .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#mode-championship .tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = document.querySelectorAll('#mode-championship .tab');
+  const map = { dec: 0, jan: 1, feb: 2 };
+  tabs[map[month]].classList.add('active');
+  document.getElementById('tab-' + month).classList.add('active');
+}
+
+// ─── Mode switcher ───
+function switchMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+  const idx = mode === 'championship' ? 0 : 1;
+  document.querySelectorAll('.mode-btn')[idx].classList.add('active');
+  document.getElementById('mode-' + mode).classList.add('active');
+}
+
+// ─── Sales tabs ───
+function switchSalesTab(month) {
+  document.querySelectorAll('#sales-tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#mode-sales .tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = document.querySelectorAll('#sales-tabs .tab');
+  const map = { jan: 0, feb: 1, mar: 2 };
+  tabs[map[month]].classList.add('active');
+  document.getElementById('stab-' + month).classList.add('active');
+}
+
+// ─── Color tiers ───
+function stColor(v) {
+  if (v <= 1)   return '#EF4444';
+  if (v <= 2.5) return '#F97316';
+  if (v <= 3.5) return '#EAB308';
+  if (v < 4)    return '#84CC16';
+  return '#22C55E';
+}
+
+function ptColor(v) {
+  if (v <= 5)   return '#EF4444';
+  if (v <= 10)  return '#F97316';
+  if (v <= 18)  return '#EAB308';
+  if (v < 25)   return '#84CC16';
+  return '#22C55E';
+}
+
+// ─── Sales data ───
+const salesData = {
+  jan: [
+    { name: 'Denzel',   total: 513,  presales: 170, sales: 8, p_sp: 4.71, p_pt: 33.14, p_st: 1.56, bonus: 35.20  },
+    { name: 'Tom',      total: 477,  presales: 90,  sales: 4, p_sp: 4.44, p_pt: 18.87, p_st: 0.84, bonus: 10.00  },
+    { name: 'Holly',    total: 485,  presales: 118, sales: 3, p_sp: 2.54, p_pt: 24.33, p_st: 0.62, bonus: 8.25   },
+    { name: 'Christine',total: 583,  presales: 100, sales: 3, p_sp: 3.00, p_pt: 17.15, p_st: 0.51, bonus: 6.75   },
+    { name: 'Casper',   total: 1165, presales: 107, sales: 5, p_sp: 4.67, p_pt: 9.18,  p_st: 0.43, bonus: 6.375  },
+    { name: 'Plover',   total: 360,  presales: 74,  sales: 2, p_sp: 2.70, p_pt: 20.56, p_st: 0.56, bonus: 5.00   },
+    { name: 'Felicia',  total: 862,  presales: 134, sales: 2, p_sp: 1.49, p_pt: 15.55, p_st: 0.23, bonus: 4.50   },
+    { name: 'Chadwick', total: 686,  presales: 35,  sales: 2, p_sp: 5.71, p_pt: 5.10,  p_st: 0.29, bonus: 2.55   },
+    { name: 'Scott',    total: 604,  presales: 53,  sales: 2, p_sp: 3.77, p_pt: 8.77,  p_st: 0.33, bonus: 2.55   },
+    { name: 'Ewan',     total: 745,  presales: 111, sales: 1, p_sp: 0.90, p_pt: 14.90, p_st: 0.13, bonus: 2.25   },
+    { name: 'River',    total: 613,  presales: 107, sales: 1, p_sp: 0.93, p_pt: 17.46, p_st: 0.16, bonus: 2.25   },
+    { name: 'Melvin',   total: 435,  presales: 38,  sales: 1, p_sp: 2.63, p_pt: 8.74,  p_st: 0.23, bonus: 1.275  },
+    { name: 'Alexia',   total: 665,  presales: 17,  sales: 1, p_sp: 5.88, p_pt: 2.56,  p_st: 0.15, bonus: 0      },
+    { name: 'Ashton',   total: 677,  presales: 31,  sales: 1, p_sp: 3.23, p_pt: 4.58,  p_st: 0.15, bonus: 0      },
+    { name: 'Bill',     total: 679,  presales: 16,  sales: 2, p_sp: 12.50,p_pt: 2.36,  p_st: 0.29, bonus: 0      },
+    { name: 'Bridget',  total: 1120, presales: 26,  sales: 1, p_sp: 3.85, p_pt: 2.32,  p_st: 0.09, bonus: 0      },
+    { name: 'Chandler', total: 968,  presales: 11,  sales: 1, p_sp: 9.09, p_pt: 1.14,  p_st: 0.10, bonus: 0      },
+    { name: 'Jay',      total: 1209, presales: 9,   sales: 1, p_sp: 11.11,p_pt: 0.74,  p_st: 0.08, bonus: 0      },
+    { name: 'Monica',   total: 1028, presales: 7,   sales: 1, p_sp: 14.29,p_pt: 0.68,  p_st: 0.10, bonus: 0      },
+    { name: 'Simon',    total: 448,  presales: 2,   sales: 1, p_sp: 50.00,p_pt: 0.45,  p_st: 0.22, bonus: 0      },
+    { name: 'Will',     total: 1229, presales: 27,  sales: 1, p_sp: 3.70, p_pt: 2.20,  p_st: 0.08, bonus: 0      },
+  ],
+  feb: [
+    { name: 'Denzel',   total: 663,  presales: 227, sales: 10, p_sp: 4.41,  p_pt: 34.24, p_st: 1.51, bonus: 44     },
+    { name: 'Holly',    total: 628,  presales: 156, sales: 5,  p_sp: 3.21,  p_pt: 24.84, p_st: 0.80, bonus: 13.75  },
+    { name: 'Plover',   total: 535,  presales: 101, sales: 5,  p_sp: 4.95,  p_pt: 18.88, p_st: 0.93, bonus: 12.5   },
+    { name: 'Tom',      total: 477,  presales: 90,  sales: 4,  p_sp: 4.44,  p_pt: 18.87, p_st: 0.84, bonus: 10     },
+    { name: 'Casper',   total: 1486, presales: 132, sales: 6,  p_sp: 4.55,  p_pt: 8.88,  p_st: 0.40, bonus: 7.65   },
+    { name: 'Christine',total: 762,  presales: 135, sales: 3,  p_sp: 2.22,  p_pt: 17.72, p_st: 0.39, bonus: 6.75   },
+    { name: 'Felicia',  total: 1066, presales: 163, sales: 2,  p_sp: 1.23,  p_pt: 15.29, p_st: 0.19, bonus: 4.5    },
+    { name: 'Warren',   total: 1284, presales: 79,  sales: 3,  p_sp: 3.80,  p_pt: 6.15,  p_st: 0.23, bonus: 3.825  },
+    { name: 'Scott',    total: 604,  presales: 53,  sales: 2,  p_sp: 3.77,  p_pt: 8.77,  p_st: 0.33, bonus: 2.55   },
+    { name: 'Ewan',     total: 976,  presales: 125, sales: 1,  p_sp: 0.80,  p_pt: 12.81, p_st: 0.10, bonus: 2.25   },
+    { name: 'River',    total: 898,  presales: 115, sales: 1,  p_sp: 0.87,  p_pt: 12.81, p_st: 0.11, bonus: 2.25   },
+    { name: 'Ashton',   total: 853,  presales: 43,  sales: 1,  p_sp: 2.33,  p_pt: 5.04,  p_st: 0.12, bonus: 1.275  },
+    { name: 'Melvin',   total: 435,  presales: 38,  sales: 1,  p_sp: 2.63,  p_pt: 8.74,  p_st: 0.23, bonus: 1.275  },
+    { name: '—',        total: null, presales: null,sales: 1,  p_sp: 0,     p_pt: null,  p_st: 0,    bonus: 0      },
+    { name: 'Alexia',   total: 762,  presales: 17,  sales: 1,  p_sp: 5.88,  p_pt: 2.23,  p_st: 0.13, bonus: 0      },
+    { name: 'Balfour',  total: 1356, presales: 42,  sales: 2,  p_sp: 4.76,  p_pt: 3.10,  p_st: 0.15, bonus: 0      },
+    { name: 'Bill',     total: 851,  presales: 24,  sales: 2,  p_sp: 8.33,  p_pt: 2.82,  p_st: 0.24, bonus: 0      },
+    { name: 'Bridget',  total: 1313, presales: 34,  sales: 1,  p_sp: 2.94,  p_pt: 2.59,  p_st: 0.08, bonus: 0      },
+    { name: 'Chadwick', total: 1020, presales: 35,  sales: 2,  p_sp: 5.71,  p_pt: 3.43,  p_st: 0.20, bonus: 0      },
+    { name: 'Chandler', total: 1071, presales: 18,  sales: 2,  p_sp: 11.11, p_pt: 1.68,  p_st: 0.19, bonus: 0      },
+    { name: 'Fletcher', total: 1173, presales: 5,   sales: 2,  p_sp: 40.00, p_pt: 0.43,  p_st: 0.17, bonus: 0      },
+    { name: 'Hardy',    total: 861,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.23,  p_st: 0.12, bonus: 0      },
+    { name: 'Jay',      total: 1407, presales: 9,   sales: 1,  p_sp: 11.11, p_pt: 0.64,  p_st: 0.07, bonus: 0      },
+    { name: 'Jonathan', total: 1513, presales: 4,   sales: 1,  p_sp: 25.00, p_pt: 0.26,  p_st: 0.07, bonus: 0      },
+    { name: 'Lex',      total: 1390, presales: 31,  sales: 1,  p_sp: 3.23,  p_pt: 2.23,  p_st: 0.07, bonus: 0      },
+    { name: 'Monica',   total: 1238, presales: 7,   sales: 1,  p_sp: 14.29, p_pt: 0.57,  p_st: 0.08, bonus: 0      },
+    { name: 'Murphy',   total: 1361, presales: 4,   sales: 1,  p_sp: 25.00, p_pt: 0.29,  p_st: 0.07, bonus: 0      },
+    { name: 'Reggie',   total: 372,  presales: 5,   sales: 1,  p_sp: 20.00, p_pt: 1.34,  p_st: 0.27, bonus: 0      },
+    { name: 'Silvia',   total: 587,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.34,  p_st: 0.17, bonus: 0      },
+    { name: 'Simon',    total: 472,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.42,  p_st: 0.21, bonus: 0      },
+    { name: 'Skylar',   total: 1186, presales: 9,   sales: 1,  p_sp: 11.11, p_pt: 0.76,  p_st: 0.08, bonus: 0      },
+    { name: 'Will',     total: 1644, presales: 30,  sales: 1,  p_sp: 3.33,  p_pt: 1.82,  p_st: 0.06, bonus: 0      },
+  ],
+  mar: [
+    { name: 'Scott',    total: 715,  presales: 104, sales: 16, p_sp: 15.38, p_pt: 14.55, p_st: 2.24, bonus: 57.6   },
+    { name: 'Tom',      total: 312,  presales: 68,  sales: 8,  p_sp: 11.76, p_pt: 21.79, p_st: 2.56, bonus: 40     },
+    { name: 'Holly',    total: 646,  presales: 190, sales: 9,  p_sp: 4.74,  p_pt: 29.41, p_st: 1.39, bonus: 39.6   },
+    { name: 'Felicia',  total: 949,  presales: 102, sales: 5,  p_sp: 4.90,  p_pt: 10.75, p_st: 0.53, bonus: 11.25  },
+    { name: 'Christine',total: 514,  presales: 110, sales: 4,  p_sp: 3.64,  p_pt: 21.40, p_st: 0.78, bonus: 10     },
+    { name: 'Bridget',  total: 1030, presales: 53,  sales: 7,  p_sp: 13.21, p_pt: 5.15,  p_st: 0.68, bonus: 8.925  },
+    { name: 'Will',     total: 1147, presales: 87,  sales: 7,  p_sp: 8.05,  p_pt: 7.59,  p_st: 0.61, bonus: 8.925  },
+    { name: 'Denzel',   total: 467,  presales: 112, sales: 3,  p_sp: 2.68,  p_pt: 23.98, p_st: 0.64, bonus: 7.5    },
+    { name: 'Ashton',   total: 892,  presales: 51,  sales: 5,  p_sp: 9.80,  p_pt: 5.72,  p_st: 0.56, bonus: 6.375  },
+    { name: 'Plover',   total: 472,  presales: 74,  sales: 2,  p_sp: 2.70,  p_pt: 15.68, p_st: 0.42, bonus: 4.5    },
+    { name: 'Warren',   total: 900,  presales: 46,  sales: 2,  p_sp: 4.35,  p_pt: 5.11,  p_st: 0.22, bonus: 2.55   },
+    { name: 'Casper',   total: 554,  presales: 71,  sales: 1,  p_sp: 1.41,  p_pt: 12.82, p_st: 0.18, bonus: 2.25   },
+    { name: 'Balfour',  total: 872,  presales: 30,  sales: 2,  p_sp: 6.67,  p_pt: 3.44,  p_st: 0.23, bonus: 0      },
+    { name: 'Bob',      total: 1294, presales: 8,   sales: 2,  p_sp: 25.00, p_pt: 0.62,  p_st: 0.15, bonus: 0      },
+    { name: 'Calvin',   total: 715,  presales: 13,  sales: 3,  p_sp: 23.08, p_pt: 1.82,  p_st: 0.42, bonus: 0      },
+    { name: 'Colin',    total: 1578, presales: 48,  sales: 7,  p_sp: 14.58, p_pt: 3.04,  p_st: 0.44, bonus: 0      },
+    { name: 'Elijah',   total: 718,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.28,  p_st: 0.14, bonus: 0      },
+    { name: 'Fletcher', total: 680,  presales: 3,   sales: 2,  p_sp: 66.67, p_pt: 0.44,  p_st: 0.29, bonus: 0      },
+    { name: 'Gross',    total: 1195, presales: 8,   sales: 1,  p_sp: 12.50, p_pt: 0.67,  p_st: 0.08, bonus: 0      },
+    { name: 'Isaac',    total: 745,  presales: 21,  sales: 1,  p_sp: 4.76,  p_pt: 2.82,  p_st: 0.13, bonus: 0      },
+    { name: 'Jay',      total: 1185, presales: 15,  sales: 1,  p_sp: 6.67,  p_pt: 1.27,  p_st: 0.08, bonus: 0      },
+    { name: 'Jonathan', total: 984,  presales: 18,  sales: 5,  p_sp: 27.78, p_pt: 1.83,  p_st: 0.51, bonus: 0      },
+    { name: 'Kenzo',    total: 1333, presales: 21,  sales: 1,  p_sp: 4.76,  p_pt: 1.58,  p_st: 0.08, bonus: 0      },
+    { name: 'Lex',      total: 1057, presales: 51,  sales: 5,  p_sp: 9.80,  p_pt: 4.82,  p_st: 0.47, bonus: 0      },
+    { name: 'Maverick', total: 1346, presales: 11,  sales: 2,  p_sp: 18.18, p_pt: 0.82,  p_st: 0.15, bonus: 0      },
+    { name: 'Murphy',   total: 1217, presales: 10,  sales: 2,  p_sp: 20.00, p_pt: 0.82,  p_st: 0.16, bonus: 0      },
+    { name: 'Nolan',    total: 910,  presales: 44,  sales: 3,  p_sp: 6.82,  p_pt: 4.84,  p_st: 0.33, bonus: 0      },
+    { name: 'Robert',   total: 1080, presales: 46,  sales: 3,  p_sp: 6.52,  p_pt: 4.26,  p_st: 0.28, bonus: 0      },
+    { name: 'Robin',    total: 928,  presales: 28,  sales: 1,  p_sp: 3.57,  p_pt: 3.02,  p_st: 0.11, bonus: 0      },
+  ]
+};
+
+// ─── Sort state per month ───
+const sortState = { jan: { col: 'bonus', dir: -1 }, feb: { col: 'bonus', dir: -1 }, mar: { col: 'bonus', dir: -1 } };
+
+const COL_KEYS = ['rank', 'name', 'total', 'presales', 'sales', 'p_sp', 'p_pt', 'p_st', 'bonus'];
+
+function sortData(data, col, dir) {
+  return [...data].sort((a, b) => {
+    let va = a[col], vb = b[col];
+    if (col === 'name') return dir * va.localeCompare(vb);
+    return dir * (va - vb);
+  });
+}
+
+const TOP_ICONS = ['🥇', '🥈', '🥉'];
+
+function renderSalesTable(month) {
+  const data = salesData[month];
+  const tbody = document.getElementById('sales-' + month + '-body');
+  if (!tbody) return;
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:60px 20px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:2px;font-size:14px;">ДАННЫЕ ЕЩЁ НЕ ДОБАВЛЕНЫ</td></tr>';
+    updateSortHeaders(month);
+    return;
+  }
+
+  const { col, dir } = sortState[month];
+  const filtered = data.filter(r => r.name && r.name !== '—' && r.name.trim() !== '');
+  const byBonus = [...filtered].sort((a, b) => b.bonus - a.bonus || b.sales - a.sales);
+  const rankMap = {};
+  byBonus.forEach((r, i) => { rankMap[r.name] = i + 1; });
+
+  const displayData = (col === 'rank' && dir === -1) ? byBonus : sortData(filtered, col, dir);
+
+  let html = '';
+  displayData.forEach((row) => {
+    const rank = rankMap[row.name];
+    const rowClass = rank <= 3 ? ` class="sales-row-${rank}"` : '';
+    const rankCell = rank <= 3
+      ? `<span class="rank-icon">${TOP_ICONS[rank-1]}</span>`
+      : `<span style="color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:15px;">${rank}</span>`;
+
+    const bonusStr = row.bonus > 0
+      ? `<span class="bonus-cell">$${Math.round(row.bonus)}</span>`
+      : `<span class="bonus-cell zero">-</span>`;
+
+    html += `<tr${rowClass}>
+      <td>${rankCell}</td>
+      <td><span class="name">${row.name}</span></td>
+      <td>${row.total != null ? row.total.toLocaleString('ru') : '—'}</td>
+      <td>${row.presales != null ? row.presales : '—'}</td>
+      <td>${row.sales}</td>
+      <td style="color:var(--text-muted)">${row.p_sp != null ? row.p_sp.toFixed(2) + '%' : '—'}</td>
+      <td>${row.p_pt != null ? `<span style="color:${ptColor(row.p_pt)};font-weight:700;">${row.p_pt.toFixed(2)}%</span>` : '—'}</td>
+      <td>${row.p_st != null ? `<span style="color:${stColor(row.p_st)};font-weight:700;">${row.p_st.toFixed(2)}%</span>` : '—'}</td>
+      <td>${bonusStr}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  updateSortHeaders(month);
+}
+
+function updateSortHeaders(month) {
+  const { col, dir } = sortState[month];
+  const table = document.querySelector(`#stab-${month} table`);
+  if (!table) return;
+  table.querySelectorAll('thead th').forEach((th, i) => {
+    const key = COL_KEYS[i];
+    th.classList.remove('sort-asc', 'sort-desc');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.remove();
+    const a = document.createElement('span');
+    a.className = 'sort-arrow';
+    if (key === col) {
+      a.textContent = dir === -1 ? ' ↓' : ' ↑';
+      a.style.color = 'var(--gold)';
+    } else {
+      a.textContent = ' ⇅';
+      a.style.color = 'rgba(138,143,168,0.4)';
+      a.style.fontSize = '10px';
+    }
+    th.appendChild(a);
+  });
+}
+
+function initSortHeaders(month) {
+  const table = document.querySelector(`#stab-${month} table`);
+  if (!table) return;
+  table.querySelectorAll('thead th').forEach((th, i) => {
+    const key = COL_KEYS[i];
+    if (key === 'rank') { th.style.cursor = 'default'; return; }
+    th.style.cursor = 'pointer';
+    th.style.userSelect = 'none';
+    th.addEventListener('click', () => {
+      const s = sortState[month];
+      if (s.col === key) {
+        s.dir *= -1;
+      } else {
+        s.col = key;
+        s.dir = -1;
+      }
+      renderSalesTable(month);
+    });
+  });
+  updateSortHeaders(month);
+}
+
+// ─── Init ───
+['jan', 'feb', 'mar'].forEach(m => {
+  renderSalesTable(m);
+  initSortHeaders(m);
+});
+</script>
+
+<style id="auth-style">
+#auth-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #0D1117;
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-box {
+  background: #111820;
+  border: 1px solid #1E2535;
+  border-radius: 14px;
+  padding: 40px 48px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  min-width: 320px;
+}
+.auth-logo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 18px; font-weight: 700;
+  color: #E8EAF0; letter-spacing: 0.08em;
+}
+.auth-logo span { color: #4F9EFF; }
+.auth-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: #5A6070;
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.auth-input {
+  background: #0A0E14; border: 1px solid #1E2535;
+  border-radius: 7px; padding: 10px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px; color: #E8EAF0;
+  width: 100%; text-align: center;
+  letter-spacing: 0.15em; outline: none;
+  transition: border-color 0.2s;
+}
+.auth-input:focus { border-color: #4F9EFF; }
+.auth-input.error { border-color: #FF6B6B; animation: shake 0.3s ease; }
+.auth-btn {
+  background: linear-gradient(135deg, #4F9EFF, #2563eb);
+  color: #fff; border: none; border-radius: 7px;
+  padding: 10px 32px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  cursor: pointer; width: 100%; transition: opacity 0.2s;
+}
+.auth-btn:hover { opacity: 0.85; }
+.auth-error {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: #FF6B6B;
+  min-height: 16px;
+}
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+}
+</style>
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">Support <span>Champions</span></div>
+    <div class="auth-label">Введите код доступа</div>
+    <input class="auth-input" type="password" id="authInput"
+      placeholder="••••••••••••••••"
+      onkeydown="if(event.key==='Enter')checkAuth()" autofocus />
+    <button class="auth-btn" onclick="checkAuth()">Войти →</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const PASS = 'YiUPlJplZmjtsDa7';
+  const KEY = 'lca_auth';
+  if (sessionStorage.getItem(KEY) === '1') {
+    document.getElementById('auth-screen').style.display = 'none';
+    return;
+  }
+  document.body.style.overflow = 'hidden';
+})();
+
+function checkAuth() {
+  const val = document.getElementById('authInput').value;
+  const inp = document.getElementById('authInput');
+  const err = document.getElementById('authError');
+  if (val === 'YiUPlJplZmjtsDa7') {
+    sessionStorage.setItem('lca_auth', '1');
+    document.getElementById('auth-screen').style.display = 'none';
+    document.body.style.overflow = '';
+  } else {
+    err.textContent = 'Неверный код доступа';
+    inp.classList.add('error');
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('error'), 400);
+  }
+}
+</script>
+</body>
+</html>

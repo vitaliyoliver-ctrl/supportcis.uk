@@ -86,7 +86,8 @@ body.editing .add-row-btn{display:block;}
 .tree-node-box .tn-count{font-size:11px;display:block;margin-top:1px;color:#7080a0;}
 
 /* node action buttons */
-.tree-node-actions{display:none;flex-direction:column;gap:2px;margin-left:3px;}
+.tree-node-actions{display:none;position:absolute;top:-6px;right:-22px;flex-direction:column;gap:2px;z-index:10;}
+body.editing .tree-node{position:relative;}
 body.editing .tree-node-actions{display:flex;}
 .tna-btn{width:18px;height:18px;border-radius:4px;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .tna-add{background:rgba(40,160,60,.12);color:#1a9040;}
@@ -97,9 +98,11 @@ body.editing .tree-node-actions{display:flex;}
 /* connector lines */
 .tree-children-wrap{display:flex;justify-content:center;position:relative;}
 .tree-v-line{width:1px;height:18px;background:#b0b8d8;margin:0 auto;}
-.tree-h-bar{display:flex;align-items:flex-start;justify-content:center;border-top:1px solid #b0b8d8;position:relative;margin-top:0;}
+.tree-h-bar{display:flex;align-items:flex-start;justify-content:center;position:relative;margin-top:0;}
 .tree-child-col{display:flex;flex-direction:column;align-items:center;padding:0 8px;}
 .tree-child-drop{width:1px;height:18px;background:#b0b8d8;margin:0 auto;}
+.tree-child-col{position:relative;}
+.tree-child-col::before{content:'';position:absolute;top:0;left:50%;width:1px;height:18px;background:#b0b8d8;}
 
 /* level colors */
 .lv-head{background:#eeeaff;border-color:#7060d0;} .lv-head .tn-title{color:#3020a0;font-size:13px;}
@@ -176,6 +179,8 @@ body.editing .tree-node-box .tn-count{cursor:text;outline:1px dashed rgba(60,80,
     <input type="text" id="addNodeName" placeholder="напр. Senior Supervisor"/>
     <label>Количество человек</label>
     <input type="number" id="addNodeCount" placeholder="1" value="1" min="0" step="0.5"/>
+    <label id="addNodeParentLabel">Родительский узел</label>
+    <select id="addNodeParent" style="width:100%;border:1px solid #c0c8e0;border-radius:8px;padding:9px 12px;font-size:13px;outline:none;margin-bottom:8px;font-family:inherit;background:#fff;"></select>
     <label>Уровень (стиль)</label>
     <select id="addNodeLevel">
       <option value="lv-head">Head (фиолетовый)</option>
@@ -517,18 +522,47 @@ function deleteTreeNode(node, label) {
 function addRow(id) {
   var d = DATA.find(function(x){ return x.id === id; });
   if (!d) return;
-  d.roles.push(['Новая роль','0']);
-  var wasOpen = true;
-  render();
-  if (editMode) {
-    document.body.classList.add('editing');
-    document.querySelectorAll('[contenteditable]').forEach(function(el){ el.setAttribute('contenteditable','true'); });
+  ensureTree(d);
+  // Open modal to add to tree, from card context
+  pendingParentPath = null;
+  pendingCardDeptId = id;
+  // build parent selector with all tree nodes
+  buildParentSelector(d.tree, document.getElementById('addNodeParent'), '');
+  document.getElementById('addNodeName').value = '';
+  document.getElementById('addNodeCount').value = '1';
+  document.getElementById('addNodeLevel').value = 'lv-mgr';
+  document.getElementById('addNodeModal').classList.add('active');
+  setTimeout(function(){ document.getElementById('addNodeName').focus(); }, 100);
+}
+
+var pendingCardDeptId = null;
+
+function buildParentSelector(node, select, prefix) {
+  if (!select) return;
+  if (select.options.length === 0) {
+    // first call - clear and add placeholder
+    select.innerHTML = '';
   }
-  document.querySelector('.dept-col[data-id="'+id+'"]').classList.add('open');
-  recalcAll();
-  saveToAPI();
-  var rows = document.querySelectorAll('.dept-col[data-id="'+id+'"] .rn');
-  if (rows.length) rows[rows.length-1].focus();
+  var opt = document.createElement('option');
+  opt.value = node.label;
+  opt.textContent = prefix + node.label;
+  select.appendChild(opt);
+  if (node.children) {
+    node.children.forEach(function(c){
+      buildParentSelector(c, select, prefix + '  ');
+    });
+  }
+}
+
+function findNodeByLabel(node, label) {
+  if (node.label === label) return node;
+  if (node.children) {
+    for (var i = 0; i < node.children.length; i++) {
+      var found = findNodeByLabel(node.children[i], label);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 // ── TREE OVERLAY ──
@@ -711,6 +745,9 @@ function openAddNodeModal() {
   document.getElementById('addNodeName').value = '';
   document.getElementById('addNodeCount').value = '1';
   document.getElementById('addNodeLevel').value = 'lv-mgr';
+  // Hide parent selector when adding from tree (parent is already the clicked node)
+  document.getElementById('addNodeParent').style.display = 'none';
+  document.getElementById('addNodeParentLabel').style.display = 'none';
   document.getElementById('addNodeModal').classList.add('active');
   setTimeout(function(){ document.getElementById('addNodeName').focus(); }, 100);
 }
@@ -718,6 +755,7 @@ function openAddNodeModal() {
 function closeAddNodeModal() {
   document.getElementById('addNodeModal').classList.remove('active');
   pendingParentPath = null;
+  pendingCardDeptId = null;
 }
 
 function confirmAddNode() {
@@ -726,25 +764,43 @@ function confirmAddNode() {
   var cls = document.getElementById('addNodeLevel').value;
 
   if (!name) { document.getElementById('addNodeName').focus(); return; }
-  if (!pendingParentPath) return;
 
-  var deptId = pendingParentPath.deptId;
-  var parentNode = pendingParentPath.node;
+  var deptId = pendingParentPath ? pendingParentPath.deptId : pendingCardDeptId;
+  if (!deptId) return;
+
+  var d = DATA.find(function(x){ return x.id === deptId; });
+  if (!d) return;
+  ensureTree(d);
+
+  var parentNode;
+  if (pendingParentPath) {
+    parentNode = pendingParentPath.node;
+  } else {
+    // from card - use selected parent
+    var parentLabel = document.getElementById('addNodeParent').value;
+    parentNode = findNodeByLabel(d.tree, parentLabel);
+    if (!parentNode) parentNode = d.tree;
+  }
 
   var newNode = { label: name, count: count, cls: cls, children: [] };
   if (!parentNode.children) parentNode.children = [];
   parentNode.children.push(newNode);
 
-  // Add to roles too
-  var d = DATA.find(function(x){ return x.id === deptId; });
-  if (d) {
-    d.roles.push([name, count]);
-    recalcAll();
-    render();
+  // Add to roles
+  d.roles.push([name, count]);
+
+  recalcAll();
+  render();
+  if (editMode) {
+    document.body.classList.add('editing');
+    document.querySelectorAll('[contenteditable]').forEach(function(el){ el.setAttribute('contenteditable','true'); });
+  }
+  if (pendingCardDeptId) {
+    document.querySelector('.dept-col[data-id="'+deptId+'"]').classList.add('open');
   }
 
   closeAddNodeModal();
-  renderTree(deptId);
+  if (currentDeptId === deptId) renderTree(deptId);
   saveToAPI();
 }
 

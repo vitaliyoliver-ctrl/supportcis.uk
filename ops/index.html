@@ -97,7 +97,7 @@
 
 <script>
   const API = 'https://auth-api.vitaliy-barkhanskiy.workers.dev';
-  const REQUIRED_ROLE = 'ops';
+  const ALLOWED_ROLES = ['ops', 'tl'];
   const CURRENT_PATH = '/ops/';
 
   (async () => {
@@ -110,7 +110,7 @@
         return;
       }
 
-      if (data.role !== REQUIRED_ROLE) {
+      if (!ALLOWED_ROLES.includes(data.role)) {
         location.href = '/';
         return;
       }

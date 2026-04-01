@@ -377,7 +377,7 @@
         placeholder="name@velvix.org"
         autocomplete="email"
       />
-      <div class="hint">Доступно только для адресов @velvix.org</div>
+      <div class="hint">Используйте корпоративный адрес @velvix.org или @gameup.club</div>
       <div class="error-msg" id="email-error"></div>
 
       <button class="btn" id="send-btn" onclick="sendCode()">Получить код</button>
@@ -442,8 +442,10 @@
 
     emailError.classList.remove('visible');
 
-    if (!email || !email.endsWith('@velvix.org')) {
-      showError(emailError, 'Введите корректный адрес @velvix.org');
+    const ALLOWED_DOMAINS = ['velvix.org', 'gameup.club'];
+
+    if (!email || !ALLOWED_DOMAINS.some(d => email.endsWith('@' + d))) {
+      showError(emailError, 'Введите корректный корпоративный адрес (@velvix.org или @gameup.club)');
       return;
     }
 

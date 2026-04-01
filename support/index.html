@@ -17,6 +17,23 @@
     .wrapper { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; }
     .back { position: fixed; top: 24px; left: 24px; display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: 13px; font-family: 'Mulish', sans-serif; transition: color 0.2s; z-index: 10; }
     .back:hover { color: var(--text); }
+
+    .logout-btn {
+      position: fixed; top: 24px; right: 24px;
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: 'Mulish', sans-serif;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+      z-index: 10;
+    }
+    .logout-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); }
+
     .header { text-align: center; margin-bottom: 56px; animation: fadeDown 0.7s ease both; }
     .section-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--glow); color: var(--accent); border: 1px solid rgba(52,211,153,0.2); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px; }
     .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 2s ease infinite; }
@@ -33,15 +50,34 @@
     .card-arrow { position: absolute; bottom: 24px; right: 24px; color: var(--muted); font-size: 16px; transition: all 0.3s ease; z-index: 1; }
     .card:hover .card-arrow { color: var(--accent); transform: translateX(3px); }
     .footer { margin-top: 56px; text-align: center; font-size: 12px; color: var(--muted); animation: fadeUp 0.6s 0.3s ease both; }
+
+    #auth-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+    }
+    .auth-spinner {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
     @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
+
+<div id="auth-overlay"><div class="auth-spinner"></div></div>
+
 <div class="bg-grid"></div>
 <div class="bg-glow"></div>
 <a href="/" class="back">← Назад на главную</a>
+<button class="logout-btn" onclick="logout()">↩ Выйти</button>
+
 <div class="wrapper">
   <div class="header">
     <div class="section-badge"><span class="badge-dot"></span>Support Access</div>
@@ -58,5 +94,41 @@
   </div>
   <div class="footer">© 2026 Velvix · Внутреннее использование</div>
 </div>
+
+<script>
+  const API = 'https://auth-api.vitaliy-barkhanskiy.workers.dev';
+  // Support доступен для всех velvix.org — роли 'support' и 'tl'
+  const ALLOWED_ROLES = ['support', 'tl'];
+  const CURRENT_PATH = '/support/';
+
+  (async () => {
+    try {
+      const res = await fetch(`${API}/check`, { credentials: 'include' });
+      const data = await res.json();
+
+      if (!data.ok) {
+        location.href = `/login/?redirect=${encodeURIComponent(CURRENT_PATH)}`;
+        return;
+      }
+
+      if (!ALLOWED_ROLES.includes(data.role)) {
+        location.href = '/';
+        return;
+      }
+
+      document.getElementById('auth-overlay').style.display = 'none';
+    } catch {
+      location.href = `/login/?redirect=${encodeURIComponent(CURRENT_PATH)}`;
+    }
+  })();
+
+  async function logout() {
+    try {
+      await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });
+    } catch {}
+    location.href = '/login/';
+  }
+</script>
+
 </body>
 </html>

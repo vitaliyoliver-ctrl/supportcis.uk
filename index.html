@@ -363,7 +363,7 @@
 </div>
 
 <script>
-  const API = 'https://auth-api.vitaliy-barkhanskiy.workers.dev';
+  const API = '/api';
   async function logout() {
     try {
       await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });

@@ -300,6 +300,26 @@
     }
     .logout-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); }
 
+    .login-btn {
+      position: fixed; top: 24px; right: 24px;
+      display: none; align-items: center; gap: 6px;
+      background: rgba(79,142,247,0.1);
+      border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 10px;
+      color: var(--tl);
+      font-size: 12px;
+      font-family: 'Mulish', sans-serif;
+      font-weight: 600;
+      padding: 7px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+      z-index: 10;
+    }
+    .login-btn:hover { background: rgba(79,142,247,0.18); border-color: rgba(79,142,247,0.6); color: #fff; }
+    .login-btn.visible { display: flex; }
+    .logout-btn.hidden { display: none; }
+
     /* Адаптив */
     @media (max-width: 768px) {
       .cards { grid-template-columns: 1fr; max-width: 400px; }
@@ -313,7 +333,8 @@
 <div class="bg-glow bg-glow-1"></div>
 <div class="bg-glow bg-glow-2"></div>
 
-<button class="logout-btn" onclick="logout()">↩ Выйти</button>
+<button class="logout-btn" id="logout-btn" onclick="logout()">↩ Выйти</button>
+<a href="/login/" class="login-btn" id="login-btn">→ Войти</a>
 
 <div class="wrapper">
 
@@ -364,6 +385,24 @@
 
 <script>
   const API = '/api';
+
+  (async () => {
+    try {
+      const res = await fetch(`${API}/check`, { credentials: 'include' });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('logout-btn').style.display = 'flex';
+        document.getElementById('login-btn').classList.remove('visible');
+      } else {
+        document.getElementById('logout-btn').classList.add('hidden');
+        document.getElementById('login-btn').classList.add('visible');
+      }
+    } catch {
+      document.getElementById('logout-btn').classList.add('hidden');
+      document.getElementById('login-btn').classList.add('visible');
+    }
+  })();
+
   async function logout() {
     try {
       await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' });

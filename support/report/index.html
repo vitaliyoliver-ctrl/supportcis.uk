@@ -352,42 +352,36 @@
     <div class="section">
       <div class="section-label">Скриншот трудности</div>
 
-      <!-- Табы: загрузить файл / вставить ссылку -->
+      <!-- Табы -->
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button type="button" id="tabFile" onclick="switchTab('file')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
-          📁 Загрузить файл
+        <button type="button" id="tabOneDrive" onclick="switchTab('onedrive')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
+          ☁️ OneDrive / SharePoint
         </button>
         <button type="button" id="tabUrl" onclick="switchTab('url')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
           🔗 Вставить ссылку
         </button>
       </div>
 
-      <!-- Загрузка файла -->
-      <div id="panelFile">
-        <div id="dropzone" onclick="document.getElementById('screenshotFile').click()" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);">
-          <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
-          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);">Нажми или перетащи файл сюда</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">PNG, JPG, GIF, WEBP — до 10MB</div>
-        </div>
-        <input type="file" id="screenshotFile" accept="image/*" style="display:none;">
-
-        <!-- Превью + статус загрузки -->
-        <div id="uploadStatus" style="display:none;margin-top:10px;padding:12px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);font-size:13px;display:none;align-items:center;gap:10px;">
-          <span id="uploadIcon">⏳</span>
-          <span id="uploadText">Загружаем...</span>
+      <!-- OneDrive Picker -->
+      <div id="panelOneDrive">
+        <div id="pickerBtn" onclick="openOneDrivePicker()" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);">
+          <div style="font-size:28px;margin-bottom:8px;">☁️</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);">Нажми чтобы выбрать файл из OneDrive или SharePoint</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Откроется стандартное окно Microsoft</div>
         </div>
 
-        <!-- Превью изображения -->
-        <div id="previewWrap" style="display:none;margin-top:10px;position:relative;">
-          <img id="previewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">
-          <button type="button" onclick="clearFile()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕ Убрать</button>
+        <!-- Статус выбора файла -->
+        <div id="pickerStatus" style="display:none;margin-top:10px;padding:12px 14px;border-radius:8px;background:var(--success-glow);border:1px solid rgba(45,212,160,0.3);font-size:13px;align-items:center;gap:10px;color:var(--success);">
+          <span>✅</span>
+          <span id="pickerFileName">Файл выбран</span>
+          <button type="button" onclick="clearPicker()" style="margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>
         </div>
       </div>
 
-      <!-- Вставить ссылку -->
+      <!-- Вставить ссылку вручную -->
       <div id="panelUrl" style="display:none;">
         <div class="field">
-          <input type="url" id="screenshotUrl" placeholder="https://... ссылка на скриншот">
+          <input type="text" id="screenshotUrl" placeholder="https://... ссылка на скриншот">
         </div>
       </div>
 
@@ -449,114 +443,85 @@
   const WEBHOOK_PM      = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/ef3ef0c46c5c465ea15ccf0a424107e7/2f898860-c2e8-4616-9f2d-82c287e1761a/V20tmASX6u4JiCWZ_YG5bQ1TM1uLgvP-wO_8iOzMKWnh81";
   const WEBHOOK_FINTECH = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/90a9d8973108402390ad80496302f8b9/2f898860-c2e8-4616-9f2d-82c287e1761a/V29kCgKIplvVsul8Qg37kAEHpKS44XzczbAFoikfCtvKE1";
   const POWER_AUTOMATE_URL = "ВСТАВЬ_СЮДА_URL_POWER_AUTOMATE";
-  const SCREENSHOT_UPLOAD_URL = "https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/0c7a77b2087b4a47a4096d341615271a/triggers/manual/paths/invoke?api-version=1";
+
+  // Твой SharePoint домен
+  const SHAREPOINT_DOMAIN = "infinitystarreach.sharepoint.com";
 
   let sendCount = 0;
 
-  // ─── СКРИНШОТ: переключение табов ───
+  // ─── TABS ───
   function switchTab(tab) {
-    const isFile = tab === 'file';
-    document.getElementById('panelFile').style.display = isFile ? 'block' : 'none';
-    document.getElementById('panelUrl').style.display  = isFile ? 'none'  : 'block';
-    document.getElementById('tabFile').style.cssText = isFile
+    const isOneDrive = tab === 'onedrive';
+    document.getElementById('panelOneDrive').style.display = isOneDrive ? 'block' : 'none';
+    document.getElementById('panelUrl').style.display      = isOneDrive ? 'none'  : 'block';
+    document.getElementById('tabOneDrive').style.cssText = isOneDrive
       ? 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;'
       : 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;';
-    document.getElementById('tabUrl').style.cssText = isFile
+    document.getElementById('tabUrl').style.cssText = isOneDrive
       ? 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;'
       : 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;';
-    if (!isFile) document.getElementById('screenshot').value = '';
+    if (!isOneDrive) clearPicker();
   }
 
-  // ─── СКРИНШОТ: очистка ───
-  function clearFile() {
-    document.getElementById('screenshotFile').value = '';
-    document.getElementById('previewWrap').style.display = 'none';
-    document.getElementById('uploadStatus').style.display = 'none';
-    document.getElementById('screenshot').value = '';
-    document.getElementById('dropzone').style.borderColor = 'var(--border)';
-  }
+  // ─── ONEDRIVE PICKER ───
+  function openOneDrivePicker() {
+    const options = {
+      clientId: "00000003-0000-0ff1-ce00-000000000000", // SharePoint App ID (стандартный)
+      action: "share",
+      multiSelect: false,
+      advanced: {
+        redirectUri: window.location.href,
+        filter: ".png,.jpg,.jpeg,.gif,.webp,.bmp",
+        endpointHint: `https://${SHAREPOINT_DOMAIN}`
+      },
+      success: function(files) {
+        const file = files.value[0];
+        const link = file.permissions && file.permissions[0]
+          ? file.permissions[0].link.webUrl
+          : file.webUrl || file["@sharePoint.endpoint"];
 
-  // ─── СКРИНШОТ: выбор файла ───
-  document.getElementById('screenshotFile').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    await uploadScreenshot(file);
-  });
-
-  // ─── СКРИНШОТ: drag & drop ───
-  const dropzone = document.getElementById('dropzone');
-  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--border-active)'; dropzone.style.background = 'var(--surface2)'; });
-  dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border)'; dropzone.style.background = 'var(--surface)'; });
-  dropzone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dropzone.style.borderColor = 'var(--border)';
-    dropzone.style.background = 'var(--surface)';
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) await uploadScreenshot(file);
-  });
-
-  // ─── СКРИНШОТ: загрузка через Power Automate ───
-  async function uploadScreenshot(file) {
-    // Показать превью
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      document.getElementById('previewImg').src = e.target.result;
-      document.getElementById('previewWrap').style.display = 'block';
+        const name = file.name || "файл выбран";
+        document.getElementById('screenshot').value = link || file.webUrl;
+        document.getElementById('pickerFileName').textContent = name;
+        document.getElementById('pickerStatus').style.display = 'flex';
+      },
+      cancel: function() {},
+      error: function(e) {
+        console.error("OneDrive Picker error:", e);
+        // Фоллбэк — переключаем на ручной ввод
+        switchTab('url');
+        showToast("error", "Не удалось открыть OneDrive — вставь ссылку вручную");
+      }
     };
-    reader.readAsDataURL(file);
 
-    // Показать статус загрузки
-    const statusEl = document.getElementById('uploadStatus');
-    statusEl.style.display = 'flex';
-    document.getElementById('uploadIcon').textContent = '⏳';
-    document.getElementById('uploadText').textContent = 'Загружаем в SharePoint...';
-    document.getElementById('screenshot').value = '';
-
-    try {
-      // Конвертируем в base64
-      const base64 = await fileToBase64(file);
-      const fileName = `screenshot_${Date.now()}_${file.name}`;
-
-      const res = await fetch(SCREENSHOT_UPLOAD_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName, fileContent: base64 })
-      });
-
-      if (!res.ok) throw new Error(`Upload error: ${res.status}`);
-
-      const link = await res.text();
-      const cleanLink = link.replace(/^"|"$/g, ''); // убираем кавычки если есть
-
-      document.getElementById('screenshot').value = cleanLink;
-      document.getElementById('uploadIcon').textContent = '✅';
-      document.getElementById('uploadText').textContent = 'Загружено в SharePoint';
-      statusEl.style.background = 'var(--success-glow)';
-      statusEl.style.borderColor = 'rgba(45,212,160,0.3)';
-      statusEl.style.color = 'var(--success)';
-
-    } catch (err) {
-      console.error(err);
-      document.getElementById('uploadIcon').textContent = '❌';
-      document.getElementById('uploadText').textContent = 'Ошибка загрузки — вставь ссылку вручную';
-      statusEl.style.background = 'rgba(245,69,90,0.1)';
-      statusEl.style.borderColor = 'rgba(245,69,90,0.3)';
-      statusEl.style.color = 'var(--danger)';
+    // Загружаем SDK и открываем picker
+    if (typeof OneDrive !== 'undefined') {
+      OneDrive.open(options);
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://js.live.net/v7.2/OneDrive.js';
+      script.onload = () => OneDrive.open(options);
+      script.onerror = () => {
+        switchTab('url');
+        showToast("error", "SDK не загрузился — вставь ссылку вручную");
+      };
+      document.head.appendChild(script);
     }
   }
 
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result.split(',')[1]);
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
+  function clearPicker() {
+    document.getElementById('pickerStatus').style.display = 'none';
+    document.getElementById('screenshot').value = '';
   }
 
-  // ─── СКРИНШОТ: URL вручную ───
-  document.getElementById('screenshotUrl').addEventListener('input', (e) => {
-    document.getElementById('screenshot').value = e.target.value;
+  // ─── URL вручную ───
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlInput = document.getElementById('screenshotUrl');
+    if (urlInput) {
+      urlInput.addEventListener('input', (e) => {
+        document.getElementById('screenshot').value = e.target.value;
+      });
+    }
   });
 
   // Логика отображения кнопок Teams в зависимости от трудности
@@ -639,11 +604,10 @@
 
   function resetForm() {
     document.getElementById("supportForm").reset();
-    clearFile();
-    document.getElementById('screenshotUrl').value = '';
+    clearPicker();
     document.getElementById('screenshot').value = '';
-    document.getElementById('uploadStatus').style.display = 'none';
-    document.getElementById('previewWrap').style.display = 'none';
+    const urlInput = document.getElementById('screenshotUrl');
+    if (urlInput) urlInput.value = '';
     updateTeamsSection();
   }
 

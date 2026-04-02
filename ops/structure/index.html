@@ -59,6 +59,7 @@ body.editing .add-row-btn{display:block;}
 .ds-c{background:#e4e4e0;border-color:#707070;}.ds-h{background:#d4d4d0;}.ds-n{color:#1a1a1a;}.ds-t{color:#1a1a1a;}.ds-r{color:#1a1a1a;}
 .cn-c{background:#e4e4e0;border-color:#707070;}.cn-h{background:#d4d4d0;}.cn-n{color:#1a1a1a;}.cn-t{color:#1a1a1a;}.cn-r{color:#1a1a1a;}
 .cr-c{background:#fde0c0;border-color:#a05020;}.cr-h{background:#fcc898;}.cr-n{color:#602000;}.cr-t{color:#602000;}.cr-r{color:#602000;}
+.dl-c{background:#d8eeff;border-color:#3070b0;}.dl-h{background:#bcdcf8;}.dl-n{color:#0a2a60;}.dl-t{color:#0a2a60;}.dl-r{color:#0a2a60;}
 
 /* OVERLAY */
 .overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(200,205,220,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;}
@@ -146,7 +147,7 @@ body.editing .tree-node-box .tn-count{cursor:text;outline:1px dashed rgba(60,80,
 
 <div class="top-bar">
   <div class="pill">FTE: <b id="fteTotal">—</b></div>
-  <div class="pill">Отделов: <b>9</b></div>
+  <div class="pill">Отделов: <b>10</b></div>
   <button class="btn" id="editBtn" onclick="toggleEdit()">✎ Редактировать</button>
   <span id="saveStatus" style="font-size:12px;color:#22c55e;opacity:0;transition:opacity 0.5s;padding:5px 10px;"></span>
 </div>
@@ -214,7 +215,7 @@ var editMode = false;
 var currentDeptId = null; // dept open in tree overlay
 var pendingParentPath = null; // path to parent node for add
 
-var accentMap={cc:'#2a5090',py:'#5a3c10',su:'#3e38a0',af:'#6a2c14',bn:'#2e5014',rc:'#681e4a',ds:'#4a4844',cn:'#4a4844',cr:'#623a18'};
+var accentMap={cc:'#2a5090',py:'#5a3c10',su:'#3e38a0',af:'#6a2c14',bn:'#2e5014',rc:'#681e4a',ds:'#4a4844',cn:'#4a4844',cr:'#623a18',dl:'#1a4a80'};
 
 // ── DEFAULT TREE BUILDER ──
 // Converts flat roles array to a tree structure for departments that don't have one yet
@@ -297,23 +298,32 @@ function buildDefaultTree(id, roles) {
     {label:'Copywriter',count:g('Copywriter'),cls:'lv-mgr',children:[]},
   ]};
   if (id==='cr') return {label:'CRM & Email',count:'—',cls:'lv-head',children:[
-    {label:'TL Promo',count:g('TL Promo'),cls:'lv-tl',children:[
-      {label:'Supervisor Promo',count:g('Supervisor Promo'),cls:'lv-sup',children:[
-        {label:'Mktg Promo',count:g('Marketing Mgr (Promo)'),cls:'lv-mgr',children:[]},
-        {label:'Mktg mail.ru',count:g('Marketing Mgr (mail.ru)'),cls:'lv-mgr',children:[]},
-      ]},
-    ]},
-    {label:'TL Trigger',count:g('TL Trigger'),cls:'lv-tl',children:[
-      {label:'Supervisor Trigger',count:g('Supervisor Trigger'),cls:'lv-sup',children:[
-        {label:'Mktg Trigger',count:g('Marketing Mgr (Trigger)'),cls:'lv-mgr',children:[]},
-      ]},
-    ]},
-    {label:'Data Specialist',count:g('Data Specialist'),cls:'lv-dr',children:[]},
-    {label:'Head Deliv.',count:g('Head Deliv.'),cls:'lv-head',children:[
-      {label:'TL Deliv.',count:g('TL Deliv.'),cls:'lv-tl',children:[
-        {label:'Supervisor Deliv.',count:g('Supervisor Deliv.'),cls:'lv-sup',children:[
-          {label:'Manager Deliv.',count:g('Manager Deliv.'),cls:'lv-mgr',children:[]},
+    {label:'Head CRM',count:g('Head CRM'),cls:'lv-head',children:[
+      {label:'TL Promo',count:g('TL Promo'),cls:'lv-tl',children:[
+        {label:'Supervisor Promo',count:g('Supervisor Promo'),cls:'lv-sup',children:[
+          {label:'Mktg Promo',count:g('Marketing Mgr (Promo)'),cls:'lv-mgr',children:[]},
+          {label:'Mktg mail.ru',count:g('Marketing Mgr (mail.ru)'),cls:'lv-mgr',children:[]},
         ]},
+      ]},
+      {label:'TL Trigger',count:g('TL Trigger'),cls:'lv-tl',children:[
+        {label:'Supervisor Trigger',count:g('Supervisor Trigger'),cls:'lv-sup',children:[
+          {label:'Mktg Trigger',count:g('Marketing Mgr (Trigger)'),cls:'lv-mgr',children:[]},
+        ]},
+      ]},
+      {label:'Data Specialist',count:g('Data Specialist'),cls:'lv-dr',children:[]},
+      {label:'Head Deliv.',count:g('Head Deliv.'),cls:'lv-head',children:[
+        {label:'TL Deliv.',count:g('TL Deliv.'),cls:'lv-tl',children:[
+          {label:'Supervisor Deliv.',count:g('Supervisor Deliv.'),cls:'lv-sup',children:[
+            {label:'Manager Deliv.',count:g('Manager Deliv.'),cls:'lv-mgr',children:[]},
+          ]},
+        ]},
+      ]},
+    ]},
+  ]};
+  if (id==='dl') return {label:'Head',count:g('Head'),cls:'lv-head',children:[
+    {label:'TL',count:g('TL'),cls:'lv-tl',children:[
+      {label:'Supervisor',count:g('Supervisor'),cls:'lv-sup',children:[
+        {label:'Manager',count:g('Manager'),cls:'lv-mgr',children:[]},
       ]},
     ]},
   ]};
@@ -841,6 +851,15 @@ fetch(API_URL)
   .then(function(r) { return r.json(); })
   .then(function(json) {
     DATA = json.filter(function(d){ return d.id !== 'pv'; });
+    // Add Head CRM to cr dept roles if not present
+    var crDept = DATA.find(function(d){ return d.id === 'cr'; });
+    if (crDept && !crDept.roles.find(function(r){ return r[0] === 'Head CRM'; })) {
+      crDept.roles.unshift(['Head CRM', '1']);
+    }
+    // Add Deliverability dept if not present
+    if (!DATA.find(function(d){ return d.id === 'dl'; })) {
+      DATA.push({id:'dl', label:'Deliverability', pfx:'dl', roles:[['Head','1'],['TL','1'],['Supervisor','1'],['Manager','4']]});
+    }
     render();
     recalcAll();
     setTimeout(drawConnectors, 120);
@@ -873,7 +892,7 @@ function drawConnectors() {
   var barY  = stemH;
   var svgH = stemH + 18;
   var svgW = Math.max(lastX + 10, headCX + 10);
-  var dept_colors = ['#6090d0','#c09040','#8080d0','#c06040','#60a040','#c060a0','#909090','#909090','#b07040'];
+  var dept_colors = ['#6090d0','#c09040','#8080d0','#c06040','#60a040','#c060a0','#909090','#909090','#b07040','#3070b0'];
   var lines = '';
   lines += '<line x1="'+headCX+'" y1="0" x2="'+headCX+'" y2="'+barY+'" stroke="#b0b8d8" stroke-width="1"/>';
   lines += '<line x1="'+firstX+'" y1="'+barY+'" x2="'+lastX+'" y2="'+barY+'" stroke="#b0b8d8" stroke-width="1"/>';

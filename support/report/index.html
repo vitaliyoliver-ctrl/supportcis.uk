@@ -351,42 +351,9 @@
     <!-- МЕДИА -->
     <div class="section">
       <div class="section-label">Скриншот трудности</div>
-
-      <!-- Табы -->
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button type="button" id="tabOneDrive" onclick="switchTab('onedrive')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
-          ☁️ OneDrive / SharePoint
-        </button>
-        <button type="button" id="tabUrl" onclick="switchTab('url')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
-          🔗 Вставить ссылку
-        </button>
+      <div class="field">
+        <input type="text" id="screenshot" placeholder="https://... ссылка на скриншот">
       </div>
-
-      <!-- OneDrive Picker -->
-      <div id="panelOneDrive">
-        <div id="pickerBtn" onclick="openOneDrivePicker()" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);">
-          <div style="font-size:28px;margin-bottom:8px;">☁️</div>
-          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);">Нажми чтобы выбрать файл из OneDrive или SharePoint</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Откроется стандартное окно Microsoft</div>
-        </div>
-
-        <!-- Статус выбора файла -->
-        <div id="pickerStatus" style="display:none;margin-top:10px;padding:12px 14px;border-radius:8px;background:var(--success-glow);border:1px solid rgba(45,212,160,0.3);font-size:13px;align-items:center;gap:10px;color:var(--success);">
-          <span>✅</span>
-          <span id="pickerFileName">Файл выбран</span>
-          <button type="button" onclick="clearPicker()" style="margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>
-        </div>
-      </div>
-
-      <!-- Вставить ссылку вручную -->
-      <div id="panelUrl" style="display:none;">
-        <div class="field">
-          <input type="text" id="screenshotUrl" placeholder="https://... ссылка на скриншот">
-        </div>
-      </div>
-
-      <!-- Итоговая ссылка (скрытое поле) -->
-      <input type="hidden" id="screenshot">
     </div>
 
     <!-- ДОПОЛНИТЕЛЬНО -->
@@ -444,85 +411,7 @@
   const WEBHOOK_FINTECH = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/90a9d8973108402390ad80496302f8b9/2f898860-c2e8-4616-9f2d-82c287e1761a/V29kCgKIplvVsul8Qg37kAEHpKS44XzczbAFoikfCtvKE1";
   const POWER_AUTOMATE_URL = "ВСТАВЬ_СЮДА_URL_POWER_AUTOMATE";
 
-  // Твой SharePoint домен
-  const SHAREPOINT_DOMAIN = "infinitystarreach.sharepoint.com";
-
   let sendCount = 0;
-
-  // ─── TABS ───
-  function switchTab(tab) {
-    const isOneDrive = tab === 'onedrive';
-    document.getElementById('panelOneDrive').style.display = isOneDrive ? 'block' : 'none';
-    document.getElementById('panelUrl').style.display      = isOneDrive ? 'none'  : 'block';
-    document.getElementById('tabOneDrive').style.cssText = isOneDrive
-      ? 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;'
-      : 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;';
-    document.getElementById('tabUrl').style.cssText = isOneDrive
-      ? 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;'
-      : 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;';
-    if (!isOneDrive) clearPicker();
-  }
-
-  // ─── ONEDRIVE PICKER ───
-  function openOneDrivePicker() {
-    const options = {
-      clientId: "00000003-0000-0ff1-ce00-000000000000", // SharePoint App ID (стандартный)
-      action: "share",
-      multiSelect: false,
-      advanced: {
-        redirectUri: window.location.href,
-        filter: ".png,.jpg,.jpeg,.gif,.webp,.bmp",
-        endpointHint: `https://${SHAREPOINT_DOMAIN}`
-      },
-      success: function(files) {
-        const file = files.value[0];
-        const link = file.permissions && file.permissions[0]
-          ? file.permissions[0].link.webUrl
-          : file.webUrl || file["@sharePoint.endpoint"];
-
-        const name = file.name || "файл выбран";
-        document.getElementById('screenshot').value = link || file.webUrl;
-        document.getElementById('pickerFileName').textContent = name;
-        document.getElementById('pickerStatus').style.display = 'flex';
-      },
-      cancel: function() {},
-      error: function(e) {
-        console.error("OneDrive Picker error:", e);
-        // Фоллбэк — переключаем на ручной ввод
-        switchTab('url');
-        showToast("error", "Не удалось открыть OneDrive — вставь ссылку вручную");
-      }
-    };
-
-    // Загружаем SDK и открываем picker
-    if (typeof OneDrive !== 'undefined') {
-      OneDrive.open(options);
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://js.live.net/v7.2/OneDrive.js';
-      script.onload = () => OneDrive.open(options);
-      script.onerror = () => {
-        switchTab('url');
-        showToast("error", "SDK не загрузился — вставь ссылку вручную");
-      };
-      document.head.appendChild(script);
-    }
-  }
-
-  function clearPicker() {
-    document.getElementById('pickerStatus').style.display = 'none';
-    document.getElementById('screenshot').value = '';
-  }
-
-  // ─── URL вручную ───
-  document.addEventListener('DOMContentLoaded', () => {
-    const urlInput = document.getElementById('screenshotUrl');
-    if (urlInput) {
-      urlInput.addEventListener('input', (e) => {
-        document.getElementById('screenshot').value = e.target.value;
-      });
-    }
-  });
 
   // Логика отображения кнопок Teams в зависимости от трудности
   // Сайт/слоты/картинки → только PM
@@ -604,10 +493,7 @@
 
   function resetForm() {
     document.getElementById("supportForm").reset();
-    clearPicker();
     document.getElementById('screenshot').value = '';
-    const urlInput = document.getElementById('screenshotUrl');
-    if (urlInput) urlInput.value = '';
     updateTeamsSection();
   }
 

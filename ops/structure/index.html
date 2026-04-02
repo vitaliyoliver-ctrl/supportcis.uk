@@ -497,7 +497,7 @@ function recalcDept(d) {
 }
 
 function recalcFTE() {
-  var total = 3; // Operation Manager (fixed, shown in header)
+  var total = 4; // Head of Operations (1) + Operation Manager (3), shown in header
   DATA.forEach(function(d){
     d.roles.forEach(function(r){ var n = parseFloat(r[1]); if (!isNaN(n)) total += n; });
   });

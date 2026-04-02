@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — Новое обращение</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: #252a38;
+    --border-active: #3d86f5;
+    --text: #e8eaf0;
+    --text-muted: #5a6070;
+    --text-secondary: #8b92a5;
+    --accent: #3d86f5;
+    --accent-glow: rgba(61, 134, 245, 0.15);
+    --success: #2dd4a0;
+    --success-glow: rgba(45, 212, 160, 0.15);
+    --danger: #f5455a;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-main: 'Manrope', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-main);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(61,134,245,0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px);
+  }
+
+  .container { max-width: 780px; margin: 0 auto; }
+
+  .header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 40px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-icon {
+    width:44px;height:44px;background:var(--accent-glow);
+    border:1px solid rgba(61,134,245,0.3);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+  }
+  .header-text h1{font-size:20px;font-weight:700;letter-spacing:-0.3px;}
+  .header-text p{font-size:13px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono);}
+  .live-time{
+    margin-left:auto;font-family:var(--font-mono);font-size:13px;color:var(--accent);
+    background:var(--accent-glow);border:1px solid rgba(61,134,245,0.2);
+    padding:6px 14px;border-radius:6px;white-space:nowrap;
+  }
+
+  .section{margin-bottom:28px;animation:fadeUp 0.4s ease both;}
+  .section:nth-child(1){animation-delay:.05s}
+  .section:nth-child(2){animation-delay:.10s}
+  .section:nth-child(3){animation-delay:.15s}
+  .section:nth-child(4){animation-delay:.20s}
+  .section:nth-child(5){animation-delay:.25s}
+  .section:nth-child(6){animation-delay:.30s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+  .section-label{
+    font-family:var(--font-mono);font-size:10px;font-weight:700;
+    letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);
+    margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  }
+  .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .span-2{grid-column:span 2;}
+  @media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr;}.span-2{grid-column:span 1;}}
+
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:12px;font-weight:600;color:var(--text-secondary);letter-spacing:0.2px;}
+  .field label .req{color:var(--danger);margin-left:3px;}
+
+  .field input,.field select,.field textarea{
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-family:var(--font-main);font-size:14px;padding:10px 14px;
+    transition:border-color .2s,box-shadow .2s,background .2s;outline:none;width:100%;
+  }
+  .field input::placeholder,.field textarea::placeholder{color:var(--text-muted);}
+  .field input:focus,.field select:focus,.field textarea:focus{
+    border-color:var(--border-active);background:var(--surface2);box-shadow:0 0 0 3px var(--accent-glow);
+  }
+  .field select{
+    cursor:pointer;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a6070' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+  }
+  .field select option{background:var(--surface2);color:var(--text);}
+  .field textarea{resize:vertical;min-height:80px;line-height:1.5;}
+
+  .checkbox-group{display:flex;gap:10px;flex-wrap:wrap;}
+  .checkbox-item{
+    display:flex;align-items:center;gap:8px;background:var(--surface);
+    border:1px solid var(--border);border-radius:8px;padding:9px 14px;
+    cursor:pointer;transition:all .2s;user-select:none;font-size:13px;font-weight:500;
+  }
+  .checkbox-item:hover{border-color:var(--border-active);background:var(--surface2);}
+  .checkbox-item input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+
+  .webhook-selector{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .webhook-option{position:relative;}
+  .webhook-option input[type="radio"]{position:absolute;opacity:0;width:0;height:0;}
+  .webhook-option label{
+    display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    cursor:pointer;transition:all .2s;font-size:14px;font-weight:600;color:var(--text-secondary);
+  }
+  .webhook-option input:checked+label{
+    border-color:var(--accent);background:var(--accent-glow);color:var(--text);box-shadow:0 0 0 3px var(--accent-glow);
+  }
+  .webhook-option label:hover{border-color:rgba(61,134,245,0.4);background:var(--surface2);}
+  .webhook-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+  .submit-area{margin-top:36px;display:flex;align-items:center;gap:16px;}
+  .btn-submit{
+    flex:1;background:var(--accent);color:#fff;border:none;border-radius:10px;
+    padding:14px 28px;font-family:var(--font-main);font-size:15px;font-weight:700;
+    cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-submit:hover{background:#5a9bf7;box-shadow:0 4px 20px rgba(61,134,245,0.35);transform:translateY(-1px);}
+  .btn-submit:active{transform:translateY(0);}
+  .btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-reset{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    color:var(--text-secondary);padding:14px 20px;font-family:var(--font-main);
+    font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;
+  }
+  .btn-reset:hover{border-color:var(--text-muted);color:var(--text);}
+
+  .toast{
+    position:fixed;bottom:30px;right:30px;padding:14px 20px;border-radius:10px;
+    font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;
+    transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);
+    z-index:999;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  }
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.success{background:var(--success-glow);border:1px solid rgba(45,212,160,.3);color:var(--success);}
+  .toast.error{background:rgba(245,69,90,.1);border:1px solid rgba(245,69,90,.3);color:var(--danger);}
+  .toast.loading{background:var(--accent-glow);border:1px solid rgba(61,134,245,.3);color:var(--accent);}
+  .spinner{width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .status-bar{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+  .badge{font-family:var(--font-mono);font-size:11px;padding:4px 10px;border-radius:4px;font-weight:500;}
+  .badge-blue{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(61,134,245,.2);}
+  .badge-green{background:var(--success-glow);color:var(--success);border:1px solid rgba(45,212,160,.2);}
+  .send-counter{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);text-align:right;margin-top:8px;}
+  .send-counter span{color:var(--accent);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-icon">🎯</div>
+    <div class="header-text">
+      <h1>Новое обращение</h1>
+      <p>support / tech-team</p>
+    </div>
+    <div class="live-time" id="liveTime">--:--:--</div>
+  </div>
+
+  <div class="status-bar">
+    <span class="badge badge-blue">● Teams Webhook</span>
+    <span class="badge badge-green">● Excel Online</span>
+  </div>
+
+  <form id="supportForm">
+
+    <!-- ОСНОВНОЕ -->
+    <div class="section">
+      <div class="section-label">Основное</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Айди аккаунта <span class="req">*</span></label>
+          <input type="text" id="accountId" placeholder="напр. 1234567" required>
+        </div>
+        <div class="field">
+          <label>Проект <span class="req">*</span></label>
+          <select id="project" required>
+            <option value="" disabled selected>Выбрать проект...</option>
+            <option>CAT</option>
+            <option>GAMA</option>
+            <option>DADDY</option>
+            <option>MERS</option>
+            <option>KENT</option>
+            <option>R7</option>
+            <option>KOMETA</option>
+            <option>ARKADA</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Трудность <span class="req">*</span></label>
+          <select id="difficulty" required>
+            <option value="" disabled selected>Выбрать трудность...</option>
+            <option>Не работает сайт</option>
+            <option>Не работают слоты</option>
+            <option>Не грузятся картинки</option>
+            <option>Не может сделать депозит</option>
+            <option>Не может сделать вывод</option>
+            <option>Не работает чат</option>
+            <option>Другое</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Описание трудности</label>
+          <input type="text" id="difficultyDesc" placeholder="Краткое описание..." list="difficultyList">
+          <datalist id="difficultyList"></datalist>
+        </div>
+        <div class="field span-2">
+          <label>Подробное описание</label>
+          <textarea id="description" placeholder="Дополнительные детали..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ПРОВАЙДЕРЫ -->
+    <div class="section">
+      <div class="section-label">Провайдеры</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Провайдер 1</label>
+          <select id="provider1">
+            <option value="">— не выбран —</option>
+            <option>Все провайдеры</option>
+            <option>3 Oaks Gaming</option><option>4ThePlayer</option><option>Amatic</option>
+            <option>Amusnet</option><option>AvatarUX</option><option>Aviatrix</option>
+            <option>Bang Bang</option><option>Belatra</option><option>BetSoft</option>
+            <option>BGaming</option><option>Big Time Gaming</option><option>Boomerang</option>
+            <option>Devxpress</option><option>ELK Studios</option><option>Endorphina</option>
+            <option>Evolution</option><option>Evoplay</option><option>Ezugi</option>
+            <option>Fugaso</option><option>Galaxsys</option><option>GameArt</option>
+            <option>Gamzix</option><option>HacksawGaming</option><option>Hot Rise</option>
+            <option>ICONIC21</option><option>Igrosoft</option><option>ISoftBet</option>
+            <option>Mascot Gaming</option><option>Microgaming</option><option>NetEnt</option>
+            <option>NetGame</option><option>Nolimit City</option><option>Novomatic</option>
+            <option>Onlyplay</option><option>PeterAndSons</option><option>PG Soft</option>
+            <option>Platipus</option><option>Play'n GO</option><option>Playson</option>
+            <option>PopiPlay</option><option>Pragmatic Play</option><option>Pragmatic Play Live</option>
+            <option>Print Studios</option><option>Push Gaming</option><option>Quickspin</option>
+            <option>Red Tiger</option><option>RedRakeGaming</option><option>Reel Play</option>
+            <option>Reflex Gaming</option><option>Relax Gaming</option><option>RubyPlay</option>
+            <option>Skillzz</option><option>SmartSoft</option><option>Spinomenal</option>
+            <option>SpinOn</option><option>Spribe</option><option>Thunderkick</option>
+            <option>TomHornGaming</option><option>TurboGames</option><option>Upgaming</option>
+            <option>Wazdan</option><option>Yggdrasil</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Провайдер 2</label>
+          <select id="provider2">
+            <option value="">— не выбран —</option>
+            <option>Все провайдеры</option>
+            <option>3 Oaks Gaming</option><option>4ThePlayer</option><option>Amatic</option>
+            <option>Amusnet</option><option>AvatarUX</option><option>Aviatrix</option>
+            <option>Bang Bang</option><option>Belatra</option><option>BetSoft</option>
+            <option>BGaming</option><option>Big Time Gaming</option><option>Boomerang</option>
+            <option>Devxpress</option><option>ELK Studios</option><option>Endorphina</option>
+            <option>Evolution</option><option>Evoplay</option><option>Ezugi</option>
+            <option>Fugaso</option><option>Galaxsys</option><option>GameArt</option>
+            <option>Gamzix</option><option>HacksawGaming</option><option>Hot Rise</option>
+            <option>ICONIC21</option><option>Igrosoft</option><option>ISoftBet</option>
+            <option>Mascot Gaming</option><option>Microgaming</option><option>NetEnt</option>
+            <option>NetGame</option><option>Nolimit City</option><option>Novomatic</option>
+            <option>Onlyplay</option><option>PeterAndSons</option><option>PG Soft</option>
+            <option>Platipus</option><option>Play'n GO</option><option>Playson</option>
+            <option>PopiPlay</option><option>Pragmatic Play</option><option>Pragmatic Play Live</option>
+            <option>Print Studios</option><option>Push Gaming</option><option>Quickspin</option>
+            <option>Red Tiger</option><option>RedRakeGaming</option><option>Reel Play</option>
+            <option>Reflex Gaming</option><option>Relax Gaming</option><option>RubyPlay</option>
+            <option>Skillzz</option><option>SmartSoft</option><option>Spinomenal</option>
+            <option>SpinOn</option><option>Spribe</option><option>Thunderkick</option>
+            <option>TomHornGaming</option><option>TurboGames</option><option>Upgaming</option>
+            <option>Wazdan</option><option>Yggdrasil</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Провайдер 3</label>
+          <select id="provider3">
+            <option value="">— не выбран —</option>
+            <option>Все провайдеры</option>
+            <option>3 Oaks Gaming</option><option>4ThePlayer</option><option>Amatic</option>
+            <option>Amusnet</option><option>AvatarUX</option><option>Aviatrix</option>
+            <option>Bang Bang</option><option>Belatra</option><option>BetSoft</option>
+            <option>BGaming</option><option>Big Time Gaming</option><option>Boomerang</option>
+            <option>Devxpress</option><option>ELK Studios</option><option>Endorphina</option>
+            <option>Evolution</option><option>Evoplay</option><option>Ezugi</option>
+            <option>Fugaso</option><option>Galaxsys</option><option>GameArt</option>
+            <option>Gamzix</option><option>HacksawGaming</option><option>Hot Rise</option>
+            <option>ICONIC21</option><option>Igrosoft</option><option>ISoftBet</option>
+            <option>Mascot Gaming</option><option>Microgaming</option><option>NetEnt</option>
+            <option>NetGame</option><option>Nolimit City</option><option>Novomatic</option>
+            <option>Onlyplay</option><option>PeterAndSons</option><option>PG Soft</option>
+            <option>Platipus</option><option>Play'n GO</option><option>Playson</option>
+            <option>PopiPlay</option><option>Pragmatic Play</option><option>Pragmatic Play Live</option>
+            <option>Print Studios</option><option>Push Gaming</option><option>Quickspin</option>
+            <option>Red Tiger</option><option>RedRakeGaming</option><option>Reel Play</option>
+            <option>Reflex Gaming</option><option>Relax Gaming</option><option>RubyPlay</option>
+            <option>Skillzz</option><option>SmartSoft</option><option>Spinomenal</option>
+            <option>SpinOn</option><option>Spribe</option><option>Thunderkick</option>
+            <option>TomHornGaming</option><option>TurboGames</option><option>Upgaming</option>
+            <option>Wazdan</option><option>Yggdrasil</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- КЛИЕНТ -->
+    <div class="section">
+      <div class="section-label">Клиент</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Ссылка на чат <span class="req">*</span></label>
+          <input type="text" id="chatLink" placeholder="https://..." required>
+        </div>
+        <div class="field">
+          <label>IP клиента</label>
+          <input type="text" id="clientIp" placeholder="напр. 192.168.1.1">
+        </div>
+        <div class="field">
+          <label>Почта клиента <span class="req">*</span></label>
+          <input type="email" id="clientEmail" placeholder="client@mail.com" required>
+        </div>
+        <div class="field">
+          <label>Регион</label>
+          <input type="text" id="region" placeholder="напр. UA, PL, RU">
+        </div>
+        <div class="field">
+          <label>GMT</label>
+          <input type="text" id="gmt" placeholder="напр. GMT+3">
+        </div>
+        <div class="field">
+          <label>Интернет провайдер</label>
+          <input type="text" id="isp" placeholder="напр. Kyivstar">
+        </div>
+      </div>
+    </div>
+
+    <!-- МЕДИА -->
+    <div class="section">
+      <div class="section-label">Скриншот трудности</div>
+
+      <!-- Табы: загрузить файл / вставить ссылку -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button type="button" id="tabFile" onclick="switchTab('file')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
+          📁 Загрузить файл
+        </button>
+        <button type="button" id="tabUrl" onclick="switchTab('url')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;">
+          🔗 Вставить ссылку
+        </button>
+      </div>
+
+      <!-- Загрузка файла -->
+      <div id="panelFile">
+        <div id="dropzone" onclick="document.getElementById('screenshotFile').click()" style="border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);">
+          <div style="font-size:28px;margin-bottom:8px;">🖼️</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);">Нажми или перетащи файл сюда</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">PNG, JPG, GIF, WEBP — до 10MB</div>
+        </div>
+        <input type="file" id="screenshotFile" accept="image/*" style="display:none;">
+
+        <!-- Превью + статус загрузки -->
+        <div id="uploadStatus" style="display:none;margin-top:10px;padding:12px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);font-size:13px;display:none;align-items:center;gap:10px;">
+          <span id="uploadIcon">⏳</span>
+          <span id="uploadText">Загружаем...</span>
+        </div>
+
+        <!-- Превью изображения -->
+        <div id="previewWrap" style="display:none;margin-top:10px;position:relative;">
+          <img id="previewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">
+          <button type="button" onclick="clearFile()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕ Убрать</button>
+        </div>
+      </div>
+
+      <!-- Вставить ссылку -->
+      <div id="panelUrl" style="display:none;">
+        <div class="field">
+          <input type="url" id="screenshotUrl" placeholder="https://... ссылка на скриншот">
+        </div>
+      </div>
+
+      <!-- Итоговая ссылка (скрытое поле) -->
+      <input type="hidden" id="screenshot">
+    </div>
+
+    <!-- ДОПОЛНИТЕЛЬНО -->
+    <div class="section">
+      <div class="section-label">Дополнительно</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Amatic прогрузился</label>
+          <select id="amaticLoaded">
+            <option value="">— не указано —</option>
+            <option value="Страница прогрузилась">Страница прогрузилась</option>
+            <option value="Не прогрузилась">Не прогрузилась</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Предложил бонус</label>
+          <select id="bonusOffered">
+            <option value="">— не указано —</option>
+            <option value="Да">Да</option>
+            <option value="Нет">Нет</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ОТПРАВКА В TEAMS -->
+    <div class="section" id="teamsSection">
+      <div class="section-label">Отправка в Teams <span class="req" id="teamsReq">*</span></div>
+      <div id="teamsContent">
+        <!-- Динамически обновляется при выборе трудности -->
+        <div style="font-size:13px;color:var(--text-muted);font-family:var(--font-mono);">
+          Сначала выбери трудность ↑
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-area">
+      <button type="button" class="btn-reset" onclick="resetForm()">Очистить</button>
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span>Отправить обращение</span>
+        <span>→</span>
+      </button>
+    </div>
+    <div class="send-counter">Отправлено за сессию: <span id="sendCount">0</span></div>
+  </form>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastIcon"></span>
+  <span id="toastText"></span>
+</div>
+
+<script>
+  const WEBHOOK_PM      = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/ef3ef0c46c5c465ea15ccf0a424107e7/2f898860-c2e8-4616-9f2d-82c287e1761a/V20tmASX6u4JiCWZ_YG5bQ1TM1uLgvP-wO_8iOzMKWnh81";
+  const WEBHOOK_FINTECH = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/90a9d8973108402390ad80496302f8b9/2f898860-c2e8-4616-9f2d-82c287e1761a/V29kCgKIplvVsul8Qg37kAEHpKS44XzczbAFoikfCtvKE1";
+  const POWER_AUTOMATE_URL = "ВСТАВЬ_СЮДА_URL_POWER_AUTOMATE";
+  const SCREENSHOT_UPLOAD_URL = "https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/0c7a77b2087b4a47a4096d341615271a/triggers/manual/paths/invoke?api-version=1";
+
+  let sendCount = 0;
+
+  // ─── СКРИНШОТ: переключение табов ───
+  function switchTab(tab) {
+    const isFile = tab === 'file';
+    document.getElementById('panelFile').style.display = isFile ? 'block' : 'none';
+    document.getElementById('panelUrl').style.display  = isFile ? 'none'  : 'block';
+    document.getElementById('tabFile').style.cssText = isFile
+      ? 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;'
+      : 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;';
+    document.getElementById('tabUrl').style.cssText = isFile
+      ? 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;'
+      : 'flex:1;padding:9px;border-radius:8px;border:1px solid var(--border-active);background:var(--accent-glow);color:var(--text);font-family:var(--font-main);font-size:13px;font-weight:600;cursor:pointer;';
+    if (!isFile) document.getElementById('screenshot').value = '';
+  }
+
+  // ─── СКРИНШОТ: очистка ───
+  function clearFile() {
+    document.getElementById('screenshotFile').value = '';
+    document.getElementById('previewWrap').style.display = 'none';
+    document.getElementById('uploadStatus').style.display = 'none';
+    document.getElementById('screenshot').value = '';
+    document.getElementById('dropzone').style.borderColor = 'var(--border)';
+  }
+
+  // ─── СКРИНШОТ: выбор файла ───
+  document.getElementById('screenshotFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await uploadScreenshot(file);
+  });
+
+  // ─── СКРИНШОТ: drag & drop ───
+  const dropzone = document.getElementById('dropzone');
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--border-active)'; dropzone.style.background = 'var(--surface2)'; });
+  dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border)'; dropzone.style.background = 'var(--surface)'; });
+  dropzone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--border)';
+    dropzone.style.background = 'var(--surface)';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) await uploadScreenshot(file);
+  });
+
+  // ─── СКРИНШОТ: загрузка через Power Automate ───
+  async function uploadScreenshot(file) {
+    // Показать превью
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewWrap').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+
+    // Показать статус загрузки
+    const statusEl = document.getElementById('uploadStatus');
+    statusEl.style.display = 'flex';
+    document.getElementById('uploadIcon').textContent = '⏳';
+    document.getElementById('uploadText').textContent = 'Загружаем в SharePoint...';
+    document.getElementById('screenshot').value = '';
+
+    try {
+      // Конвертируем в base64
+      const base64 = await fileToBase64(file);
+      const fileName = `screenshot_${Date.now()}_${file.name}`;
+
+      const res = await fetch(SCREENSHOT_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, fileContent: base64 })
+      });
+
+      if (!res.ok) throw new Error(`Upload error: ${res.status}`);
+
+      const link = await res.text();
+      const cleanLink = link.replace(/^"|"$/g, ''); // убираем кавычки если есть
+
+      document.getElementById('screenshot').value = cleanLink;
+      document.getElementById('uploadIcon').textContent = '✅';
+      document.getElementById('uploadText').textContent = 'Загружено в SharePoint';
+      statusEl.style.background = 'var(--success-glow)';
+      statusEl.style.borderColor = 'rgba(45,212,160,0.3)';
+      statusEl.style.color = 'var(--success)';
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('uploadIcon').textContent = '❌';
+      document.getElementById('uploadText').textContent = 'Ошибка загрузки — вставь ссылку вручную';
+      statusEl.style.background = 'rgba(245,69,90,0.1)';
+      statusEl.style.borderColor = 'rgba(245,69,90,0.3)';
+      statusEl.style.color = 'var(--danger)';
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result.split(',')[1]);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  // ─── СКРИНШОТ: URL вручную ───
+  document.getElementById('screenshotUrl').addEventListener('input', (e) => {
+    document.getElementById('screenshot').value = e.target.value;
+  });
+
+  // Логика отображения кнопок Teams в зависимости от трудности
+  // Сайт/слоты/картинки → только PM
+  // Депозит/вывод → только FinTech
+  // Чат → ничего
+  // Другое → оба
+  const DIFFICULTY_WEBHOOK = {
+    "Не работает сайт":           "PM",
+    "Не работают слоты":          "PM",
+    "Не грузятся картинки":       "PM",
+    "Не может сделать депозит":   "FinTech",
+    "Не может сделать вывод":     "FinTech",
+    "Не работает чат":            "none",
+    "Другое":                     "both",
+  };
+
+  function updateTeamsSection() {
+    const difficulty = document.getElementById("difficulty").value;
+    const mode = DIFFICULTY_WEBHOOK[difficulty] || "both";
+    const content = document.getElementById("teamsContent");
+    const req = document.getElementById("teamsReq");
+
+    if (mode === "none") {
+      req.style.display = "none";
+      content.innerHTML = `<div style="font-size:13px;color:var(--text-muted);font-family:var(--font-mono);padding:12px 0;">
+        ℹ️ Для трудности с чатом отправка в Teams не требуется
+      </div>`;
+    } else {
+      req.style.display = "inline";
+      let html = '<div class="webhook-selector">';
+      if (mode === "PM" || mode === "both") {
+        html += `<div class="webhook-option">
+          <input type="radio" name="webhook" id="webhookPM" value="PM" ${mode === "PM" ? "checked" : ""}>
+          <label for="webhookPM"><span class="webhook-dot" style="color:#3d86f5"></span> PM</label>
+        </div>`;
+      }
+      if (mode === "FinTech" || mode === "both") {
+        html += `<div class="webhook-option">
+          <input type="radio" name="webhook" id="webhookFinTech" value="FinTech" ${mode === "FinTech" ? "checked" : ""}>
+          <label for="webhookFinTech"><span class="webhook-dot" style="color:#f5a623"></span> FinTech</label>
+        </div>`;
+      }
+      html += '</div>';
+      content.innerHTML = html;
+    }
+  }
+
+  document.getElementById("difficulty").addEventListener("change", updateTeamsSection);
+
+  // Живые часы
+  function updateTime() {
+    const now = new Date();
+    const kyiv = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Kyiv" }));
+    const t = [kyiv.getHours(), kyiv.getMinutes(), kyiv.getSeconds()]
+      .map(n => String(n).padStart(2,"0")).join(":");
+    document.getElementById("liveTime").textContent = t;
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+
+  function getKyivDateTime() {
+    const now = new Date();
+    const kyiv = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Kyiv" }));
+    return {
+      time: [kyiv.getHours(), kyiv.getMinutes(), kyiv.getSeconds()].map(n=>String(n).padStart(2,"0")).join(":"),
+      date: [String(kyiv.getDate()).padStart(2,"0"), String(kyiv.getMonth()+1).padStart(2,"0"), kyiv.getFullYear()].join(".")
+    };
+  }
+
+  let toastTimer;
+  function showToast(type, text) {
+    const toast = document.getElementById("toast");
+    document.getElementById("toastIcon").innerHTML = type==="success"?"✓":type==="error"?"✕":'<div class="spinner"></div>';
+    document.getElementById("toastText").textContent = text;
+    toast.className = `toast ${type} show`;
+    clearTimeout(toastTimer);
+    if (type !== "loading") toastTimer = setTimeout(() => toast.classList.remove("show"), 4000);
+  }
+
+  function resetForm() {
+    document.getElementById("supportForm").reset();
+    clearFile();
+    document.getElementById('screenshotUrl').value = '';
+    document.getElementById('screenshot').value = '';
+    document.getElementById('uploadStatus').style.display = 'none';
+    document.getElementById('previewWrap').style.display = 'none';
+    updateTeamsSection();
+  }
+
+  async function sendToTeams(data, url) {
+    const providers = [data.provider1, data.provider2, data.provider3].filter(Boolean).join(", ") || "—";
+    const facts = [
+      { name:"Айди аккаунта",      value: data.accountId      || "—" },
+      { name:"Время",              value: data.time            || "—" },
+      { name:"Дата",               value: data.date            || "—" },
+      { name:"Проект",             value: data.project         || "—" },
+      { name:"Трудность",          value: data.difficulty      || "—" },
+      { name:"Описание трудности", value: data.difficultyDesc  || "—" },
+      { name:"Подробное описание", value: data.description     || "—" },
+      { name:"Ссылка на чат",      value: data.chatLink        || "—" },
+      { name:"IP клиента",         value: data.clientIp        || "—" },
+      { name:"Почта клиента",      value: data.clientEmail     || "—" },
+      { name:"Регион",             value: data.region          || "—" },
+      { name:"GMT",                value: data.gmt             || "—" },
+      { name:"Интернет провайдер", value: data.isp             || "—" },
+      { name:"Скриншот",           value: data.screenshot      || "—" },
+      { name:"Amatic прогрузился", value: data.amaticLoaded    || "—" },
+      { name:"Предложил бонус",    value: data.bonusOffered    || "—" },
+      { name:"Провайдеры",         value: providers },
+    ];
+    const res = await fetch(url, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        "@type":"MessageCard","@context":"http://schema.org/extensions",
+        summary:"Новая запись активирована",themeColor:"0076D7",
+        title:"🎯 Новая запись активирована",
+        sections:[{facts,markdown:true}]
+      })
+    });
+    if (!res.ok) throw new Error(`Teams error: ${res.status}`);
+  }
+
+  async function sendToExcel(data) {
+    if (POWER_AUTOMATE_URL === "ВСТАВЬ_СЮДА_URL_POWER_AUTOMATE") return;
+    const res = await fetch(POWER_AUTOMATE_URL, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`Power Automate error: ${res.status}`);
+  }
+
+  document.getElementById("supportForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const difficulty = document.getElementById("difficulty").value;
+    const mode = DIFFICULTY_WEBHOOK[difficulty] || "both";
+    const webhookVal = mode === "none"
+      ? null
+      : document.querySelector('input[name="webhook"]:checked')?.value;
+
+    // Если нужна отправка в Teams но не выбрана кнопка
+    if (mode !== "none" && !webhookVal) {
+      showToast("error", "Выбери куда отправить в Teams");
+      return;
+    }
+
+    const { time, date } = getKyivDateTime();
+    const data = {
+      accountId:     document.getElementById("accountId").value.trim(),
+      time, date,
+      project:       document.getElementById("project").value,
+      difficulty:    document.getElementById("difficulty").value,
+      difficultyDesc:document.getElementById("difficultyDesc").value.trim(),
+      description:   document.getElementById("description").value.trim(),
+      chatLink:      document.getElementById("chatLink").value.trim(),
+      clientIp:      document.getElementById("clientIp").value.trim(),
+      clientEmail:   document.getElementById("clientEmail").value.trim(),
+      region:        document.getElementById("region").value.trim(),
+      gmt:           document.getElementById("gmt").value.trim(),
+      isp:           document.getElementById("isp").value.trim(),
+      screenshot:    document.getElementById("screenshot").value.trim(),
+      amaticLoaded:  document.getElementById("amaticLoaded").value,
+      bonusOffered:  document.getElementById("bonusOffered").value,
+      provider1:     document.getElementById("provider1").value,
+      provider2:     document.getElementById("provider2").value,
+      provider3:     document.getElementById("provider3").value,
+      webhook:       webhookVal,
+    };
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    showToast("loading","Отправляем данные...");
+
+    try {
+      const promises = [sendToExcel(data)];
+      if (webhookVal) {
+        const webhookUrl = webhookVal === "PM" ? WEBHOOK_PM : WEBHOOK_FINTECH;
+        promises.push(sendToTeams(data, webhookUrl));
+      }
+      await Promise.all(promises);
+      sendCount++;
+      document.getElementById("sendCount").textContent = sendCount;
+      showToast("success", webhookVal ? `Отправлено в Teams (${webhookVal}) ✓` : "Сохранено в Excel ✓");
+      resetForm();
+      updateTeamsSection();
+    } catch(err) {
+      console.error(err);
+      showToast("error","Ошибка отправки. Открой F12 → Console.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

@@ -282,9 +282,9 @@ table.ops-table {
 
 <script>
 const REGULAR_OPERATORS = [
-    'Jay','Will','Kenzo','Nora','Maverick','Florence','Fletcher','Charles','Earl','Balfour',
-    'Jonathan','Bill','Farrell','Shane','Bridget','Robin','Rupert','Bob','Lex','Colin',
-    'Robert','Hardy','Monica','Murphy','Calvin','Gross'
+    'Will','Kenzo','Nora','Florence','Fletcher','Charles','Earl','Rudy','Balfour',
+    'Jonathan','Bill','Gross','Meadow','Norman','Robin','Bob','Lex','Calvin','Mike',
+    'Sherlock','Colin','Robert','Hardy','Murphy','Joseph','Bowen','Bridget'
   ];
 
 const VIP_OPERATORS = [
@@ -1175,7 +1175,7 @@ function analyze() {
       });
 
       if (!candidates.length) {
-        if (['Lex','Hardy','Robert','Monica','Murphy','Alexia','Trinity','Christine'].includes(nick) && Object.keys(byDate).length > 0) {
+        if (['Lex','Hardy','Robert','Murphy','Alexia','Trinity','Christine'].includes(nick) && Object.keys(byDate).length > 0) {
           console.log('[DEBUG]', nick, dateStr, 'NO CANDIDATES. allDayChats:', allDayChats.length);
           if (allDayChats.length) {
             const ft = allDayChats[0]['chat creation date Europe/Kiev'];

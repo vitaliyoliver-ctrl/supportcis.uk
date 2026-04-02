@@ -407,8 +407,6 @@
 </div>
 
 <script>
-  const WEBHOOK_PM      = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/ef3ef0c46c5c465ea15ccf0a424107e7/2f898860-c2e8-4616-9f2d-82c287e1761a/V20tmASX6u4JiCWZ_YG5bQ1TM1uLgvP-wO_8iOzMKWnh81";
-  const WEBHOOK_FINTECH = "https://catcasino0.webhook.office.com/webhookb2/601f4bc1-bec7-4369-806a-3fa31a90e142@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/90a9d8973108402390ad80496302f8b9/2f898860-c2e8-4616-9f2d-82c287e1761a/V29kCgKIplvVsul8Qg37kAEHpKS44XzczbAFoikfCtvKE1";
   const POWER_AUTOMATE_URL = "https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/172eb6b253a4422d9edae0049c158c0c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=VgxAD1BEU7Q7_vl9qjEgJTQJKE4k7G7-4TEecuccfYo";
 
   let sendCount = 0;
@@ -497,43 +495,10 @@
     updateTeamsSection();
   }
 
-  async function sendToTeams(data, url) {
-    const providers = [data.provider1, data.provider2, data.provider3].filter(Boolean).join(", ") || "—";
-    const facts = [
-      { name:"Айди аккаунта",      value: data.accountId      || "—" },
-      { name:"Время",              value: data.time            || "—" },
-      { name:"Дата",               value: data.date            || "—" },
-      { name:"Проект",             value: data.project         || "—" },
-      { name:"Трудность",          value: data.difficulty      || "—" },
-      { name:"Описание трудности", value: data.difficultyDesc  || "—" },
-      { name:"Подробное описание", value: data.description     || "—" },
-      { name:"Ссылка на чат",      value: data.chatLink        || "—" },
-      { name:"IP клиента",         value: data.clientIp        || "—" },
-      { name:"Почта клиента",      value: data.clientEmail     || "—" },
-      { name:"Регион",             value: data.region          || "—" },
-      { name:"GMT",                value: data.gmt             || "—" },
-      { name:"Интернет провайдер", value: data.isp             || "—" },
-      { name:"Скриншот",           value: data.screenshot      || "—" },
-      { name:"Amatic прогрузился", value: data.amaticLoaded    || "—" },
-      { name:"Предложил бонус",    value: data.bonusOffered    || "—" },
-      { name:"Провайдеры",         value: providers },
-    ];
-    const res = await fetch(url, {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        "@type":"MessageCard","@context":"http://schema.org/extensions",
-        summary:"Новая запись активирована",themeColor:"0076D7",
-        title:"🎯 Новая запись активирована",
-        sections:[{facts,markdown:true}]
-      })
-    });
-    if (!res.ok) throw new Error(`Teams error: ${res.status}`);
-  }
-
   async function sendToExcel(data) {
-    if (POWER_AUTOMATE_URL === "ВСТАВЬ_СЮДА_URL_POWER_AUTOMATE") return;
     const res = await fetch(POWER_AUTOMATE_URL, {
-      method:"POST", headers:{"Content-Type":"application/json"},
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error(`Power Automate error: ${res.status}`);
@@ -582,15 +547,10 @@
     showToast("loading","Отправляем данные...");
 
     try {
-      const promises = [sendToExcel(data)];
-      if (webhookVal) {
-        const webhookUrl = webhookVal === "PM" ? WEBHOOK_PM : WEBHOOK_FINTECH;
-        promises.push(sendToTeams(data, webhookUrl));
-      }
-      await Promise.all(promises);
+      await sendToExcel(data);
       sendCount++;
       document.getElementById("sendCount").textContent = sendCount;
-      showToast("success", webhookVal ? `Отправлено в Teams (${webhookVal}) ✓` : "Сохранено в Excel ✓");
+      showToast("success", webhookVal ? `Отправлено (${webhookVal}) ✓` : "Сохранено ✓");
       resetForm();
       updateTeamsSection();
     } catch(err) {

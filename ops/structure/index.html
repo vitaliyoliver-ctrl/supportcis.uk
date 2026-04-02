@@ -51,7 +51,6 @@ body.editing .add-row-btn{display:block;}
 .add-row-btn:hover{background:rgba(40,120,60,.15);color:rgba(20,140,60,.9);}
 
 .cc-c{background:#dceeff;border-color:#4080c0;}.cc-h{background:#c8e0f8;}.cc-n{color:#0a3a80;}.cc-t{color:#0a3a80;}.cc-r{color:#0a3a80;}
-.pv-c{background:#d4f0de;border-color:#30904e;}.pv-h{background:#beeace;}.pv-n{color:#0a4a28;}.pv-t{color:#0a4a28;}.pv-r{color:#0a4a28;}
 .py-c{background:#fde8bc;border-color:#a07020;}.py-h{background:#fcd8a0;}.py-n{color:#603800;}.py-t{color:#603800;}.py-r{color:#603800;}
 .su-c{background:#dddaff;border-color:#5050c0;}.su-h{background:#ccc8ff;}.su-n{color:#200080;}.su-t{color:#200080;}.su-r{color:#200080;}
 .af-c{background:#fdd0c8;border-color:#b04030;}.af-h{background:#fcbcb0;}.af-n{color:#700000;}.af-t{color:#700000;}.af-r{color:#700000;}
@@ -147,7 +146,7 @@ body.editing .tree-node-box .tn-count{cursor:text;outline:1px dashed rgba(60,80,
 
 <div class="top-bar">
   <div class="pill">FTE: <b id="fteTotal">—</b></div>
-  <div class="pill">Отделов: <b>10</b></div>
+  <div class="pill">Отделов: <b>9</b></div>
   <button class="btn" id="editBtn" onclick="toggleEdit()">✎ Редактировать</button>
   <span id="saveStatus" style="font-size:12px;color:#22c55e;opacity:0;transition:opacity 0.5s;padding:5px 10px;"></span>
 </div>
@@ -215,7 +214,7 @@ var editMode = false;
 var currentDeptId = null; // dept open in tree overlay
 var pendingParentPath = null; // path to parent node for add
 
-var accentMap={cc:'#2a5090',pv:'#1a6040',py:'#5a3c10',su:'#3e38a0',af:'#6a2c14',bn:'#2e5014',rc:'#681e4a',ds:'#4a4844',cn:'#4a4844',cr:'#623a18'};
+var accentMap={cc:'#2a5090',py:'#5a3c10',su:'#3e38a0',af:'#6a2c14',bn:'#2e5014',rc:'#681e4a',ds:'#4a4844',cn:'#4a4844',cr:'#623a18'};
 
 // ── DEFAULT TREE BUILDER ──
 // Converts flat roles array to a tree structure for departments that don't have one yet
@@ -236,9 +235,6 @@ function buildDefaultTree(id, roles) {
     {label:'Head NC',count:g('Head NC'),cls:'lv-nk',children:[
       {label:'TL NC',count:g('TL NC'),cls:'lv-nk',children:[{label:'Manager NC',count:g('Manager NC'),cls:'lv-nk',children:[]}]},
     ]},
-  ]};
-  if (id==='pv') return {label:'Head',count:g('Head'),cls:'lv-head',children:[
-    {label:'TL',count:g('TL'),cls:'lv-tl',children:[{label:'Manager',count:g('Manager'),cls:'lv-mgr',children:[]}]},
   ]};
   if (id==='py') return {label:'Head',count:g('Head'),cls:'lv-head',children:[
     {label:'Supervisor SG',count:g('Supervisor SG'),cls:'lv-sup',children:[
@@ -844,7 +840,7 @@ function showSaveStatus(msg, color) {
 fetch(API_URL)
   .then(function(r) { return r.json(); })
   .then(function(json) {
-    DATA = json;
+    DATA = json.filter(function(d){ return d.id !== 'pv'; });
     render();
     recalcAll();
     setTimeout(drawConnectors, 120);
@@ -877,7 +873,7 @@ function drawConnectors() {
   var barY  = stemH;
   var svgH = stemH + 18;
   var svgW = Math.max(lastX + 10, headCX + 10);
-  var dept_colors = ['#6090d0','#40a060','#c09040','#8080d0','#c06040','#60a040','#c060a0','#909090','#909090','#b07040'];
+  var dept_colors = ['#6090d0','#c09040','#8080d0','#c06040','#60a040','#c060a0','#909090','#909090','#b07040'];
   var lines = '';
   lines += '<line x1="'+headCX+'" y1="0" x2="'+headCX+'" y2="'+barY+'" stroke="#b0b8d8" stroke-width="1"/>';
   lines += '<line x1="'+firstX+'" y1="'+barY+'" x2="'+lastX+'" y2="'+barY+'" stroke="#b0b8d8" stroke-width="1"/>';

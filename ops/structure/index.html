@@ -497,7 +497,7 @@ function recalcDept(d) {
 }
 
 function recalcFTE() {
-  var total = 0;
+  var total = 3; // Operation Manager (fixed, shown in header)
   DATA.forEach(function(d){
     d.roles.forEach(function(r){ var n = parseFloat(r[1]); if (!isNaN(n)) total += n; });
   });
@@ -851,10 +851,15 @@ fetch(API_URL)
   .then(function(r) { return r.json(); })
   .then(function(json) {
     DATA = json.filter(function(d){ return d.id !== 'pv'; });
-    // Add Head CRM to cr dept roles if not present
+    // Ensure Head CRM exists in cr dept roles with count 1
     var crDept = DATA.find(function(d){ return d.id === 'cr'; });
-    if (crDept && !crDept.roles.find(function(r){ return r[0] === 'Head CRM'; })) {
-      crDept.roles.unshift(['Head CRM', '1']);
+    if (crDept) {
+      var headCrmRole = crDept.roles.find(function(r){ return r[0] === 'Head CRM'; });
+      if (!headCrmRole) {
+        crDept.roles.unshift(['Head CRM', '1']);
+      } else if (isNaN(parseFloat(headCrmRole[1]))) {
+        headCrmRole[1] = '1';
+      }
     }
     // Add Deliverability dept if not present
     if (!DATA.find(function(d){ return d.id === 'dl'; })) {

@@ -82,13 +82,16 @@ body.night select:hover, body.night select:focus { border-color: var(--accent-ni
   white-space: nowrap;
 }
 body.night .op-badge { background: var(--accent-night-dim); border-color: var(--accent-night-border); color: var(--accent-night); }
+body.vip .op-badge { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.35); color: var(--warn); }
+body.vip .logo-dot { background: var(--warn); }
+.seg-btn.active-vip { background: rgba(251,191,36,0.12); color: var(--warn); font-weight: 500; }
 
 .seg { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .seg-btn { padding: 7px 14px; font-size: 13px; font-family: var(--sans); color: var(--muted); background: transparent; border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
 .seg-btn.active-day { background: var(--accent-day-dim); color: var(--accent-day); font-weight: 500; }
 .seg-btn.active-night { background: var(--accent-night-dim); color: var(--accent-night); font-weight: 500; }
 
-.main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+.main { padding: 24px 28px; max-width: 100%; margin: 0 auto; }
 
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 28px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
@@ -106,11 +109,13 @@ body.night .op-badge { background: var(--accent-night-dim); border-color: var(--
 .section-line { flex: 1; height: 1px; background: var(--border); }
 .quota-warn { font-size: 11px; color: var(--danger); background: var(--danger-dim); border: 1px solid rgba(248,113,113,0.2); border-radius: 6px; padding: 3px 10px; font-family: var(--mono); white-space: nowrap; }
 
+.groups-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
 .group { margin-bottom: 14px; }
 .group-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.06em; margin-bottom: 7px; padding-left: 2px; display: flex; align-items: center; gap: 8px; }
 .hour-warn { font-size: 10px; color: var(--danger); background: var(--danger-dim); border-radius: 4px; padding: 1px 7px; }
 
-.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 7px; }
+.slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.slot-grid.wide { grid-template-columns: repeat(8, 1fr); }
 
 .slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface); transition: border-color 0.13s, background 0.13s; }
 .slot.free:hover { border-color: var(--border2); }
@@ -176,6 +181,10 @@ body.night .op-badge { background: var(--accent-night-dim); border-color: var(--
   </div>
 </div>
   <div class="controls">
+    <div class="seg">
+      <button class="seg-btn active-day" id="btn-dept-regular" onclick="setDept('regular')">Regular</button>
+      <button class="seg-btn" id="btn-dept-vip" onclick="setDept('vip')">★ VIP</button>
+    </div>
     <div class="op-wrap">
       <select id="opsel" onchange="setOp(this.value)">
         <option value="">— оператор —</option>
@@ -202,7 +211,10 @@ body.night .op-badge { background: var(--accent-night-dim); border-color: var(--
 </div>
 
 <script>
-const OPERATORS = ['Balfour','Bill','Bob','Bowen','Bridget','Calvin','Charles','Colin','Earl','Fletcher','Florence','Gross','Hardy','Jonathan','Joseph','Kenzo','Lex','Meadow','Mike','Murphy','Nora','Norman','Robert','Robin','Rudy','Sherlock','Will'];
+const OPERATORS = {
+  regular: ['Balfour','Bill','Bob','Bowen','Bridget','Calvin','Charles','Colin','Earl','Fletcher','Florence','Gross','Hardy','Jonathan','Joseph','Kenzo','Lex','Meadow','Mike','Murphy','Nora','Norman','Robert','Robin','Rudy','Sherlock','Will'],
+  vip:     ['Alexia','Ashton','Casper','Chadwick','Christine','Denzel','Elijah','Fabio','Felicia','Holly','Isaac','Kiana','Morgan','Nolan','Plover','Reggie','River','Scott','Simon','Skylar','Tom','Trinity','Wade','Warren'],
+};
 
 // Ночные перерывы по скрину: 22,23,0,1,2,3,4,5,6,7 + 8:xx только до 8:20
 // Делаем 22-23 полные (по 4 слота), затем 0-7 полные, затем 8 только :10 :20
@@ -216,7 +228,8 @@ const NIGHT_BREAK_GROUPS = [
   {label:'04:xx', hh:'04', slots:['04:10','04:20','04:30','04:40']},
   {label:'05:xx', hh:'05', slots:['05:10','05:20','05:30','05:40']},
   {label:'06:xx', hh:'06', slots:['06:10','06:40']},
-  {label:'07–08', hh:'07', slots:['07:10','07:40','08:00','08:10','08:20']},
+  {label:'07:xx', hh:'07', slots:['07:10','07:40']},
+  {label:'08:xx', hh:'08', slots:['08:00','08:10','08:20']},
 ];
 
 function makeBreakGroups(hours) {
@@ -235,7 +248,12 @@ function makeLunchSlots(hours) {
 // crossShift: какую смену смотреть при кросс-блокировке (слоты с совпадающим временем)
 const SHIFT_CFG = {
   '9-21':  {
-    breakGroups: makeBreakGroups([10,11,13,14,15,16,17,19,20]),
+    breakGroups: [
+      {label:'10:xx', hh:'10', slots:['10:10','10:40']},
+      {label:'11:xx', hh:'11', slots:['11:10','11:40']},
+      ...makeBreakGroups([12,13,14,15,16,17,19]),
+      {label:'20:xx', hh:'20', slots:['20:00','20:10','20:20']},
+    ],
     lunchHours: [12,13,14,15,16,17,18,19],
     crossShift: null
   },
@@ -252,6 +270,7 @@ const SHIFT_CFG = {
 };
 
 const MAX_BREAKS = 4, MAX_LUNCHES = 1;
+let currentDept = 'regular'; // 'regular' | 'vip'
 let shiftType = 'day';
 let currentShift = '9-21';
 let currentOp = '';
@@ -324,12 +343,30 @@ function saveBookings() {
 
 // Populate operator select
 const sel = document.getElementById('opsel');
-OPERATORS.forEach(n => {
-  const o = document.createElement('option');
-  o.value = n; o.textContent = n; sel.appendChild(o);
-});
+
+function populateOperators() {
+  sel.innerHTML = '<option value="">— оператор —</option>';
+  OPERATORS[currentDept].forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n; sel.appendChild(o);
+  });
+  // Reset selection when dept changes
+  currentOp = '';
+  sel.value = '';
+  const badge = document.getElementById('op-badge');
+  if (badge) badge.style.display = 'none';
+}
 
 function ac() { return shiftType === 'night' ? 'night' : 'day'; }
+
+function setDept(d) {
+  currentDept = d;
+  document.body.classList.toggle('vip', d === 'vip');
+  document.getElementById('btn-dept-regular').className = 'seg-btn' + (d === 'regular' ? ' active-day' : '');
+  document.getElementById('btn-dept-vip').className     = 'seg-btn' + (d === 'vip'     ? ' active-vip'  : '');
+  populateOperators();
+  render();
+}
 
 function setOp(v) {
   currentOp = v;
@@ -362,11 +399,11 @@ function setShift(s) {
   render();
 }
 
-function bKey(shift, time) { return shift + '|b|' + time; }
-function lKey(shift, time) { return shift + '|l|' + time; }
+function bKey(shift, time) { return currentDept + '|' + shift + '|b|' + time; }
+function lKey(shift, time) { return currentDept + '|' + shift + '|l|' + time; }
 
 function myBreaksCount() {
-  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentShift+'|b|') && v === currentOp).length;
+  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentDept+'|'+currentShift+'|b|') && v === currentOp).length;
 }
 
 // Convert "HH:MM" to minutes. Night shift: times 00-08 treated as 24-32h so they sort after 22-23.
@@ -381,7 +418,7 @@ function toMin(time, shiftId) {
 // Returns the closest existing break of current operator (in minutes), or null
 function closestMyBreakDistance(time) {
   const myBreakTimes = Object.entries(bookings)
-    .filter(([k,v]) => k.startsWith(currentShift+'|b|') && v === currentOp)
+    .filter(([k,v]) => k.startsWith(currentDept+'|'+currentShift+'|b|') && v === currentOp)
     .map(([k]) => k.replace(currentShift+'|b|', ''));
   if (!myBreakTimes.length) return null;
   const t = toMin(time, currentShift);
@@ -416,7 +453,7 @@ function noValidSlotsLeft() {
 }
 
 function myLunchCount() {
-  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentShift+'|l|') && v === currentOp).length;
+  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentDept+'|'+currentShift+'|l|') && v === currentOp).length;
 }
 
 // Кросс-блокировка: проверяем, занят ли слот в смежной смене
@@ -532,8 +569,8 @@ function render() {
   const lunchSlots = makeLunchSlots(cfg.lunchHours);
   const hasLunch = cfg.lunchHours !== null;
 
-  const takenB = Object.keys(bookings).filter(k => k.startsWith(currentShift+'|b|')).length;
-  const takenL = Object.keys(bookings).filter(k => k.startsWith(currentShift+'|l|')).length;
+  const takenB = Object.keys(bookings).filter(k => k.startsWith(currentDept+'|'+currentShift+'|b|')).length;
+  const takenL = Object.keys(bookings).filter(k => k.startsWith(currentDept+'|'+currentShift+'|l|')).length;
   const totalB = cfg.breakGroups.reduce((s,g) => s + g.slots.length, 0);
   const hiClass = currentOp ? ' hi-'+a : '';
 
@@ -576,6 +613,7 @@ function render() {
     <div class="section-line"></div>
   </div>`;
 
+  html += `<div class="groups-wrap">`;
   cfg.breakGroups.forEach(({ label, hh, slots }) => {
     html += `<div class="group">
       <div class="group-label">${label}</div>
@@ -583,6 +621,7 @@ function render() {
     slots.forEach(t => { html += renderSlotBreak(t, hh, emergencyMode); });
     html += `</div></div>`;
   });
+  html += `</div>`;
 
   // Lunch section
   if (hasLunch) {
@@ -592,7 +631,7 @@ function render() {
       ${currentOp && ml >= MAX_LUNCHES ? '<span class="quota-warn">обед занят</span>' : ''}
       <div class="section-line"></div>
     </div>
-    <div class="slot-grid">`;
+    <div class="slot-grid wide">`;
     lunchSlots.forEach(t => { html += renderSlotLunch(t); });
     html += `</div>`;
   }
@@ -701,6 +740,7 @@ window.bookLunch = function(time) {
   _origBookLunch(time);
 };
 
+populateOperators();
 initWorker();
 
 // Check reset every 30 seconds

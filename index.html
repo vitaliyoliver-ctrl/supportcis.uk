@@ -304,8 +304,8 @@
     .login-btn.visible { display: flex; }
     .logout-btn.hidden { display: none; }
 
-    /* ── Widget switcher labels ── */
-    .widget-switcher {
+    /* ── Лейблы виджетов (только подписи, без переключения) ── */
+    .widget-labels {
       position: fixed;
       bottom: 90px;
       right: 24px;
@@ -313,58 +313,47 @@
       flex-direction: column;
       gap: 8px;
       z-index: 99999;
+      pointer-events: none;
     }
 
     .wlabel {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: rgba(14,16,22,0.88);
+      gap: 7px;
+      background: rgba(14,16,22,0.82);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 8px 14px 8px 10px;
-      font-size: 12px;
+      border-radius: 10px;
+      padding: 6px 12px 6px 9px;
+      font-size: 11px;
       font-family: 'Mulish', sans-serif;
       font-weight: 600;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.22s ease;
-      backdrop-filter: blur(14px);
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(12px);
       white-space: nowrap;
-      user-select: none;
     }
 
-    .wlabel:hover {
-      color: var(--text);
-      border-color: rgba(255,255,255,0.16);
-      background: rgba(24,27,36,0.95);
-    }
-
-    .wlabel.active {
-      color: #fff;
-    }
-
-    .wlabel .wdot {
-      width: 8px;
-      height: 8px;
+    .wdot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       flex-shrink: 0;
-      transition: box-shadow 0.22s;
+      animation: pulse 2s ease infinite;
     }
 
-    .wlabel.active .wdot { animation: pulse 2s ease infinite; }
-
-    /* Daddy = синий, Atom = зелёный */
+    .wlabel-daddy { color: var(--tl); border-color: rgba(79,142,247,0.2); }
     .wlabel-daddy .wdot { background: var(--tl); }
-    .wlabel-daddy.active { border-color: var(--tl); box-shadow: 0 0 14px rgba(79,142,247,0.25); }
 
+    .wlabel-atom { color: var(--support); border-color: rgba(52,211,153,0.2); }
     .wlabel-atom .wdot { background: var(--support); }
-    .wlabel-atom.active { border-color: var(--support); box-shadow: 0 0 14px rgba(52,211,153,0.25); }
+
+    /* Atom виджет смещаем левее чтобы не перекрывал Daddy */
+    /* Chatwoot сам управляет позицией, но через CSS переменные можно сдвинуть */
+    .wlabel-atom { margin-right: 0; }
 
     @media (max-width: 768px) {
       .cards { grid-template-columns: 1fr; max-width: 400px; }
       .header { margin-bottom: 40px; }
-      .widget-switcher { bottom: 80px; right: 14px; }
+      .widget-labels { bottom: 80px; right: 14px; }
     }
   </style>
 </head>
@@ -421,14 +410,10 @@
 
 </div>
 
-<!-- Widget switcher UI -->
-<div class="widget-switcher">
-  <div class="wlabel wlabel-daddy active" id="btn-daddy" onclick="switchWidget('daddy')">
-    <span class="wdot"></span> Daddy
-  </div>
-  <div class="wlabel wlabel-atom" id="btn-atom" onclick="switchWidget('atom')">
-    <span class="wdot"></span> Atom
-  </div>
+<!-- Лейблы над виджетами (чисто визуальные) -->
+<div class="widget-labels">
+  <div class="wlabel wlabel-daddy"><span class="wdot"></span>Daddy</div>
+  <div class="wlabel wlabel-atom"><span class="wdot"></span>Atom</div>
 </div>
 
 <script>
@@ -459,7 +444,7 @@
   }
 </script>
 
-<!-- Chatwoot: Daddy -->
+<!-- Chatwoot: Daddy (sparkmoth.com) — загружается первым -->
 <script>
   (function(d,t) {
     var BASE_URL = "https://sparkmoth.com";
@@ -472,55 +457,50 @@
         websiteToken: 'sWZQ6hMtm1aCY4zkcup3zojx',
         baseUrl: BASE_URL
       });
-      window._daddyLoaded = true;
     };
   })(document, "script");
 </script>
 
-<!-- Chatwoot: Atom -->
-<script>
-  (function(d,t) {
-    var BASE_URL = "https://blueripple.xyz";
-    var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
-    g.src = BASE_URL + "/packs/js/sdk.js";
-    g.async = true;
-    s.parentNode.insertBefore(g, s);
-    g.onload = function() {
-      window._atomSDKReady = true;
-      // Atom не инициализируем сразу — запустится по клику
-    };
-  })(document, "script");
-</script>
+<!-- Chatwoot: Atom (blueripple.xyz) — загружается в iframe для изоляции -->
+<iframe
+  id="atom-frame"
+  src="about:blank"
+  style="display:none; position:fixed; bottom:0; right:80px; width:400px; height:600px; border:none; z-index:99998;"
+  allow="microphone"
+></iframe>
 
 <script>
-  var _activeWidget = 'daddy';
-  var _atomStarted = false;
-
-  function switchWidget(name) {
-    if (_activeWidget === name) return;
-    _activeWidget = name;
-
-    document.getElementById('btn-daddy').classList.toggle('active', name === 'daddy');
-    document.getElementById('btn-atom').classList.toggle('active',  name === 'atom');
-
-    if (name === 'daddy') {
-      // Показываем Daddy, прячем Atom
-      if (window.$chatwoot) window.$chatwoot.toggleBubbleVisibility('show');
-    } else {
-      // Прячем Daddy, запускаем / показываем Atom
-      if (window.$chatwoot) window.$chatwoot.toggleBubbleVisibility('hide');
-
-      if (!_atomStarted && window._atomSDKReady && window.chatwootSDK) {
-        window.chatwootSDK.run({
-          websiteToken: 'yWuQVqLsB62orCCU15u4fuzK',
-          baseUrl: 'https://blueripple.xyz'
-        });
-        _atomStarted = true;
-      } else if (_atomStarted && window.$chatwoot) {
-        window.$chatwoot.toggleBubbleVisibility('show');
-      }
-    }
-  }
+  // Инжектируем Atom виджет в изолированный iframe чтобы избежать конфликта с Daddy
+  window.addEventListener('load', function() {
+    var frame = document.getElementById('atom-frame');
+    frame.style.display = 'block';
+    var doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open();
+    doc.write([
+      '<!DOCTYPE html><html><head>',
+      '<style>',
+      'body { margin:0; background:transparent; }',
+      '</style>',
+      '</head><body>',
+      '<script>',
+      '(function(d,t){',
+      '  var BASE_URL="https://blueripple.xyz";',
+      '  var g=d.createElement(t),s=d.getElementsByTagName(t)[0];',
+      '  g.src=BASE_URL+"/packs/js/sdk.js";',
+      '  g.async=true;',
+      '  s.parentNode.insertBefore(g,s);',
+      '  g.onload=function(){',
+      '    window.chatwootSDK.run({',
+      '      websiteToken:"yWuQVqLsB62orCCU15u4fuzK",',
+      '      baseUrl:BASE_URL',
+      '    });',
+      '  };',
+      '})(document,"script");',
+      '<\/script>',
+      '</body></html>'
+    ].join(''));
+    doc.close();
+  });
 </script>
 
 </body>

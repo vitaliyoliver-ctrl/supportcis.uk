@@ -167,6 +167,60 @@ body.vip .logo-dot { background: var(--warn); }
   margin-top: 4px;
 }
 
+/* LOG PANEL */
+.log-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
+.log-overlay.active { display:flex; align-items:flex-end; justify-content:flex-end; }
+.log-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border2);
+  height: 100vh;
+  width: 380px;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.log-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.log-head-title { font-size: 14px; font-weight: 500; color: var(--text); font-family: var(--mono); }
+.log-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
+.log-close:hover { color: var(--text); }
+.log-body { flex: 1; overflow-y: auto; padding: 12px 0; }
+.log-empty { text-align: center; color: var(--muted); font-size: 13px; font-family: var(--mono); padding: 40px 20px; }
+.log-entry {
+  padding: 10px 20px;
+  border-bottom: 0.5px solid var(--border);
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.log-time { font-size: 11px; font-family: var(--mono); color: var(--muted); padding-top: 2px; }
+.log-info { }
+.log-op { font-size: 13px; font-weight: 500; color: var(--text); }
+.log-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.log-action-book { color: var(--accent-day); }
+.log-action-cancel { color: var(--danger); }
+.log-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  font-family: var(--mono);
+}
+.log-badge-sg { background: var(--accent-day-dim); color: var(--accent-day); }
+.log-badge-nc { background: var(--danger-dim); color: var(--danger); }
+.log-badge-vip { background: rgba(251,191,36,0.12); color: var(--warn); }
+.log-refresh { display: flex; align-items: center; gap: 6px; background: none; border: 0.5px solid var(--border2); border-radius: 6px; color: var(--muted); font-size: 11px; font-family: var(--mono); padding: 4px 10px; cursor: pointer; }
+.log-refresh:hover { color: var(--text); border-color: var(--border2); }
+
 @media(max-width:600px) {
   .header { padding: 12px 14px; }
   .main { padding: 14px; }
@@ -199,6 +253,7 @@ body.vip .logo-dot { background: var(--warn); }
       <span class="select-arrow">▼</span>
     </div>
     <div id="op-badge" class="op-badge"></div>
+    <button onclick="openLog()" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">☰ лог</button>
 
     <div class="seg">
       <button class="seg-btn active-day" id="btn-day" onclick="setShiftType('day')">☀ День</button>
@@ -322,6 +377,7 @@ const NC_SHIFT_CFG = {
 };
 
 const MAX_BREAKS = 4, MAX_LUNCHES = 1;
+let userEmail = ''; // filled from /api/check session
 let currentSection = 'sg'; // 'sg' | 'nc'
 let currentDept = 'regular'; // 'regular' | 'vip' (only for sg)
 let shiftType = 'day';
@@ -391,7 +447,67 @@ function saveBookings() {
     })
       .then(r => r.ok ? setSyncStatus('online') : setSyncStatus('offline'))
       .catch(() => setSyncStatus('offline'));
-  }, 400); // debounce 400ms
+  }, 400);
+}
+
+function logAction(action, slot) {
+  if (!currentOp) return;
+  fetch(WORKER_URL + '/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      section: currentSection,
+      dept: currentDept,
+      shift: currentShift,
+      operator: currentOp,
+      userEmail: userEmail,
+      action,
+      slot,
+    }),
+  }).catch(() => {});
+}
+
+function openLog() {
+  document.getElementById('logOverlay').classList.add('active');
+  loadLog();
+}
+function closeLog() {
+  document.getElementById('logOverlay').classList.remove('active');
+}
+
+function loadLog() {
+  const body = document.getElementById('logBody');
+  body.innerHTML = '<div class="log-empty">загрузка...</div>';
+  fetch(WORKER_URL + '/log')
+    .then(r => r.json())
+    .then(entries => {
+      if (!entries.length) {
+        body.innerHTML = '<div class="log-empty">пока нет действий за сегодня</div>';
+        return;
+      }
+      const actionLabels = {
+        book_break:    { text: 'забронировал перерыв',  cls: 'log-action-book' },
+        cancel_break:  { text: 'отменил перерыв',       cls: 'log-action-cancel' },
+        book_lunch:    { text: 'забронировал обед',     cls: 'log-action-book' },
+        cancel_lunch:  { text: 'отменил обед',          cls: 'log-action-cancel' },
+      };
+      const shiftLabels = { '9-21': '09–21', '12-24': '12–00', 'night': 'Ночь' };
+      body.innerHTML = entries.map(e => {
+        const al = actionLabels[e.action] || { text: e.action, cls: '' };
+        const sectCls = e.section === 'nc' ? 'log-badge-nc' : (e.dept === 'vip' ? 'log-badge-vip' : 'log-badge-sg');
+        const sectLabel = e.section === 'nc' ? 'NC' : (e.dept === 'vip' ? 'VIP' : 'SG');
+        return `<div class="log-entry">
+          <div class="log-time">${e.time}</div>
+          <div class="log-info">
+            <div class="log-op">${e.operator} <span class="log-badge ${sectCls}">${sectLabel}</span>${e.userEmail ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">(${e.userEmail})</span>` : ''}</div>
+            <div class="log-detail"><span class="${al.cls}">${al.text}</span> · ${e.slot} · ${shiftLabels[e.shift] || e.shift}</div>
+          </div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {
+      body.innerHTML = '<div class="log-empty">ошибка загрузки</div>';
+    });
 }
 
 // Populate operator select
@@ -490,7 +606,7 @@ function toMin(time, shiftId) {
 function closestMyBreakDistance(time) {
   const myBreakTimes = Object.entries(bookings)
     .filter(([k,v]) => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|b|') && v === currentOp)
-    .map(([k]) => k.replace(currentShift+'|b|', ''));
+    .map(([k]) => k.split('|b|')[1]);
   if (!myBreakTimes.length) return null;
   const t = toMin(time, currentShift);
   return Math.min(...myBreakTimes.map(bt => Math.abs(toMin(bt, currentShift) - t)));
@@ -542,22 +658,22 @@ function bookBreak(time, forceOverride) {
   if (bookings[k]) return;
   if (myBreaksCount() >= MAX_BREAKS) { alert('Лимит: 4 перерыва на смену'); return; }
   if (tooClose(time) && !forceOverride) { alert('Между перерывами должен быть минимум 1 час'); return; }
-  bookings[k] = currentOp; saveBookings(); render();
+  bookings[k] = currentOp; saveBookings(); logAction('book_break', time); render();
 }
 function cancelBreak(time) {
   const k = bKey(currentShift, time);
-  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); render(); }
+  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); logAction('cancel_break', time); render(); }
 }
 function bookLunch(time) {
   if (!currentOp) { alert('Выберите оператора'); return; }
   const k = lKey(currentShift, time);
   if (bookings[k]) return;
   if (myLunchCount() >= MAX_LUNCHES) { alert('Обед уже забронирован'); return; }
-  bookings[k] = currentOp; saveBookings(); render();
+  bookings[k] = currentOp; saveBookings(); logAction('book_lunch', time); render();
 }
 function cancelLunch(time) {
   const k = lKey(currentShift, time);
-  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); render(); }
+  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); logAction('cancel_lunch', time); render(); }
 }
 
 function renderSlotBreak(time, hh, emergencyMode) {
@@ -812,11 +928,29 @@ window.bookLunch = function(time) {
 };
 
 populateOperators();
-initWorker();
+
+// Get auth session to identify who is making changes
+fetch('/api/check', { credentials: 'include' })
+  .then(r => r.json())
+  .then(data => { if (data.ok && data.email) userEmail = data.email; })
+  .catch(() => {})
+  .finally(() => initWorker());
 
 // Check reset every 30 seconds
 setInterval(checkAndResetShifts, 30000);
 checkAndResetShifts();
 </script>
+<div class="log-overlay" id="logOverlay" onclick="if(event.target===this)closeLog()">
+  <div class="log-panel">
+    <div class="log-head">
+      <span class="log-head-title">Лог за сегодня</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="log-refresh" onclick="loadLog()">↻ обновить</button>
+        <button class="log-close" onclick="closeLog()">✕</button>
+      </div>
+    </div>
+    <div class="log-body" id="logBody"><div class="log-empty">загрузка...</div></div>
+  </div>
+</div>
 </body>
 </html>

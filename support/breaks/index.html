@@ -600,7 +600,112 @@ function render() {
   document.getElementById('board').innerHTML = html;
 }
 
+// ── KYIV TIME HELPERS ─────────────────────────────────────────
+function kyivNow() {
+  // Returns current time as Date object in Kyiv timezone
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+}
+
+function kyivMinutes() {
+  // Total minutes since midnight in Kyiv time
+  const d = kyivNow();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+// Shift open times (booking allowed from 15 min before shift start)
+// Returns true if current Kyiv time allows booking for the given shift
+function shiftBookingAllowed(shiftId) {
+  const now = kyivMinutes();
+  if (shiftId === '9-21')   return now >= (8 * 60 + 45);   // 08:45
+  if (shiftId === '12-24')  return now >= (11 * 60 + 45);  // 11:45
+  if (shiftId === 'night')  return now >= (20 * 60 + 45);  // 20:45
+  return true;
+}
+
+// Reset keys: which KV keys to clear at shift end
+// 09-21 resets at 21:00, 12-24 resets at 00:00 (next day), night resets at 09:00
+function getResetInfo() {
+  return [
+    { shiftId: '9-21',  resetHour: 21, resetMin: 0  },
+    { shiftId: '12-24', resetHour: 0,  resetMin: 0  },
+    { shiftId: 'night', resetHour: 9,  resetMin: 0  },
+  ];
+}
+
+// Check if a shift should be reset and do it
+async function checkAndResetShifts() {
+  const now = kyivNow();
+  const h = now.getHours(), m = now.getMinutes();
+  const totalMin = h * 60 + m;
+
+  const resets = getResetInfo();
+  for (const { shiftId, resetHour, resetMin } of resets) {
+    const resetMin_ = resetHour * 60 + resetMin;
+    // Reset window: exactly at reset time ±1 minute
+    const diff = Math.abs(totalMin - resetMin_);
+    const atMidnight = (resetHour === 0 && totalMin <= 1); // handle midnight separately
+
+    if (diff <= 1 || atMidnight) {
+      // Check if we already reset this shift in this window (use lastReset flag)
+      const flagKey = `lastReset_${shiftId}`;
+      const lastReset = localStorage.getItem(flagKey);
+      const nowDateStr = now.toDateString() + '_' + resetHour;
+
+      if (lastReset !== nowDateStr) {
+        localStorage.setItem(flagKey, nowDateStr);
+        // Server-side reset via Worker
+        fetch(WORKER_URL + '/reset-shift', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shiftId }),
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            console.log(`Reset shift ${shiftId}: removed ${data.removed} bookings`);
+            // Reload bookings from server
+            pollBookings();
+          }
+        })
+        .catch(() => {
+          // Fallback: clear locally
+          Object.keys(bookings).filter(k => k.startsWith(shiftId + '|')).forEach(k => delete bookings[k]);
+          saveBookings();
+          render();
+        });
+      }
+    }
+  }
+
+}
+
+// ── BOOKING ALLOWED CHECK ──────────────────────────────────────
+// Patch bookBreak and bookLunch to check shift open time
+const _origBookBreak = bookBreak;
+window.bookBreak = function(time, forceOverride) {
+  if (!shiftBookingAllowed(currentShift)) {
+    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
+    alert('Бронирование открывается в ' + (labels[currentShift] || '—') + ' по Киеву');
+    return;
+  }
+  _origBookBreak(time, forceOverride);
+};
+
+const _origBookLunch = bookLunch;
+window.bookLunch = function(time) {
+  if (!shiftBookingAllowed(currentShift)) {
+    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
+    alert('Бронирование открывается в ' + (labels[currentShift] || '—') + ' по Киеву');
+    return;
+  }
+  _origBookLunch(time);
+};
+
 initWorker();
+
+// Check reset every 30 seconds
+setInterval(checkAndResetShifts, 30000);
+checkAndResetShifts();
 </script>
 </body>
 </html>

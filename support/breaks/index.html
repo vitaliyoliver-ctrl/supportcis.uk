@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Перерывы и обеды</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f11;
+  --surface: #18181c;
+  --surface2: #222228;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f0f4;
+  --muted: #7a7a8c;
+  --accent-day: #6ee7b7;
+  --accent-day-dim: rgba(110,231,183,0.12);
+  --accent-day-border: rgba(110,231,183,0.35);
+  --accent-night: #a78bfa;
+  --accent-night-dim: rgba(167,139,250,0.12);
+  --accent-night-border: rgba(167,139,250,0.35);
+  --danger: #f87171;
+  --danger-dim: rgba(248,113,113,0.10);
+  --warn: #fbbf24;
+  --warn-dim: rgba(251,191,36,0.10);
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-day); display: inline-block; margin-right: 6px; transition: background 0.3s; }
+body.night .logo-dot { background: var(--accent-night); }
+
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.op-wrap { position: relative; }
+select {
+  appearance: none;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 8px 36px 8px 14px;
+  cursor: pointer;
+  outline: none;
+  min-width: 160px;
+  transition: border-color 0.15s;
+}
+select:hover, select:focus { border-color: var(--accent-day-border); }
+body.night select:hover, body.night select:focus { border-color: var(--accent-night-border); }
+.select-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); font-size: 10px; }
+
+.op-badge {
+  display: none;
+  align-items: center;
+  background: var(--accent-day-dim);
+  border: 1px solid var(--accent-day-border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-day);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+body.night .op-badge { background: var(--accent-night-dim); border-color: var(--accent-night-border); color: var(--accent-night); }
+
+.seg { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg-btn { padding: 7px 14px; font-size: 13px; font-family: var(--sans); color: var(--muted); background: transparent; border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.seg-btn.active-day { background: var(--accent-day-dim); color: var(--accent-day); font-weight: 500; }
+.seg-btn.active-night { background: var(--accent-night-dim); color: var(--accent-night); font-weight: 500; }
+
+.main { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 28px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: var(--mono); }
+.card-val { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+.card-val small { font-size: 14px; font-weight: 400; color: var(--muted); }
+.card.hi-day { border-color: var(--accent-day-border); background: var(--accent-day-dim); }
+.card.hi-day .card-val { color: var(--accent-day); }
+.card.hi-night { border-color: var(--accent-night-border); background: var(--accent-night-dim); }
+.card.hi-night .card-val { color: var(--accent-night); }
+
+.section-head { display: flex; align-items: center; gap: 10px; margin: 24px 0 10px; }
+.section-title { font-size: 11px; font-weight: 500; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); white-space: nowrap; }
+.section-sub { font-size: 10px; color: var(--muted); opacity: 0.5; font-family: var(--mono); font-weight: 400; }
+.section-line { flex: 1; height: 1px; background: var(--border); }
+.quota-warn { font-size: 11px; color: var(--danger); background: var(--danger-dim); border: 1px solid rgba(248,113,113,0.2); border-radius: 6px; padding: 3px 10px; font-family: var(--mono); white-space: nowrap; }
+
+.group { margin-bottom: 14px; }
+.group-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.06em; margin-bottom: 7px; padding-left: 2px; display: flex; align-items: center; gap: 8px; }
+.hour-warn { font-size: 10px; color: var(--danger); background: var(--danger-dim); border-radius: 4px; padding: 1px 7px; }
+
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 7px; }
+
+.slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface); transition: border-color 0.13s, background 0.13s; }
+.slot.free:hover { border-color: var(--border2); }
+.slot.taken { background: rgba(255,255,255,0.02); }
+.slot.cross-blocked {
+  background: rgba(251,191,36,0.05);
+  border-color: rgba(251,191,36,0.2);
+  opacity: 0.7;
+}
+.slot.mine-day { background: var(--accent-day-dim); border-color: var(--accent-day-border); }
+.slot.mine-night { background: var(--accent-night-dim); border-color: var(--accent-night-border); }
+
+.slot-time { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.slot-who { font-size: 12px; color: var(--muted); min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-who.booked-day { color: var(--accent-day); font-weight: 500; }
+.slot-who.booked-night { color: var(--accent-night); font-weight: 500; }
+.slot-who.cross { color: var(--warn); font-size: 11px; }
+
+.slot-btn { margin-top: 8px; width: 100%; padding: 5px 0; font-size: 11px; font-family: var(--mono); border-radius: 5px; border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.13s; letter-spacing: 0.03em; }
+.slot-btn.day:hover:not(:disabled) { border-color: var(--accent-day-border); color: var(--accent-day); background: var(--accent-day-dim); }
+.slot-btn.night:hover:not(:disabled) { border-color: var(--accent-night-border); color: var(--accent-night); background: var(--accent-night-dim); }
+.slot-btn:disabled { opacity: 0.28; cursor: not-allowed; }
+.slot-btn.cancel { border-color: rgba(248,113,113,0.3); color: var(--danger); }
+.slot-btn.cancel:hover { background: var(--danger-dim); border-color: var(--danger); }
+
+.slot.emergency { border-color: rgba(251,191,36,0.3); }
+.slot-btn.emergency-btn {
+  border-color: rgba(251,191,36,0.4);
+  color: var(--warn);
+}
+.slot-btn.emergency-btn:hover:not(:disabled) {
+  border-color: var(--warn);
+  background: var(--warn-dim);
+  color: var(--warn);
+}
+
+.no-lunch-notice {
+  background: var(--surface);
+  border: 1px dashed var(--border2);
+  border-radius: 10px;
+  padding: 18px 20px;
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--mono);
+  text-align: center;
+  margin-top: 4px;
+}
+
+@media(max-width:600px) {
+  .header { padding: 12px 14px; }
+  .main { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+  <div class="logo"><span class="logo-dot"></span>break<span id="logo-accent" style="color:var(--accent-day)">.</span>desk</div>
+  <div id="sync-status" style="font-size:11px;font-family:var(--mono);color:var(--muted);display:flex;align-items:center;gap:5px">
+    <span id="sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block"></span>
+    <span id="sync-text">подключение...</span>
+  </div>
+</div>
+  <div class="controls">
+    <div class="op-wrap">
+      <select id="opsel" onchange="setOp(this.value)">
+        <option value="">— оператор —</option>
+      </select>
+      <span class="select-arrow">▼</span>
+    </div>
+    <div id="op-badge" class="op-badge"></div>
+
+    <div class="seg">
+      <button class="seg-btn active-day" id="btn-day" onclick="setShiftType('day')">☀ День</button>
+      <button class="seg-btn" id="btn-night" onclick="setShiftType('night')">☽ Ночь</button>
+    </div>
+
+    <div class="seg" id="day-seg">
+      <button class="seg-btn active-day" id="btn-921" onclick="setShift('9-21')">09–21</button>
+      <button class="seg-btn" id="btn-1224" onclick="setShift('12-24')">12–00</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="summary" id="summary"></div>
+  <div id="board"></div>
+</div>
+
+<script>
+const OPERATORS = ['Balfour','Bill','Bob','Bowen','Bridget','Calvin','Charles','Colin','Earl','Fletcher','Florence','Gross','Hardy','Jonathan','Joseph','Kenzo','Lex','Meadow','Mike','Murphy','Nora','Norman','Robert','Robin','Rudy','Sherlock','Will'];
+
+// Ночные перерывы по скрину: 22,23,0,1,2,3,4,5,6,7 + 8:xx только до 8:20
+// Делаем 22-23 полные (по 4 слота), затем 0-7 полные, затем 8 только :10 :20
+const NIGHT_BREAK_GROUPS = [
+  {label:'22:xx', hh:'22', slots:['22:10','22:40']},
+  {label:'23:xx', hh:'23', slots:['23:10','23:40']},
+  {label:'00:xx', hh:'00', slots:['00:10','00:40']},
+  {label:'01:xx', hh:'01', slots:['01:10','01:40']},
+  {label:'02:xx', hh:'02', slots:['02:10','02:20','02:30','02:40']},
+  {label:'03:xx', hh:'03', slots:['03:10','03:20','03:30','03:40']},
+  {label:'04:xx', hh:'04', slots:['04:10','04:20','04:30','04:40']},
+  {label:'05:xx', hh:'05', slots:['05:10','05:20','05:30','05:40']},
+  {label:'06:xx', hh:'06', slots:['06:10','06:40']},
+  {label:'07–08', hh:'07', slots:['07:10','07:40','08:00','08:10','08:20']},
+];
+
+function makeBreakGroups(hours) {
+  return hours.map(h => {
+    const hh = String(h).padStart(2,'0');
+    return { label: hh+':xx', hh, slots: [hh+':10', hh+':20', hh+':30', hh+':40'] };
+  });
+}
+function makeLunchSlots(hours) {
+  if (!hours) return [];
+  return hours.map(h => String(h).padStart(2,'0') + ':00');
+}
+
+// SHIFT CONFIG
+// lunchHours: null = нет обедов
+// crossShift: какую смену смотреть при кросс-блокировке (слоты с совпадающим временем)
+const SHIFT_CFG = {
+  '9-21':  {
+    breakGroups: makeBreakGroups([10,11,13,14,15,16,17,19,20]),
+    lunchHours: [12,13,14,15,16,17,18,19],
+    crossShift: null
+  },
+  '12-24': {
+    breakGroups: makeBreakGroups([13,14,15,16,17,18,19,20,21,22]),  // 23 убран
+    lunchHours: [20,21,22],
+    crossShift: null
+  },
+  'night': {
+    breakGroups: NIGHT_BREAK_GROUPS,
+    lunchHours: [1,2,3,4,5,6,7],
+    crossShift: '12-24'  // смотрим занятость слотов 22:xx и 23:xx из смены 12-24
+  }
+};
+
+const MAX_BREAKS = 4, MAX_LUNCHES = 1;
+let shiftType = 'day';
+let currentShift = '9-21';
+let currentOp = '';
+// bookings key: shiftId|type|time  (type = b / l)
+let bookings = {};
+
+// ── CLOUDFLARE WORKER CONFIG ───────────────────────────────────
+// 1. Задеплойте worker.js в Cloudflare Workers
+// 2. Вставьте URL вашего Worker ниже:
+const WORKER_URL = 'https://scheduler-data.vitaliy-barkhanskiy.workers.dev';
+
+let syncTimer = null;
+
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  if (!dot || !txt) return;
+  const map = {
+    connecting: ['var(--muted)',      'подключение...'],
+    online:     ['var(--accent-day)', 'онлайн'],
+    saving:     ['var(--warn)',        'сохранение...'],
+    offline:    ['var(--danger)',      'офлайн'],
+  };
+  const [color, label] = map[state] || ['var(--muted)', state];
+  dot.style.background = color;
+  txt.textContent = label;
+}
+
+function initWorker() {
+  setSyncStatus('connecting');
+  fetch(WORKER_URL + '/bookings')
+    .then(r => r.json())
+    .then(data => {
+      bookings = data || {};
+      setSyncStatus('online');
+      render();
+      // Poll every 10 seconds to catch bookings from other users
+      setInterval(pollBookings, 10000);
+    })
+    .catch(() => {
+      setSyncStatus('offline');
+      render(); // render locally
+    });
+}
+
+function pollBookings() {
+  fetch(WORKER_URL + '/bookings')
+    .then(r => r.json())
+    .then(data => {
+      bookings = data || {};
+      setSyncStatus('online');
+      render();
+    })
+    .catch(() => setSyncStatus('offline'));
+}
+
+function saveBookings() {
+  setSyncStatus('saving');
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    fetch(WORKER_URL + '/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bookings),
+    })
+      .then(r => r.ok ? setSyncStatus('online') : setSyncStatus('offline'))
+      .catch(() => setSyncStatus('offline'));
+  }, 400); // debounce 400ms
+}
+
+// Populate operator select
+const sel = document.getElementById('opsel');
+OPERATORS.forEach(n => {
+  const o = document.createElement('option');
+  o.value = n; o.textContent = n; sel.appendChild(o);
+});
+
+function ac() { return shiftType === 'night' ? 'night' : 'day'; }
+
+function setOp(v) {
+  currentOp = v;
+  const badge = document.getElementById('op-badge');
+  if (v) { badge.textContent = v; badge.style.display = 'inline-flex'; }
+  else   { badge.style.display = 'none'; }
+  render();
+}
+
+function setShiftType(t) {
+  shiftType = t;
+  const night = t === 'night';
+  document.body.classList.toggle('night', night);
+  document.getElementById('btn-day').className   = 'seg-btn' + (!night ? ' active-day'   : '');
+  document.getElementById('btn-night').className = 'seg-btn' + (night  ? ' active-night' : '');
+  document.getElementById('day-seg').style.display = night ? 'none' : 'flex';
+  document.getElementById('logo-accent').style.color = night ? 'var(--accent-night)' : 'var(--accent-day)';
+  currentShift = night ? 'night' : '9-21';
+  if (!night) {
+    document.getElementById('btn-921').className  = 'seg-btn active-day';
+    document.getElementById('btn-1224').className = 'seg-btn';
+  }
+  render();
+}
+
+function setShift(s) {
+  currentShift = s;
+  document.getElementById('btn-921').className  = 'seg-btn' + (s === '9-21'  ? ' active-day' : '');
+  document.getElementById('btn-1224').className = 'seg-btn' + (s === '12-24' ? ' active-day' : '');
+  render();
+}
+
+function bKey(shift, time) { return shift + '|b|' + time; }
+function lKey(shift, time) { return shift + '|l|' + time; }
+
+function myBreaksCount() {
+  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentShift+'|b|') && v === currentOp).length;
+}
+
+// Convert "HH:MM" to minutes. Night shift: times 00-08 treated as 24-32h so they sort after 22-23.
+function toMin(time, shiftId) {
+  const [h, m] = time.split(':').map(Number);
+  let total = h * 60 + m;
+  // For night shift, hours 0-8 are "next day" — add 24h
+  if (shiftId === 'night' && h < 12) total += 24 * 60;
+  return total;
+}
+
+// Returns the closest existing break of current operator (in minutes), or null
+function closestMyBreakDistance(time) {
+  const myBreakTimes = Object.entries(bookings)
+    .filter(([k,v]) => k.startsWith(currentShift+'|b|') && v === currentOp)
+    .map(([k]) => k.replace(currentShift+'|b|', ''));
+  if (!myBreakTimes.length) return null;
+  const t = toMin(time, currentShift);
+  return Math.min(...myBreakTimes.map(bt => Math.abs(toMin(bt, currentShift) - t)));
+}
+
+// True if placing a break at `time` would be within 60 min of any existing break of current op
+function tooClose(time) {
+  const dist = closestMyBreakDistance(time);
+  return dist !== null && dist < 60;
+}
+
+// Get all break slots for current shift as flat array
+function allBreakSlots() {
+  return SHIFT_CFG[currentShift].breakGroups.reduce((arr, g) => arr.concat(g.slots), []);
+}
+
+// Returns true if ALL remaining free slots are blocked by the 60-min rule for this operator
+// (used to unlock "emergency" booking ignoring the interval rule)
+function noValidSlotsLeft() {
+  if (!currentOp) return false;
+  const mb = myBreaksCount();
+  if (mb >= MAX_BREAKS) return false;
+  return allBreakSlots().every(time => {
+    const k = bKey(currentShift, time);
+    const who = bookings[k];
+    if (who) return true;             // taken by someone
+    if (crossBlockedBy(time)) return true; // cross-blocked
+    if (!tooClose(time)) return false; // this slot IS available — not all blocked
+    return true;                       // tooClose — counts as blocked
+  });
+}
+
+function myLunchCount() {
+  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentShift+'|l|') && v === currentOp).length;
+}
+
+// Кросс-блокировка: проверяем, занят ли слот в смежной смене
+function crossBlockedBy(time) {
+  const cfg = SHIFT_CFG[currentShift];
+  if (!cfg.crossShift) return null;
+  const crossKey = bKey(cfg.crossShift, time);
+  return bookings[crossKey] || null;
+}
+
+function bookBreak(time, forceOverride) {
+  if (!currentOp) { alert('Выберите оператора'); return; }
+  if (crossBlockedBy(time)) { alert('Слот ' + time + ' занят оператором смены 12–00'); return; }
+  const k = bKey(currentShift, time);
+  if (bookings[k]) return;
+  if (myBreaksCount() >= MAX_BREAKS) { alert('Лимит: 4 перерыва на смену'); return; }
+  if (tooClose(time) && !forceOverride) { alert('Между перерывами должен быть минимум 1 час'); return; }
+  bookings[k] = currentOp; saveBookings(); render();
+}
+function cancelBreak(time) {
+  const k = bKey(currentShift, time);
+  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); render(); }
+}
+function bookLunch(time) {
+  if (!currentOp) { alert('Выберите оператора'); return; }
+  const k = lKey(currentShift, time);
+  if (bookings[k]) return;
+  if (myLunchCount() >= MAX_LUNCHES) { alert('Обед уже забронирован'); return; }
+  bookings[k] = currentOp; saveBookings(); render();
+}
+function cancelLunch(time) {
+  const k = lKey(currentShift, time);
+  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); render(); }
+}
+
+function renderSlotBreak(time, hh, emergencyMode) {
+  const a = ac();
+  const mb = myBreaksCount();
+  const tooNear = currentOp && tooClose(time);
+  const k = bKey(currentShift, time);
+  const who = bookings[k];
+  const isMe = who === currentOp;
+  const takenByOther = !!who && !isMe;
+  const crossWho = !who ? crossBlockedBy(time) : null;
+
+  let cls = 'slot ';
+  if (isMe) cls += 'mine-'+a;
+  else if (takenByOther) cls += 'taken';
+  else if (crossWho) cls += 'cross-blocked';
+  else if (tooNear && emergencyMode && !takenByOther && !crossWho) cls += 'free emergency';
+  else cls += 'free';
+
+  const canBook = currentOp && !takenByOther && !isMe && mb < MAX_BREAKS && !crossWho &&
+    (!tooNear || emergencyMode);
+
+  let whoLine = '';
+  if (isMe || takenByOther) {
+    whoLine = `<div class="slot-who booked-${a}">${who}</div>`;
+  } else if (crossWho) {
+    whoLine = `<div class="slot-who cross">12–00: ${crossWho}</div>`;
+  } else if (tooNear && emergencyMode) {
+    whoLine = `<div class="slot-who" style="color:var(--warn);font-size:11px">↯ вне очереди</div>`;
+  } else {
+    whoLine = `<div class="slot-who">свободно</div>`;
+  }
+
+  let btn = '';
+  if (isMe) {
+    btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')">отменить</button>`;
+  } else if (!takenByOther && !crossWho) {
+    const fn = tooNear && emergencyMode ? `bookBreak('${time}', true)` : `bookBreak('${time}')`;
+    btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook?'disabled':''}>занять</button>`;
+  }
+
+  return `<div class="${cls}">
+    <div class="slot-time">${time}</div>
+    ${whoLine}${btn}
+  </div>`;
+}
+
+function renderSlotLunch(time) {
+  const a = ac();
+  const ml = myLunchCount();
+  const k = lKey(currentShift, time);
+  const who = bookings[k];
+  const isMe = who === currentOp;
+  const takenByOther = !!who && !isMe;
+  const canBook = currentOp && !takenByOther && !isMe && ml < MAX_LUNCHES;
+
+  let cls = 'slot ';
+  if (isMe) cls += 'mine-'+a;
+  else if (takenByOther) cls += 'taken';
+  else cls += 'free';
+
+  let btn = '';
+  if (isMe) {
+    btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')">отменить</button>`;
+  } else if (!takenByOther) {
+    btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook?'disabled':''}>занять</button>`;
+  }
+
+  return `<div class="${cls}">
+    <div class="slot-time">${time}</div>
+    <div class="slot-who${who?' booked-'+a:''}">${who||'свободно'}</div>
+    ${btn}
+  </div>`;
+}
+
+function render() {
+  const cfg = SHIFT_CFG[currentShift];
+  const a = ac();
+  const mb = myBreaksCount(), ml = myLunchCount();
+  const lunchSlots = makeLunchSlots(cfg.lunchHours);
+  const hasLunch = cfg.lunchHours !== null;
+
+  const takenB = Object.keys(bookings).filter(k => k.startsWith(currentShift+'|b|')).length;
+  const takenL = Object.keys(bookings).filter(k => k.startsWith(currentShift+'|l|')).length;
+  const totalB = cfg.breakGroups.reduce((s,g) => s + g.slots.length, 0);
+  const hiClass = currentOp ? ' hi-'+a : '';
+
+  // Summary
+  let sumCards = `
+    <div class="card${hiClass}">
+      <div class="card-label">Мои перерывы</div>
+      <div class="card-val">${mb}<small>/${MAX_BREAKS}</small></div>
+    </div>`;
+  if (hasLunch) {
+    sumCards += `<div class="card${hiClass}">
+      <div class="card-label">Мой обед</div>
+      <div class="card-val">${ml}<small>/${MAX_LUNCHES}</small></div>
+    </div>`;
+  }
+  sumCards += `<div class="card">
+    <div class="card-label">Занято перерывов</div>
+    <div class="card-val">${takenB}<small>/${totalB}</small></div>
+  </div>`;
+  if (hasLunch) {
+    sumCards += `<div class="card">
+      <div class="card-label">Занято обедов</div>
+      <div class="card-val">${takenL}<small>/${lunchSlots.length}</small></div>
+    </div>`;
+  }
+  document.getElementById('summary').innerHTML = sumCards;
+
+  // Board
+  let html = '';
+
+  // Breaks section
+  // Emergency mode: all available slots are tooClose but operator still needs breaks
+  const emergencyMode = noValidSlotsLeft();
+
+  html += `<div class="section-head">
+    <div class="section-title">Перерывы</div>
+    ${currentShift === 'night' ? '<span class="section-sub" style="opacity:.4;font-family:var(--mono);font-size:10px">★ янтарный = занят сменой 12–00</span>' : ''}
+    ${currentOp && mb >= MAX_BREAKS ? '<span class="quota-warn">лимит 4/4</span>' : ''}
+    ${emergencyMode ? '<span class="quota-warn" style="color:var(--warn);background:var(--warn-dim);border-color:rgba(251,191,36,0.25)">↯ все слоты заняты — доступно вне очереди</span>' : ''}
+    <div class="section-line"></div>
+  </div>`;
+
+  cfg.breakGroups.forEach(({ label, hh, slots }) => {
+    html += `<div class="group">
+      <div class="group-label">${label}</div>
+      <div class="slot-grid">`;
+    slots.forEach(t => { html += renderSlotBreak(t, hh, emergencyMode); });
+    html += `</div></div>`;
+  });
+
+  // Lunch section
+  if (hasLunch) {
+    const lunchRange = cfg.lunchHours[0] + ':00 – ' + cfg.lunchHours[cfg.lunchHours.length-1] + ':00';
+    html += `<div class="section-head" style="margin-top:28px">
+      <div class="section-title">Обед <span class="section-sub">${lunchRange}</span></div>
+      ${currentOp && ml >= MAX_LUNCHES ? '<span class="quota-warn">обед занят</span>' : ''}
+      <div class="section-line"></div>
+    </div>
+    <div class="slot-grid">`;
+    lunchSlots.forEach(t => { html += renderSlotLunch(t); });
+    html += `</div>`;
+  }
+
+  document.getElementById('board').innerHTML = html;
+}
+
+initWorker();
+</script>
+</body>
+</html>

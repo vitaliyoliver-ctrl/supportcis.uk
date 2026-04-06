@@ -304,7 +304,7 @@
     .login-btn.visible { display: flex; }
     .logout-btn.hidden { display: none; }
 
-    /* ── Лейблы виджетов (только подписи, без переключения) ── */
+    /* ── Лейблы виджетов ── */
     .widget-labels {
       position: fixed;
       bottom: 90px;
@@ -340,15 +340,15 @@
       animation: pulse 2s ease infinite;
     }
 
-    .wlabel-daddy { color: var(--tl); border-color: rgba(79,142,247,0.2); }
-    .wlabel-daddy .wdot { background: var(--tl); }
+    .wlabel-daddy  { color: var(--tl);    border-color: rgba(79,142,247,0.2); }
+    .wlabel-daddy .wdot  { background: var(--tl); }
 
-    .wlabel-atom { color: var(--support); border-color: rgba(52,211,153,0.2); }
-    .wlabel-atom .wdot { background: var(--support); }
+    .wlabel-atom   { color: var(--support); border-color: rgba(52,211,153,0.2); }
+    .wlabel-atom .wdot   { background: var(--support); }
 
-    /* Atom виджет смещаем левее чтобы не перекрывал Daddy */
-    /* Chatwoot сам управляет позицией, но через CSS переменные можно сдвинуть */
-    .wlabel-atom { margin-right: 0; }
+    /* Atom VIP — золотой */
+    .wlabel-atomvip { color: #f0c040; border-color: rgba(240,192,64,0.25); }
+    .wlabel-atomvip .wdot { background: #f0c040; }
 
     @media (max-width: 768px) {
       .cards { grid-template-columns: 1fr; max-width: 400px; }
@@ -410,10 +410,11 @@
 
 </div>
 
-<!-- Лейблы над виджетами (чисто визуальные) -->
+<!-- Лейблы виджетов -->
 <div class="widget-labels">
   <div class="wlabel wlabel-daddy"><span class="wdot"></span>Daddy</div>
   <div class="wlabel wlabel-atom"><span class="wdot"></span>Atom</div>
+  <div class="wlabel wlabel-atomvip"><span class="wdot"></span>Atom VIP</div>
 </div>
 
 <script>
@@ -444,7 +445,7 @@
   }
 </script>
 
-<!-- Chatwoot: Daddy (sparkmoth.com) — загружается первым -->
+<!-- Chatwoot: Daddy (sparkmoth.com) — напрямую на странице -->
 <script>
   (function(d,t) {
     var BASE_URL = "https://sparkmoth.com";
@@ -461,37 +462,36 @@
   })(document, "script");
 </script>
 
-<!-- Chatwoot: Atom (blueripple.xyz) — загружается в iframe для изоляции -->
-<iframe
-  id="atom-frame"
-  src="about:blank"
+<!-- Chatwoot: Atom (blueripple.xyz) — в iframe для изоляции -->
+<iframe id="atom-frame" src="about:blank"
   style="display:none; position:fixed; bottom:0; right:80px; width:400px; height:600px; border:none; z-index:99998;"
-  allow="microphone"
-></iframe>
+  allow="microphone"></iframe>
+
+<!-- Chatwoot: Atom VIP (blueripple.xyz) — в отдельном iframe -->
+<iframe id="atomvip-frame" src="about:blank"
+  style="display:none; position:fixed; bottom:0; right:160px; width:400px; height:600px; border:none; z-index:99997;"
+  allow="microphone"></iframe>
 
 <script>
-  // Инжектируем Atom виджет в изолированный iframe чтобы избежать конфликта с Daddy
-  window.addEventListener('load', function() {
-    var frame = document.getElementById('atom-frame');
+  function injectWidget(frameId, baseUrl, token) {
+    var frame = document.getElementById(frameId);
     frame.style.display = 'block';
     var doc = frame.contentDocument || frame.contentWindow.document;
     doc.open();
     doc.write([
       '<!DOCTYPE html><html><head>',
-      '<style>',
-      'body { margin:0; background:transparent; }',
-      '</style>',
+      '<style>body{margin:0;background:transparent;}</style>',
       '</head><body>',
       '<script>',
       '(function(d,t){',
-      '  var BASE_URL="https://blueripple.xyz";',
+      '  var BASE_URL="' + baseUrl + '";',
       '  var g=d.createElement(t),s=d.getElementsByTagName(t)[0];',
       '  g.src=BASE_URL+"/packs/js/sdk.js";',
       '  g.async=true;',
       '  s.parentNode.insertBefore(g,s);',
       '  g.onload=function(){',
       '    window.chatwootSDK.run({',
-      '      websiteToken:"yWuQVqLsB62orCCU15u4fuzK",',
+      '      websiteToken:"' + token + '",',
       '      baseUrl:BASE_URL',
       '    });',
       '  };',
@@ -500,6 +500,13 @@
       '</body></html>'
     ].join(''));
     doc.close();
+  }
+
+  window.addEventListener('load', function() {
+    // Atom
+    injectWidget('atom-frame', 'https://blueripple.xyz', 'yWuQVqLsB62orCCU15u4fuzK');
+    // Atom VIP
+    injectWidget('atomvip-frame', 'https://blueripple.xyz', 'MCr1iVjA5e1VjgyWVhYQxjUb');
   });
 </script>
 

@@ -30,7 +30,6 @@
       overflow-x: hidden;
     }
 
-    /* Фоновые частицы */
     .bg-grid {
       position: fixed;
       inset: 0;
@@ -55,7 +54,6 @@
     .bg-glow-1 { background: var(--tl); top: -200px; left: -100px; }
     .bg-glow-2 { background: var(--support); bottom: -200px; right: -100px; }
 
-    /* Основной контейнер */
     .wrapper {
       position: relative;
       z-index: 1;
@@ -67,7 +65,6 @@
       padding: 40px 24px;
     }
 
-    /* Логотип / шапка */
     .header {
       text-align: center;
       margin-bottom: 64px;
@@ -100,9 +97,7 @@
       color: #fff;
     }
 
-    .logo-text span {
-      color: var(--tl);
-    }
+    .logo-text span { color: var(--tl); }
 
     .header-sub {
       font-family: 'Unbounded', sans-serif;
@@ -116,7 +111,6 @@
       text-transform: uppercase;
     }
 
-    /* Карточки */
     .cards {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -152,23 +146,17 @@
       border-radius: inherit;
     }
 
-    .card:hover {
-      transform: translateY(-6px);
-    }
-
+    .card:hover { transform: translateY(-6px); }
     .card:hover::before { opacity: 1; }
 
-    /* TL */
     .card-tl { --accent: var(--tl); --glow: var(--tl-glow); }
     .card-tl::before { background: var(--tl-glow); }
     .card-tl:hover { border-color: var(--tl); box-shadow: 0 8px 40px var(--tl-glow), 0 0 0 1px var(--tl); }
 
-    /* Support */
     .card-support { --accent: var(--support); --glow: var(--support-glow); }
     .card-support::before { background: var(--support-glow); }
     .card-support:hover { border-color: var(--support); box-shadow: 0 8px 40px var(--support-glow), 0 0 0 1px var(--support); }
 
-    /* Ops */
     .card-ops { --accent: var(--ops); --glow: var(--ops-glow); }
     .card-ops::before { background: var(--ops-glow); }
     .card-ops:hover { border-color: var(--ops); box-shadow: 0 8px 40px var(--ops-glow), 0 0 0 1px var(--ops); }
@@ -230,7 +218,6 @@
       transform: translateX(3px);
     }
 
-    /* Доступ-бейджи */
     .card-badge {
       display: inline-flex;
       align-items: center;
@@ -258,7 +245,6 @@
       animation: pulse 2s ease infinite;
     }
 
-    /* Футер */
     .footer {
       margin-top: 56px;
       text-align: center;
@@ -267,7 +253,6 @@
       animation: fadeUp 0.6s 0.5s ease both;
     }
 
-    /* Анимации */
     @keyframes fadeDown {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -283,7 +268,6 @@
       50% { opacity: 0.4; }
     }
 
-    /* Кнопка выйти */
     .logout-btn {
       position: fixed; top: 24px; right: 24px;
       display: flex; align-items: center; gap: 6px;
@@ -320,10 +304,67 @@
     .login-btn.visible { display: flex; }
     .logout-btn.hidden { display: none; }
 
-    /* Адаптив */
+    /* ── Widget switcher labels ── */
+    .widget-switcher {
+      position: fixed;
+      bottom: 90px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 99999;
+    }
+
+    .wlabel {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(14,16,22,0.88);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 8px 14px 8px 10px;
+      font-size: 12px;
+      font-family: 'Mulish', sans-serif;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.22s ease;
+      backdrop-filter: blur(14px);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .wlabel:hover {
+      color: var(--text);
+      border-color: rgba(255,255,255,0.16);
+      background: rgba(24,27,36,0.95);
+    }
+
+    .wlabel.active {
+      color: #fff;
+    }
+
+    .wlabel .wdot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: box-shadow 0.22s;
+    }
+
+    .wlabel.active .wdot { animation: pulse 2s ease infinite; }
+
+    /* Daddy = синий, Atom = зелёный */
+    .wlabel-daddy .wdot { background: var(--tl); }
+    .wlabel-daddy.active { border-color: var(--tl); box-shadow: 0 0 14px rgba(79,142,247,0.25); }
+
+    .wlabel-atom .wdot { background: var(--support); }
+    .wlabel-atom.active { border-color: var(--support); box-shadow: 0 0 14px rgba(52,211,153,0.25); }
+
     @media (max-width: 768px) {
       .cards { grid-template-columns: 1fr; max-width: 400px; }
       .header { margin-bottom: 40px; }
+      .widget-switcher { bottom: 80px; right: 14px; }
     }
   </style>
 </head>
@@ -348,7 +389,6 @@
 
   <div class="cards">
 
-    <!-- TL Support -->
     <a href="/tl" class="card card-tl">
       <div class="card-icon">⚡</div>
       <div class="card-badge"><span class="badge-dot"></span>TL Access</div>
@@ -357,7 +397,6 @@
       <div class="card-arrow">→</div>
     </a>
 
-    <!-- Support -->
     <a href="/support" class="card card-support">
       <div class="card-icon">💬</div>
       <div class="card-badge"><span class="badge-dot"></span>Support Access</div>
@@ -366,7 +405,6 @@
       <div class="card-arrow">→</div>
     </a>
 
-    <!-- Operations -->
     <a href="/ops" class="card card-ops">
       <div class="card-icon">⚙️</div>
       <div class="card-badge"><span class="badge-dot"></span>Ops Access</div>
@@ -381,6 +419,16 @@
     © 2026 Velvix · Внутреннее использование
   </div>
 
+</div>
+
+<!-- Widget switcher UI -->
+<div class="widget-switcher">
+  <div class="wlabel wlabel-daddy active" id="btn-daddy" onclick="switchWidget('daddy')">
+    <span class="wdot"></span> Daddy
+  </div>
+  <div class="wlabel wlabel-atom" id="btn-atom" onclick="switchWidget('atom')">
+    <span class="wdot"></span> Atom
+  </div>
 </div>
 
 <script>
@@ -411,21 +459,68 @@
   }
 </script>
 
-<!-- Chatwoot Widget -->
+<!-- Chatwoot: Daddy -->
 <script>
   (function(d,t) {
-    var BASE_URL="https://sparkmoth.com";
-    var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-    g.src=BASE_URL+"/packs/js/sdk.js";
+    var BASE_URL = "https://sparkmoth.com";
+    var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+    g.src = BASE_URL + "/packs/js/sdk.js";
     g.async = true;
-    s.parentNode.insertBefore(g,s);
-    g.onload=function(){
+    s.parentNode.insertBefore(g, s);
+    g.onload = function() {
       window.chatwootSDK.run({
         websiteToken: 'sWZQ6hMtm1aCY4zkcup3zojx',
         baseUrl: BASE_URL
-      })
+      });
+      window._daddyLoaded = true;
+    };
+  })(document, "script");
+</script>
+
+<!-- Chatwoot: Atom -->
+<script>
+  (function(d,t) {
+    var BASE_URL = "https://blueripple.xyz";
+    var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+    g.src = BASE_URL + "/packs/js/sdk.js";
+    g.async = true;
+    s.parentNode.insertBefore(g, s);
+    g.onload = function() {
+      window._atomSDKReady = true;
+      // Atom не инициализируем сразу — запустится по клику
+    };
+  })(document, "script");
+</script>
+
+<script>
+  var _activeWidget = 'daddy';
+  var _atomStarted = false;
+
+  function switchWidget(name) {
+    if (_activeWidget === name) return;
+    _activeWidget = name;
+
+    document.getElementById('btn-daddy').classList.toggle('active', name === 'daddy');
+    document.getElementById('btn-atom').classList.toggle('active',  name === 'atom');
+
+    if (name === 'daddy') {
+      // Показываем Daddy, прячем Atom
+      if (window.$chatwoot) window.$chatwoot.toggleBubbleVisibility('show');
+    } else {
+      // Прячем Daddy, запускаем / показываем Atom
+      if (window.$chatwoot) window.$chatwoot.toggleBubbleVisibility('hide');
+
+      if (!_atomStarted && window._atomSDKReady && window.chatwootSDK) {
+        window.chatwootSDK.run({
+          websiteToken: 'yWuQVqLsB62orCCU15u4fuzK',
+          baseUrl: 'https://blueripple.xyz'
+        });
+        _atomStarted = true;
+      } else if (_atomStarted && window.$chatwoot) {
+        window.$chatwoot.toggleBubbleVisibility('show');
+      }
     }
-  })(document,"script");
+  }
 </script>
 
 </body>

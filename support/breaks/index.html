@@ -254,7 +254,13 @@ body.vip .logo-dot { background: var(--warn); }
     </div>
     <div id="op-badge" class="op-badge"></div>
     <button onclick="openLog()" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">☰ лог</button>
-    <button id="notif-btn" onclick="toggleNotifications()" title="Уведомления за 2 мин до перерыва/обеда" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s">🔔 уведомления</button>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button id="notif-btn" onclick="toggleNotifications()" title="Включить/выключить уведомления" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px 0 0 8px;border-right:none;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s">🔔</button>
+      <button class="notif-timing-btn" data-min="1" onclick="setNotifTiming(1)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-right:none;color:var(--muted);cursor:pointer">1м</button>
+      <button class="notif-timing-btn" data-min="2" onclick="setNotifTiming(2)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--accent-day-border);color:var(--accent-day);cursor:pointer;border-right:none">2м</button>
+      <button class="notif-timing-btn" data-min="5" onclick="setNotifTiming(5)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-right:none;color:var(--muted);cursor:pointer">5м</button>
+      <button class="notif-timing-btn" data-min="10" onclick="setNotifTiming(10)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:0 8px 8px 0;color:var(--muted);cursor:pointer">10м</button>
+    </div>
 
     <div class="seg">
       <button class="seg-btn active-day" id="btn-day" onclick="setShiftType('day')">☀ День</button>
@@ -379,6 +385,29 @@ const NC_SHIFT_CFG = {
 
 const MAX_BREAKS = 4, MAX_LUNCHES = 1;
 let userEmail = ''; // filled from /api/check session
+
+const ADMINS = new Set([
+  'andrey.sammy@velvix.org',
+  'linara.shin@velvix.org',
+  'maksym.max@velvix.org',
+  'natella.quinn@velvix.org',
+  'ruslan.irving@velvix.org',
+  'vitaliy.oliver@velvix.org',
+  'ayman.jordan@velvix.org',
+  'nataliia.naomi@velvix.org',
+  'viktor.matthew@velvix.org',
+  'kirill.curtis@velvix.org',
+  'ruslan.manuel@velvix.org',
+  'janelle.irma@velvix.org',
+  'ilia.solomon@velvix.org',
+  'ivan.richard@velvix.org',
+  'osman.toby@velvix.org',
+  'vadym.adam@velvix.org',
+  'tamila.amelia@velvix.org',
+  'vladimir.lucas@velvix.org',
+]);
+
+function isAdmin() { return ADMINS.has(userEmail.toLowerCase()); }
 let currentSection = 'sg'; // 'sg' | 'nc'
 let currentDept = 'regular'; // 'regular' | 'vip' (only for sg)
 let shiftType = 'day';
@@ -661,28 +690,46 @@ function crossBlockedBy(time) {
 
 function bookBreak(time, forceOverride) {
   if (!currentOp) { alert('Выберите оператора'); return; }
-  if (crossBlockedBy(time)) { alert('Слот ' + time + ' занят оператором смены 12–00'); return; }
+  const admin = isAdmin();
   const k = bKey(currentShift, time);
-  if (bookings[k]) return;
-  if (myBreaksCount() >= MAX_BREAKS) { alert('Лимит: 4 перерыва на смену'); return; }
-  if (tooClose(time) && !forceOverride) { alert('Между перерывами должен быть минимум 1 час'); return; }
+  if (!admin) {
+    if (crossBlockedBy(time)) { alert('Слот ' + time + ' занят оператором смежной смены'); return; }
+    if (bookings[k]) return;
+    if (myBreaksCount() >= MAX_BREAKS) { alert('Лимит: 4 перерыва на смену'); return; }
+    if (tooClose(time) && !forceOverride) { alert('Между перерывами должен быть минимум 1 час'); return; }
+  }
   bookings[k] = currentOp; saveBookings(); logAction('book_break', time); render();
 }
 function cancelBreak(time) {
   const k = bKey(currentShift, time);
-  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); logAction('cancel_break', time); render(); }
+  if (bookings[k] === currentOp || isAdmin()) {
+    const who = bookings[k];
+    delete bookings[k];
+    saveBookings();
+    logAction('cancel_break', time + (who && who !== currentOp ? ' [' + who + ']' : ''));
+    render();
+  }
 }
 function bookLunch(time) {
   if (!currentOp) { alert('Выберите оператора'); return; }
+  const admin = isAdmin();
   const k = lKey(currentShift, time);
-  if (bookings[k]) return;
-  if (myLunchCount() >= MAX_LUNCHES) { alert('Обед уже забронирован'); return; }
-  if (tooClose(time)) { alert('Между перерывами и обедом должен быть минимум 1 час'); return; }
+  if (!admin) {
+    if (bookings[k]) return;
+    if (myLunchCount() >= MAX_LUNCHES) { alert('Обед уже забронирован'); return; }
+    if (tooClose(time)) { alert('Между перерывами и обедом должен быть минимум 1 час'); return; }
+  }
   bookings[k] = currentOp; saveBookings(); logAction('book_lunch', time); render();
 }
 function cancelLunch(time) {
   const k = lKey(currentShift, time);
-  if (bookings[k] === currentOp) { delete bookings[k]; saveBookings(); logAction('cancel_lunch', time); render(); }
+  if (bookings[k] === currentOp || isAdmin()) {
+    const who = bookings[k];
+    delete bookings[k];
+    saveBookings();
+    logAction('cancel_lunch', time + (who && who !== currentOp ? ' [' + who + ']' : ''));
+    render();
+  }
 }
 
 function renderSlotBreak(time, hh, emergencyMode) {
@@ -720,9 +767,13 @@ function renderSlotBreak(time, hh, emergencyMode) {
   let btn = '';
   if (isMe) {
     btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')">отменить</button>`;
+  } else if (takenByOther && isAdmin()) {
+    btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')" title="Админ: отменить бронь ${who}">✕ ${who}</button>`;
   } else if (!takenByOther && !crossWho) {
     const fn = tooNear && emergencyMode ? `bookBreak('${time}', true)` : `bookBreak('${time}')`;
-    btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook?'disabled':''}>занять</button>`;
+    btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook&&!isAdmin()?'disabled':''}>занять</button>`;
+  } else if (crossWho && isAdmin()) {
+    btn = `<button class="slot-btn cancel" title="Админ: отменить кросс-бронь" style="font-size:10px" onclick="adminOverrideBreak('${time}')">✕ override</button>`;
   }
 
   return `<div class="${cls}">
@@ -749,8 +800,10 @@ function renderSlotLunch(time) {
   let btn = '';
   if (isMe) {
     btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')">отменить</button>`;
+  } else if (takenByOther && isAdmin()) {
+    btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')" title="Админ: отменить бронь ${who}">✕ ${who}</button>`;
   } else if (!takenByOther) {
-    btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook?'disabled':''}>занять</button>`;
+    btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook&&!isAdmin()?'disabled':''}>занять</button>`;
   }
 
   return `<div class="${cls}">
@@ -885,9 +938,27 @@ window.bookLunch = function(time) {
 };
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────
+let notifAheadMin = 2; // default 2 minutes
+
+function setNotifTiming(min) {
+  notifAheadMin = min;
+  document.querySelectorAll('.notif-timing-btn').forEach(b => {
+    b.style.color = parseInt(b.dataset.min) === min ? 'var(--accent-day)' : '';
+    b.style.borderColor = parseInt(b.dataset.min) === min ? 'var(--accent-day-border)' : '';
+  });
+}
+
+function adminOverrideBreak(time) {
+  if (!isAdmin()) return;
+  const k = bKey(currentShift, time);
+  const who = bookings[k];
+  if (who) { delete bookings[k]; saveBookings(); logAction('cancel_break', time + ' [admin override, was: ' + who + ']'); render(); }
+  else { bookings[k] = currentOp; saveBookings(); logAction('book_break', time + ' [admin override]'); render(); }
+}
+
 let notificationsEnabled = false;
 let notifTimer = null;
-const NOTIF_AHEAD_MIN = 2; // remind 2 minutes before
+// NOTIF_AHEAD_MIN is dynamic via notifAheadMin variable
 const firedNotifs = new Set(); // track already fired: "shiftId|type|time"
 
 function toggleNotifications() {
@@ -961,11 +1032,11 @@ function checkUpcomingBookings() {
     const diff = slotMin - nowMin;
     const notifKey = k;
 
-    if (diff > 0 && diff <= NOTIF_AHEAD_MIN && !firedNotifs.has(notifKey)) {
+    if (diff > 0 && diff <= notifAheadMin && !firedNotifs.has(notifKey)) {
       firedNotifs.add(notifKey);
       const typeLabel = isBreak ? 'Перерыв' : 'Обед';
       new Notification(`☕ ${typeLabel} через ${diff} мин`, {
-        body: `${currentOp} · ${timeStr} · смена ${currentShift === '9-21' ? '09–21' : currentShift === '12-24' ? '12–00' : 'Ночь'}`,
+        body: `${currentOp} · ${timeStr} · смена ${currentShift === '9-21' ? '09–21' : currentShift === '12-24' ? '12–00' : 'Ночь'} · за ${notifAheadMin} мин`,
         icon: '',
         tag: notifKey,
       });
@@ -981,7 +1052,17 @@ populateOperators();
 // Get auth session to identify who is making changes
 fetch('/api/check', { credentials: 'include' })
   .then(r => r.json())
-  .then(data => { if (data.ok && data.email) userEmail = data.email; })
+  .then(data => {
+    if (data.ok && data.email) {
+      userEmail = data.email;
+      if (isAdmin()) {
+        const badge = document.createElement('span');
+        badge.textContent = '★ admin';
+        badge.style.cssText = 'font-size:10px;font-family:var(--mono);background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 7px;margin-left:4px';
+        document.getElementById('op-badge').after(badge);
+      }
+    }
+  })
   .catch(() => {})
   .finally(() => initWorker());
 

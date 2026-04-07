@@ -254,6 +254,7 @@ body.vip .logo-dot { background: var(--warn); }
     </div>
     <div id="op-badge" class="op-badge"></div>
     <button onclick="openLog()" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">☰ лог</button>
+    <button id="notif-btn" onclick="toggleNotifications()" title="Уведомления за 2 мин до перерыва/обеда" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s">🔔 уведомления</button>
 
     <div class="seg">
       <button class="seg-btn active-day" id="btn-day" onclick="setShiftType('day')">☀ День</button>
@@ -602,19 +603,20 @@ function toMin(time, shiftId) {
   return total;
 }
 
-// Returns the closest existing break of current operator (in minutes), or null
-function closestMyBreakDistance(time) {
-  const myBreakTimes = Object.entries(bookings)
-    .filter(([k,v]) => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|b|') && v === currentOp)
-    .map(([k]) => k.split('|b|')[1]);
-  if (!myBreakTimes.length) return null;
+// Returns the closest existing break OR lunch of current operator (in minutes), or null
+function closestMyBookingDistance(time) {
+  const prefix = currentSection + '|' + currentDept + '|' + currentShift + '|';
+  const myTimes = Object.entries(bookings)
+    .filter(([k, v]) => v === currentOp && (k.startsWith(prefix + 'b|') || k.startsWith(prefix + 'l|')))
+    .map(([k]) => k.includes('|b|') ? k.split('|b|')[1] : k.split('|l|')[1]);
+  if (!myTimes.length) return null;
   const t = toMin(time, currentShift);
-  return Math.min(...myBreakTimes.map(bt => Math.abs(toMin(bt, currentShift) - t)));
+  return Math.min(...myTimes.map(bt => Math.abs(toMin(bt, currentShift) - t)));
 }
 
-// True if placing a break at `time` would be within 60 min of any existing break of current op
+// True if placing a break/lunch at `time` would be within 60 min of any existing break/lunch
 function tooClose(time) {
-  const dist = closestMyBreakDistance(time);
+  const dist = closestMyBookingDistance(time);
   return dist !== null && dist < 60;
 }
 
@@ -675,6 +677,7 @@ function bookLunch(time) {
   const k = lKey(currentShift, time);
   if (bookings[k]) return;
   if (myLunchCount() >= MAX_LUNCHES) { alert('Обед уже забронирован'); return; }
+  if (tooClose(time)) { alert('Между перерывами и обедом должен быть минимум 1 час'); return; }
   bookings[k] = currentOp; saveBookings(); logAction('book_lunch', time); render();
 }
 function cancelLunch(time) {
@@ -735,7 +738,8 @@ function renderSlotLunch(time) {
   const who = bookings[k];
   const isMe = who === currentOp;
   const takenByOther = !!who && !isMe;
-  const canBook = currentOp && !takenByOther && !isMe && ml < MAX_LUNCHES;
+  const tooNearLunch = currentOp && !isMe && tooClose(time);
+  const canBook = currentOp && !takenByOther && !isMe && ml < MAX_LUNCHES && !tooNearLunch;
 
   let cls = 'slot ';
   if (isMe) cls += 'mine-'+a;
@@ -879,6 +883,98 @@ window.bookLunch = function(time) {
   }
   _origBookLunch(time);
 };
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────
+let notificationsEnabled = false;
+let notifTimer = null;
+const NOTIF_AHEAD_MIN = 2; // remind 2 minutes before
+const firedNotifs = new Set(); // track already fired: "shiftId|type|time"
+
+function toggleNotifications() {
+  if (!('Notification' in window)) {
+    alert('Ваш браузер не поддерживает уведомления');
+    return;
+  }
+  if (notificationsEnabled) {
+    notificationsEnabled = false;
+    clearInterval(notifTimer);
+    notifTimer = null;
+    updateNotifBtn();
+    return;
+  }
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') {
+      notificationsEnabled = true;
+      startNotifTimer();
+      updateNotifBtn();
+      new Notification('break.desk', {
+        body: 'Уведомления включены — напомним за 2 минуты до перерыва или обеда',
+        icon: '',
+      });
+    } else {
+      alert('Разрешите уведомления в настройках браузера');
+    }
+  });
+}
+
+function updateNotifBtn() {
+  const btn = document.getElementById('notif-btn');
+  if (!btn) return;
+  if (notificationsEnabled) {
+    btn.textContent = '🔔 вкл';
+    btn.style.color = 'var(--accent-day)';
+    btn.style.borderColor = 'var(--accent-day-border)';
+  } else {
+    btn.textContent = '🔔 уведомления';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+function startNotifTimer() {
+  checkUpcomingBookings(); // run immediately
+  notifTimer = setInterval(checkUpcomingBookings, 30000); // check every 30s
+}
+
+function checkUpcomingBookings() {
+  if (!notificationsEnabled || !currentOp) return;
+
+  const kyiv = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const nowMin = kyiv.getHours() * 60 + kyiv.getMinutes();
+
+  const prefix = currentSection + '|' + currentDept + '|' + currentShift + '|';
+
+  Object.entries(bookings).forEach(([k, v]) => {
+    if (v !== currentOp) return;
+    const isBreak = k.startsWith(prefix + 'b|');
+    const isLunch = k.startsWith(prefix + 'l|');
+    if (!isBreak && !isLunch) return;
+
+    const timeStr = isBreak ? k.split('|b|')[1] : k.split('|l|')[1];
+    if (!timeStr) return;
+
+    const [hh, mm] = timeStr.split(':').map(Number);
+    let slotMin = hh * 60 + mm;
+    // Night shift: hours 0-8 are next day
+    if (currentShift === 'night' && hh < 12) slotMin += 24 * 60;
+
+    const diff = slotMin - nowMin;
+    const notifKey = k;
+
+    if (diff > 0 && diff <= NOTIF_AHEAD_MIN && !firedNotifs.has(notifKey)) {
+      firedNotifs.add(notifKey);
+      const typeLabel = isBreak ? 'Перерыв' : 'Обед';
+      new Notification(`☕ ${typeLabel} через ${diff} мин`, {
+        body: `${currentOp} · ${timeStr} · смена ${currentShift === '9-21' ? '09–21' : currentShift === '12-24' ? '12–00' : 'Ночь'}`,
+        icon: '',
+        tag: notifKey,
+      });
+    }
+
+    // Clear fired notif after slot time passes (so it can fire again if re-booked)
+    if (diff < -5) firedNotifs.delete(notifKey);
+  });
+}
 
 populateOperators();
 

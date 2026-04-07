@@ -498,6 +498,8 @@ function initWorker() {
 }
 
 function pollBookings() {
+  // Skip poll if we saved very recently (within 1s)
+  if (syncTimer) return;
   fetch(WORKER_URL + '/bookings')
     .then(r => r.json())
     .then(data => {
@@ -512,15 +514,20 @@ function pollBookings() {
 function saveBookings() {
   setSyncStatus('saving');
   clearTimeout(syncTimer);
+  // Debounce 200ms to batch rapid clicks
   syncTimer = setTimeout(() => {
+    const snapshot = JSON.stringify(bookings);
     fetch(WORKER_URL + '/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bookings),
+      body: snapshot,
     })
-      .then(r => r.ok ? setSyncStatus('online') : setSyncStatus('offline'))
+      .then(r => {
+        if (r.ok) { setSyncStatus('online'); }
+        else setSyncStatus('offline');
+      })
       .catch(() => setSyncStatus('offline'));
-  }, 400);
+  }, 200);
 }
 
 function logAction(action, slot) {
@@ -1220,38 +1227,55 @@ function renderTransferTab(body) {
   loadTransfers();
   const sgRegular = OPERATORS.sg.regular;
   const sgVip     = OPERATORS.sg.vip;
+  const ncRegular = OPERATORS.nc.regular;
 
-  let html = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">';
-  html += 'Трансфер сбрасывается автоматически после сброса смены (21:00 / 09:00)</div>';
-
-  html += '<div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px">Regular → VIP</div>';
-  html += '<div class="transfer-list">';
-  sgRegular.forEach(name => {
-    const moved = transfers[name] === 'vip';
-    html += '<div class="transfer-item">' +
-      '<span>' + name + (moved ? '<span class="transfer-badge" style="background:rgba(251,191,36,0.12);color:var(--warn)">перешёл → VIP</span>' : '') + '</span>' +
+  function transferRow(name, fromSection, fromDept, toSection, toDept, toLabel, badgeStyle) {
+    const key = fromSection + '|' + fromDept + '|' + name;
+    const moved = transfers[key] === (toSection + '|' + toDept);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px;margin-bottom:6px">' +
+      '<span>' + name + (moved ? '<span style="font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;margin-left:6px;' + badgeStyle + '">перешёл → ' + toLabel + '</span>' : '') + '</span>' +
       (moved
-        ? '<button class="transfer-btn" onclick="revertTransfer(\'' + name + '\')">↩ вернуть</button>'
-        : '<button class="transfer-btn" onclick="doTransfer(\'' + name + '\', \'vip\')">→ VIP</button>'
+        ? '<button onclick="revertTransfer2(\'' + key + '\')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">↩ вернуть</button>'
+        : '<button onclick="doTransfer2(\'' + key + '\',\'' + toSection + '|' + toDept + '\',\'' + name + '\',\'' + toSection + '\',\'' + toDept + '\')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">→ ' + toLabel + '</button>'
       ) +
       '</div>';
-  });
-  html += '</div>';
+  }
 
-  html += '<div style="font-size:12px;font-weight:500;color:var(--text);margin:16px 0 8px">VIP → Regular</div>';
-  html += '<div class="transfer-list">';
-  sgVip.forEach(name => {
-    const moved = transfers[name] === 'regular';
-    html += '<div class="transfer-item">' +
-      '<span>' + name + (moved ? '<span class="transfer-badge" style="background:rgba(110,231,183,0.12);color:var(--accent-day)">перешёл → Regular</span>' : '') + '</span>' +
-      (moved
-        ? '<button class="transfer-btn" onclick="revertTransfer(\'' + name + '\')">↩ вернуть</button>'
-        : '<button class="transfer-btn" onclick="doTransfer(\'' + name + '\', \'regular\')">→ Regular</button>'
-      ) +
-      '</div>';
-  });
-  html += '</div>';
+  const note = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px">Трансфер сбрасывается автоматически в 21:00 / 09:00</div>';
+  const sec = (title) => '<div style="font-size:12px;font-weight:500;color:var(--text);margin:16px 0 8px">' + title + '</div>';
+
+  let html = note;
+  html += sec('SG Regular → VIP');
+  sgRegular.forEach(n => { html += transferRow(n,'sg','regular','sg','vip','VIP','background:rgba(251,191,36,0.12);color:var(--warn)'); });
+  html += sec('SG VIP → Regular');
+  sgVip.forEach(n => { html += transferRow(n,'sg','vip','sg','regular','Regular','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
+  html += sec('SG Regular → NC');
+  sgRegular.forEach(n => { html += transferRow(n,'sg','regular','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
+  html += sec('NC → SG Regular');
+  ncRegular.forEach(n => { html += transferRow(n,'nc','regular','sg','regular','SG','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
   body.innerHTML = html;
+}
+
+function doTransfer2(key, targetVal, name, toSection, toDept) {
+  loadTransfers();
+  transfers[key] = targetVal;
+  saveTransfers();
+  // Add to target list temporarily if not there
+  if (toSection === 'sg' && toDept === 'vip' && !OPERATORS.sg.vip.includes(name)) OPERATORS.sg.vip.push(name);
+  if (toSection === 'sg' && toDept === 'regular' && !OPERATORS.sg.regular.includes(name)) OPERATORS.sg.regular.push(name);
+  if (toSection === 'nc' && toDept === 'regular' && !OPERATORS.nc.regular.includes(name)) OPERATORS.nc.regular.push(name);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
+function revertTransfer2(key) {
+  loadTransfers();
+  const target = transfers[key];
+  delete transfers[key];
+  saveTransfers();
+  // Could remove from target list, but easier to just reload — populateOperators uses base OPERATORS
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
 }
 
 function doTransfer(name, toDept) {

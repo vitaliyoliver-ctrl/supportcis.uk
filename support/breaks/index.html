@@ -999,19 +999,25 @@ function setNotifTiming(min) {
 }
 
 function adminBook(type, time) {
-  // If operator already selected, book directly; otherwise show pick modal
+  const doBook = (name) => {
+    // Update UI operator selection
+    currentOp = name;
+    document.getElementById('opsel').value = name;
+    const badge = document.getElementById('op-badge');
+    badge.textContent = name;
+    badge.style.display = 'inline-flex';
+    // Force-book bypassing ALL checks
+    const k = type === 'break' ? bKey(currentShift, time) : lKey(currentShift, time);
+    bookings[k] = name;
+    saveBookings();
+    logAction(type === 'break' ? 'book_break' : 'book_lunch', time + ' [admin]');
+    render();
+  };
+
   if (currentOp) {
-    if (type === 'break') bookBreak(time);
-    else bookLunch(time);
+    doBook(currentOp);
   } else {
-    openOpPick(name => {
-      currentOp = name;
-      document.getElementById('opsel').value = name;
-      const badge = document.getElementById('op-badge');
-      badge.textContent = name; badge.style.display = 'inline-flex';
-      if (type === 'break') bookBreak(time);
-      else bookLunch(time);
-    });
+    openOpPick(name => doBook(name));
   }
 }
 
@@ -1211,8 +1217,9 @@ function switchAdminTab(tab) {
   ['transfer','roster'].forEach(t => {
     const btn = document.getElementById('atab-' + t);
     if (!btn) return;
-    btn.style.color = t === tab ? 'var(--warn)' : 'var(--muted)';
-    btn.style.borderBottom = t === tab ? '2px solid var(--warn)' : '2px solid transparent';
+    const active = t === tab;
+    btn.style.cssText = 'padding:10px 18px;font-size:12px;font-family:var(--mono);background:none;border:none;cursor:pointer;transition:all .15s;' +
+      (active ? 'color:var(--warn);border-bottom:2px solid var(--warn);' : 'color:var(--muted);border-bottom:2px solid transparent;');
   });
   renderAdminTab(tab);
 }
@@ -1253,6 +1260,8 @@ function renderTransferTab(body) {
   sgRegular.forEach(n => { html += transferRow(n,'sg','regular','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
   html += sec('NC → SG Regular');
   ncRegular.forEach(n => { html += transferRow(n,'nc','regular','sg','regular','SG','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
+  html += sec('SG VIP → NC');
+  sgVip.forEach(n => { html += transferRow(n,'sg','vip','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
   body.innerHTML = html;
 }
 
@@ -1270,10 +1279,21 @@ function doTransfer2(key, targetVal, name, toSection, toDept) {
 
 function revertTransfer2(key) {
   loadTransfers();
-  const target = transfers[key];
+  const targetVal = transfers[key];
   delete transfers[key];
   saveTransfers();
-  // Could remove from target list, but easier to just reload — populateOperators uses base OPERATORS
+  // Remove from target list to avoid duplicates
+  if (targetVal) {
+    const [toSection, toDept] = targetVal.split('|');
+    // Get the name from the key: section|dept|name
+    const name = key.split('|').slice(2).join('|');
+    if (toSection === 'sg' && toDept === 'vip')
+      OPERATORS.sg.vip = OPERATORS.sg.vip.filter(n => n !== name || OPERATORS.sg.vip.indexOf(n) !== OPERATORS.sg.vip.lastIndexOf(n));
+    if (toSection === 'sg' && toDept === 'regular')
+      OPERATORS.sg.regular = OPERATORS.sg.regular.filter(n => n !== name || OPERATORS.sg.regular.indexOf(n) !== OPERATORS.sg.regular.lastIndexOf(n));
+    if (toSection === 'nc' && toDept === 'regular')
+      OPERATORS.nc.regular = OPERATORS.nc.regular.filter(n => n !== name || OPERATORS.nc.regular.indexOf(n) !== OPERATORS.nc.regular.lastIndexOf(n));
+  }
   populateOperators();
   renderTransferTab(document.getElementById('adminBody'));
 }

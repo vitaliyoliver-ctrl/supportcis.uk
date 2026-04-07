@@ -756,13 +756,48 @@ function bookBreak(time, forceOverride) {
   bookings[k] = currentOp; saveBookings(); logAction('book_break', time); render();
 }
 function cancelBreak(time) {
-  const k = bKey(currentShift, time);
-  if (bookings[k] === currentOp || isAdmin()) {
-    const who = bookings[k];
-    delete bookings[k];
+  // Regular user cancels their own booking (find their key)
+  const baseKey = bKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const myEntry = occupants.find(o => o.name === currentOp);
+  if (myEntry) {
+    delete bookings[myEntry.key];
+    // Compact remaining entries to fill gaps
+    compactSlotKeys(baseKey);
     saveBookings();
-    logAction('cancel_break', time + (who && who !== currentOp ? ' [' + who + ']' : ''));
+    logAction('cancel_break', time);
     render();
+  }
+}
+
+function adminCancelBreak(fullKey) {
+  // Admin cancels by full key (base or indexed)
+  const who = bookings[fullKey];
+  if (!who) return;
+  // Extract base key (remove |N suffix if present)
+  const baseKey = fullKey.replace(/\|\d+$/, '');
+  delete bookings[fullKey];
+  compactSlotKeys(baseKey);
+  saveBookings();
+  logAction('cancel_break', '[admin cancelled: ' + who + ']');
+  render();
+}
+
+function compactSlotKeys(baseKey) {
+  // After deletion, compact |1, |2... to avoid gaps
+  const names = [];
+  if (bookings[baseKey]) names.push(bookings[baseKey]);
+  let i = 1;
+  while (bookings[baseKey + '|' + i] !== undefined) {
+    if (bookings[baseKey + '|' + i]) names.push(bookings[baseKey + '|' + i]);
+    delete bookings[baseKey + '|' + i];
+    i++;
+  }
+  // Re-assign compactly
+  if (names.length > 0) bookings[baseKey] = names[0];
+  else delete bookings[baseKey];
+  for (let j = 1; j < names.length; j++) {
+    bookings[baseKey + '|' + j] = names[j];
   }
 }
 function bookLunch(time) {
@@ -782,39 +817,69 @@ function bookLunch(time) {
   bookings[k] = currentOp; saveBookings(); logAction('book_lunch', time); render();
 }
 function cancelLunch(time) {
-  const k = lKey(currentShift, time);
-  if (bookings[k] === currentOp || isAdmin()) {
-    const who = bookings[k];
-    delete bookings[k];
+  const baseKey = lKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const myEntry = occupants.find(o => o.name === currentOp);
+  if (myEntry) {
+    delete bookings[myEntry.key];
+    compactSlotKeys(baseKey);
     saveBookings();
-    logAction('cancel_lunch', time + (who && who !== currentOp ? ' [' + who + ']' : ''));
+    logAction('cancel_lunch', time);
     render();
   }
+}
+
+function adminCancelLunch(fullKey) {
+  const who = bookings[fullKey];
+  if (!who) return;
+  const baseKey = fullKey.replace(/\|\d+$/, '');
+  delete bookings[fullKey];
+  compactSlotKeys(baseKey);
+  saveBookings();
+  logAction('cancel_lunch', '[admin cancelled: ' + who + ']');
+  render();
+}
+
+function getSlotOccupants(baseKey) {
+  // Returns array of all names booked in this slot (base + extras)
+  const names = [];
+  if (bookings[baseKey]) names.push({ key: baseKey, name: bookings[baseKey] });
+  let i = 1;
+  while (bookings[baseKey + '|' + i]) {
+    names.push({ key: baseKey + '|' + i, name: bookings[baseKey + '|' + i] });
+    i++;
+    if (i > 10) break;
+  }
+  return names;
 }
 
 function renderSlotBreak(time, hh, emergencyMode) {
   const a = ac();
   const mb = myBreaksCount();
   const tooNear = currentOp && tooClose(time);
-  const k = bKey(currentShift, time);
-  const who = bookings[k];
-  const isMe = who === currentOp;
-  const takenByOther = !!who && !isMe;
-  const crossWho = !who ? crossBlockedBy(time) : null;
+  const baseKey = bKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const crossWho = occupants.length === 0 ? crossBlockedBy(time) : null;
+  const myEntry = occupants.find(o => o.name === currentOp);
+  const isMe = !!myEntry;
+  const takenByOther = occupants.length > 0 && !isMe;
+  const taken = occupants.length > 0;
 
   let cls = 'slot ';
   if (isMe) cls += 'mine-'+a;
-  else if (takenByOther) cls += 'taken';
+  else if (taken) cls += 'taken';
   else if (crossWho) cls += 'cross-blocked';
-  else if (tooNear && emergencyMode && !takenByOther && !crossWho) cls += 'free emergency';
+  else if (tooNear && emergencyMode) cls += 'free emergency';
   else cls += 'free';
 
-  const canBook = currentOp && !takenByOther && !isMe && mb < MAX_BREAKS && !crossWho &&
-    (!tooNear || emergencyMode);
+  const canBook = currentOp && !isMe && mb < MAX_BREAKS && !crossWho && (!tooNear || emergencyMode);
 
+  // Who line: show all occupants
   let whoLine = '';
-  if (isMe || takenByOther) {
-    whoLine = `<div class="slot-who booked-${a}">${who}</div>`;
+  if (occupants.length > 0) {
+    whoLine = occupants.map(o =>
+      `<div class="slot-who booked-${a}" style="font-size:11px">${o.name}</div>`
+    ).join('');
   } else if (crossWho) {
     const crossLabel = currentShift === '9-21' ? '12–00' : '09–21';
     whoLine = `<div class="slot-who cross">${crossLabel}: ${crossWho}</div>`;
@@ -829,12 +894,13 @@ function renderSlotBreak(time, hh, emergencyMode) {
     btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')">отменить</button>`;
   } else if (isAdmin()) {
     let adminBtns = '';
-    if (takenByOther) {
-      adminBtns += `<button class="slot-btn cancel" onclick="cancelBreak('${time}')" title="Отменить бронь ${who}" style="margin-bottom:4px">✕ ${who}</button>`;
-    }
-    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('break','${time}')" style="font-size:10px">★ занять</button>`;
+    // Cancel buttons for each occupant
+    occupants.forEach(o => {
+      adminBtns += `<button class="slot-btn cancel" onclick="adminCancelBreak('${o.key}')" style="margin-bottom:3px;font-size:10px">✕ ${o.name}</button>`;
+    });
+    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('break','${time}')" style="font-size:10px">★ добавить</button>`;
     btn = adminBtns;
-  } else if (!takenByOther && !crossWho) {
+  } else if (!taken && !crossWho) {
     const fn = tooNear && emergencyMode ? `bookBreak('${time}', true)` : `bookBreak('${time}')`;
     btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook?'disabled':''}>занять</button>`;
   }
@@ -848,35 +914,45 @@ function renderSlotBreak(time, hh, emergencyMode) {
 function renderSlotLunch(time) {
   const a = ac();
   const ml = myLunchCount();
-  const k = lKey(currentShift, time);
-  const who = bookings[k];
-  const isMe = who === currentOp;
-  const takenByOther = !!who && !isMe;
+  const baseKey = lKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const myEntry = occupants.find(o => o.name === currentOp);
+  const isMe = !!myEntry;
+  const taken = occupants.length > 0;
   const tooNearLunch = currentOp && !isMe && tooClose(time);
-  const canBook = currentOp && !takenByOther && !isMe && ml < MAX_LUNCHES && !tooNearLunch;
+  const canBook = currentOp && !isMe && ml < MAX_LUNCHES && !tooNearLunch;
 
   let cls = 'slot ';
   if (isMe) cls += 'mine-'+a;
-  else if (takenByOther) cls += 'taken';
+  else if (taken) cls += 'taken';
   else cls += 'free';
+
+  let whoLine = '';
+  if (occupants.length > 0) {
+    whoLine = occupants.map(o =>
+      `<div class="slot-who booked-${a}" style="font-size:11px">${o.name}</div>`
+    ).join('');
+  } else {
+    whoLine = `<div class="slot-who">свободно</div>`;
+  }
 
   let btn = '';
   if (isMe) {
     btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')">отменить</button>`;
   } else if (isAdmin()) {
     let adminBtns = '';
-    if (takenByOther) {
-      adminBtns += `<button class="slot-btn cancel" onclick="cancelLunch('${time}')" title="Отменить бронь ${who}" style="margin-bottom:4px">✕ ${who}</button>`;
-    }
-    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('lunch','${time}')" style="font-size:10px">★ занять</button>`;
+    occupants.forEach(o => {
+      adminBtns += `<button class="slot-btn cancel" onclick="adminCancelLunch('${o.key}')" style="margin-bottom:3px;font-size:10px">✕ ${o.name}</button>`;
+    });
+    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('lunch','${time}')" style="font-size:10px">★ добавить</button>`;
     btn = adminBtns;
-  } else if (!takenByOther) {
+  } else if (!taken) {
     btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook?'disabled':''}>занять</button>`;
   }
 
   return `<div class="${cls}">
     <div class="slot-time">${time}</div>
-    <div class="slot-who${who?' booked-'+a:''}">${who||'свободно'}</div>
+    ${whoLine}
     ${btn}
   </div>`;
 }
@@ -1000,17 +1076,19 @@ function setNotifTiming(min) {
 
 function adminBook(type, time) {
   const doBook = (name) => {
-    // Update UI operator selection
-    currentOp = name;
-    document.getElementById('opsel').value = name;
-    const badge = document.getElementById('op-badge');
-    badge.textContent = name;
-    badge.style.display = 'inline-flex';
-    // Force-book bypassing ALL checks
-    const k = type === 'break' ? bKey(currentShift, time) : lKey(currentShift, time);
+    // Admin: add as additional booking if slot already taken
+    const baseKey = type === 'break' ? bKey(currentShift, time) : lKey(currentShift, time);
+    // Find next free index (0 = base key, 1+ = base key + "|N")
+    let k = baseKey;
+    let idx = 1;
+    while (bookings[k] && bookings[k] !== name) {
+      k = baseKey + '|' + idx;
+      idx++;
+      if (idx > 10) break; // safety
+    }
     bookings[k] = name;
     saveBookings();
-    logAction(type === 'break' ? 'book_break' : 'book_lunch', time + ' [admin]');
+    logAction(type === 'break' ? 'book_break' : 'book_lunch', time + ' [admin: ' + name + ']');
     render();
   };
 

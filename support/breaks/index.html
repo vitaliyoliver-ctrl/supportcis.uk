@@ -221,6 +221,45 @@ body.vip .logo-dot { background: var(--warn); }
 .log-refresh { display: flex; align-items: center; gap: 6px; background: none; border: 0.5px solid var(--border2); border-radius: 6px; color: var(--muted); font-size: 11px; font-family: var(--mono); padding: 4px 10px; cursor: pointer; }
 .log-refresh:hover { color: var(--text); border-color: var(--border2); }
 
+/* ── ADMIN PANEL ── */
+.admin-overlay { display:none; position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px; }
+.admin-overlay.active { display:flex; }
+.admin-panel { background:var(--surface); border:1px solid var(--border2); border-radius:14px; width:560px; max-width:100%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; }
+.admin-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.admin-head-title { font-size:14px; font-weight:500; color:var(--warn); font-family:var(--mono); }
+.admin-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); flex-shrink:0; }
+.admin-tab { padding:10px 18px; font-size:12px; font-family:var(--mono); color:var(--muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
+.admin-tab.active { color:var(--warn); border-bottom-color:var(--warn); }
+.admin-body { flex:1; overflow-y:auto; padding:20px; }
+
+/* operator pick modal */
+.op-pick-overlay { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; }
+.op-pick-overlay.active { display:flex; }
+.op-pick-box { background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:20px; width:320px; max-width:95vw; }
+.op-pick-box h3 { font-size:13px; font-family:var(--mono); color:var(--text); margin-bottom:12px; }
+.op-pick-box select { width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:14px; margin-bottom:12px; }
+.op-pick-btns { display:flex; gap:8px; justify-content:flex-end; }
+.op-pick-btns button { padding:7px 16px; font-size:13px; font-family:var(--mono); border-radius:8px; border:1px solid var(--border2); background:transparent; color:var(--muted); cursor:pointer; }
+.op-pick-btns .confirm { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.35); color:var(--warn); }
+
+/* transfer list */
+.transfer-list { display:flex; flex-direction:column; gap:6px; }
+.transfer-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:13px; }
+.transfer-badge { font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:4px; margin-left:6px; }
+.transfer-btn { font-size:11px; font-family:var(--mono); padding:4px 10px; border-radius:6px; border:1px solid var(--border2); background:transparent; color:var(--muted); cursor:pointer; }
+.transfer-btn:hover { color:var(--warn); border-color:rgba(251,191,36,0.35); }
+
+/* roster editor */
+.roster-section { margin-bottom:20px; }
+.roster-title { font-size:11px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+.roster-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.roster-chip { display:inline-flex; align-items:center; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:12px; }
+.roster-chip button { background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
+.roster-chip button:hover { color:var(--danger); }
+.roster-add { display:flex; gap:6px; margin-top:4px; }
+.roster-add input { flex:1; padding:6px 10px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:13px; }
+.roster-add button { padding:6px 14px; font-size:12px; font-family:var(--mono); background:rgba(110,231,183,0.1); border:1px solid var(--accent-day-border); border-radius:8px; color:var(--accent-day); cursor:pointer; }
+
 @media(max-width:600px) {
   .header { padding: 12px 14px; }
   .main { padding: 14px; }
@@ -444,6 +483,8 @@ function initWorker() {
     .then(r => r.json())
     .then(data => {
       bookings = data || {};
+      loadTransfers();
+      loadRoster();
       setSyncStatus('online');
       render();
       // Poll every 10 seconds to catch bookings from other users
@@ -767,13 +808,16 @@ function renderSlotBreak(time, hh, emergencyMode) {
   let btn = '';
   if (isMe) {
     btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')">отменить</button>`;
-  } else if (takenByOther && isAdmin()) {
-    btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')" title="Админ: отменить бронь ${who}">✕ ${who}</button>`;
+  } else if (isAdmin()) {
+    let adminBtns = '';
+    if (takenByOther) {
+      adminBtns += `<button class="slot-btn cancel" onclick="cancelBreak('${time}')" title="Отменить бронь ${who}" style="margin-bottom:4px">✕ ${who}</button>`;
+    }
+    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('break','${time}')" style="font-size:10px">★ занять</button>`;
+    btn = adminBtns;
   } else if (!takenByOther && !crossWho) {
     const fn = tooNear && emergencyMode ? `bookBreak('${time}', true)` : `bookBreak('${time}')`;
-    btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook&&!isAdmin()?'disabled':''}>занять</button>`;
-  } else if (crossWho && isAdmin()) {
-    btn = `<button class="slot-btn cancel" title="Админ: отменить кросс-бронь" style="font-size:10px" onclick="adminOverrideBreak('${time}')">✕ override</button>`;
+    btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook?'disabled':''}>занять</button>`;
   }
 
   return `<div class="${cls}">
@@ -800,10 +844,15 @@ function renderSlotLunch(time) {
   let btn = '';
   if (isMe) {
     btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')">отменить</button>`;
-  } else if (takenByOther && isAdmin()) {
-    btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')" title="Админ: отменить бронь ${who}">✕ ${who}</button>`;
+  } else if (isAdmin()) {
+    let adminBtns = '';
+    if (takenByOther) {
+      adminBtns += `<button class="slot-btn cancel" onclick="cancelLunch('${time}')" title="Отменить бронь ${who}" style="margin-bottom:4px">✕ ${who}</button>`;
+    }
+    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('lunch','${time}')" style="font-size:10px">★ занять</button>`;
+    btn = adminBtns;
   } else if (!takenByOther) {
-    btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook&&!isAdmin()?'disabled':''}>занять</button>`;
+    btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook?'disabled':''}>занять</button>`;
   }
 
   return `<div class="${cls}">
@@ -943,9 +992,28 @@ let notifAheadMin = 2; // default 2 minutes
 function setNotifTiming(min) {
   notifAheadMin = min;
   document.querySelectorAll('.notif-timing-btn').forEach(b => {
-    b.style.color = parseInt(b.dataset.min) === min ? 'var(--accent-day)' : '';
-    b.style.borderColor = parseInt(b.dataset.min) === min ? 'var(--accent-day-border)' : '';
+    const active = parseInt(b.dataset.min) === min;
+    b.style.color = active ? 'var(--accent-day)' : 'var(--muted)';
+    b.style.borderColor = active ? 'var(--accent-day-border)' : 'rgba(255,255,255,0.13)';
+    b.style.background = active ? 'var(--accent-day-dim)' : 'var(--surface2)';
   });
+}
+
+function adminBook(type, time) {
+  // If operator already selected, book directly; otherwise show pick modal
+  if (currentOp) {
+    if (type === 'break') bookBreak(time);
+    else bookLunch(time);
+  } else {
+    openOpPick(name => {
+      currentOp = name;
+      document.getElementById('opsel').value = name;
+      const badge = document.getElementById('op-badge');
+      badge.textContent = name; badge.style.display = 'inline-flex';
+      if (type === 'break') bookBreak(time);
+      else bookLunch(time);
+    });
+  }
 }
 
 function adminOverrideBreak(time) {
@@ -979,7 +1047,7 @@ function toggleNotifications() {
       startNotifTimer();
       updateNotifBtn();
       new Notification('break.desk', {
-        body: 'Уведомления включены — напомним за 2 минуты до перерыва или обеда',
+        body: `Уведомления включены — напомним за ${notifAheadMin} мин до перерыва или обеда`,
         icon: '',
       });
     } else {
@@ -1047,6 +1115,220 @@ function checkUpcomingBookings() {
   });
 }
 
+// ── TRANSFERS (temporary Regular<->VIP moves, reset at shift end) ──
+// Stored in bookings KV as: sg|transfers = { "OperatorName": "vip" | "regular" }
+let transfers = {}; // { name: targetDept } — loaded from bookings
+
+function getTransferKey() { return 'sg|transfers'; }
+
+function loadTransfers() {
+  transfers = bookings[getTransferKey()] || {};
+}
+
+function saveTransfers() {
+  bookings[getTransferKey()] = transfers;
+  saveBookings();
+}
+
+// Returns effective dept for an operator (considering transfers)
+function effectiveDept(name, baseDept) {
+  return transfers[name] || baseDept;
+}
+
+// Reset transfers at shift boundary (called after bookings loaded)
+function resetTransfersIfNeeded() {
+  // Transfers reset when Worker resets bookings — they're stored inside bookings object
+  loadTransfers();
+}
+
+// ── ROSTER (permanent operator lists, stored in KV) ──
+let customRoster = null; // null = use hardcoded OPERATORS
+
+function getRosterKey() { return 'admin|roster'; }
+
+async function loadRoster() {
+  // roster stored as plain key in bookings object
+  const r = bookings[getRosterKey()];
+  if (r) {
+    customRoster = r;
+    // Override OPERATORS with custom roster
+    OPERATORS.sg.regular = r.sg_regular || OPERATORS.sg.regular;
+    OPERATORS.sg.vip     = r.sg_vip     || OPERATORS.sg.vip;
+    OPERATORS.nc.regular = r.nc_regular  || OPERATORS.nc.regular;
+    populateOperators();
+  }
+}
+
+function saveRoster() {
+  bookings[getRosterKey()] = {
+    sg_regular: [...OPERATORS.sg.regular],
+    sg_vip:     [...OPERATORS.sg.vip],
+    nc_regular: [...OPERATORS.nc.regular],
+  };
+  saveBookings();
+}
+
+// ── OP PICK MODAL (admin books without selecting operator first) ──
+let opPickCallback = null; // function(operatorName) to call after pick
+
+function openOpPick(callback) {
+  opPickCallback = callback;
+  const sel = document.getElementById('opPickSel');
+  sel.innerHTML = '';
+  const opList = currentSection === 'nc' ? OPERATORS.nc.regular : OPERATORS.sg[currentDept];
+  opList.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n; sel.appendChild(o);
+  });
+  document.getElementById('opPickOverlay').classList.add('active');
+}
+
+function closeOpPick() {
+  document.getElementById('opPickOverlay').classList.remove('active');
+  opPickCallback = null;
+}
+
+function confirmOpPick() {
+  const name = document.getElementById('opPickSel').value;
+  closeOpPick();
+  if (name && opPickCallback) opPickCallback(name);
+}
+
+// ── ADMIN PANEL ──
+let adminTab = 'transfer';
+
+function openAdminPanel() {
+  document.getElementById('adminOverlay').classList.add('active');
+  renderAdminTab(adminTab);
+}
+
+function closeAdminPanel() {
+  document.getElementById('adminOverlay').classList.remove('active');
+}
+
+function switchAdminTab(tab) {
+  adminTab = tab;
+  document.querySelectorAll('.admin-tab').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && tab === 'transfer') || (i === 1 && tab === 'roster'));
+  });
+  renderAdminTab(tab);
+}
+
+function renderAdminTab(tab) {
+  const body = document.getElementById('adminBody');
+  if (tab === 'transfer') renderTransferTab(body);
+  else renderRosterTab(body);
+}
+
+function renderTransferTab(body) {
+  loadTransfers();
+  const sgRegular = OPERATORS.sg.regular;
+  const sgVip     = OPERATORS.sg.vip;
+
+  let html = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">';
+  html += 'Трансфер сбрасывается автоматически после сброса смены (21:00 / 09:00)</div>';
+
+  html += '<div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px">Regular → VIP</div>';
+  html += '<div class="transfer-list">';
+  sgRegular.forEach(name => {
+    const moved = transfers[name] === 'vip';
+    html += '<div class="transfer-item">' +
+      '<span>' + name + (moved ? '<span class="transfer-badge" style="background:rgba(251,191,36,0.12);color:var(--warn)">перешёл → VIP</span>' : '') + '</span>' +
+      (moved
+        ? '<button class="transfer-btn" onclick="revertTransfer(\'' + name + '\')">↩ вернуть</button>'
+        : '<button class="transfer-btn" onclick="doTransfer(\'' + name + '\', \'vip\')">→ VIP</button>'
+      ) +
+      '</div>';
+  });
+  html += '</div>';
+
+  html += '<div style="font-size:12px;font-weight:500;color:var(--text);margin:16px 0 8px">VIP → Regular</div>';
+  html += '<div class="transfer-list">';
+  sgVip.forEach(name => {
+    const moved = transfers[name] === 'regular';
+    html += '<div class="transfer-item">' +
+      '<span>' + name + (moved ? '<span class="transfer-badge" style="background:rgba(110,231,183,0.12);color:var(--accent-day)">перешёл → Regular</span>' : '') + '</span>' +
+      (moved
+        ? '<button class="transfer-btn" onclick="revertTransfer(\'' + name + '\')">↩ вернуть</button>'
+        : '<button class="transfer-btn" onclick="doTransfer(\'' + name + '\', \'regular\')">→ Regular</button>'
+      ) +
+      '</div>';
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+function doTransfer(name, toDept) {
+  loadTransfers();
+  transfers[name] = toDept;
+  saveTransfers();
+  // Add to target dept list temporarily
+  if (toDept === 'vip' && !OPERATORS.sg.vip.includes(name)) OPERATORS.sg.vip.push(name);
+  if (toDept === 'regular' && !OPERATORS.sg.regular.includes(name)) OPERATORS.sg.regular.push(name);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
+function revertTransfer(name) {
+  loadTransfers();
+  const toDept = transfers[name];
+  delete transfers[name];
+  saveTransfers();
+  // Remove from target list
+  if (toDept === 'vip') OPERATORS.sg.vip = OPERATORS.sg.vip.filter(n => n !== name || OPERATORS.sg.vip.filter(x=>x===name).length > 1);
+  if (toDept === 'regular') OPERATORS.sg.regular = OPERATORS.sg.regular.filter(n => n !== name || OPERATORS.sg.regular.filter(x=>x===name).length > 1);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
+function renderRosterTab(body) {
+  const sections = [
+    { key: 'sg_regular', list: OPERATORS.sg.regular, label: 'SG · Regular' },
+    { key: 'sg_vip',     list: OPERATORS.sg.vip,     label: 'SG · VIP' },
+    { key: 'nc_regular', list: OPERATORS.nc.regular,  label: 'NC · Regular' },
+  ];
+
+  let html = '<div style="font-size:11px;color:var(--danger);font-family:var(--mono);margin-bottom:16px;padding:8px 12px;background:var(--danger-dim);border-radius:8px">⚠ Постоянное изменение списка — сохраняется навсегда</div>';
+
+  sections.forEach(({ key, list, label }) => {
+    html += '<div class="roster-section"><div class="roster-title">' + label + '</div>';
+    html += '<div class="roster-list" id="roster-' + key + '">';
+    list.forEach(name => {
+      html += '<span class="roster-chip">' + name +
+        '<button onclick="removeOperator(\'' + key + '\',\'' + name + '\')">✕</button>' +
+        '</span>';
+    });
+    html += '</div>';
+    html += '<div class="roster-add">' +
+      '<input type="text" id="new-op-' + key + '" placeholder="Имя оператора" onkeydown="if(event.key==='Enter')addOperator(\'' + key + '\')">' +
+      '<button onclick="addOperator(\'' + key + '\')">+ добавить</button>' +
+      '</div></div>';
+  });
+  body.innerHTML = html;
+}
+
+function addOperator(key) {
+  const inp = document.getElementById('new-op-' + key);
+  const name = inp.value.trim();
+  if (!name) return;
+  const map = { sg_regular: OPERATORS.sg.regular, sg_vip: OPERATORS.sg.vip, nc_regular: OPERATORS.nc.regular };
+  if (!map[key].includes(name)) { map[key].push(name); map[key].sort(); }
+  inp.value = '';
+  saveRoster();
+  populateOperators();
+  renderRosterTab(document.getElementById('adminBody'));
+}
+
+function removeOperator(key, name) {
+  if (!confirm('Удалить "' + name + '" из списка? Это нельзя отменить.')) return;
+  const map = { sg_regular: OPERATORS.sg.regular, sg_vip: OPERATORS.sg.vip, nc_regular: OPERATORS.nc.regular };
+  map[key] = map[key].filter(n => n !== name);
+  OPERATORS.sg.regular = map.sg_regular; OPERATORS.sg.vip = map.sg_vip; OPERATORS.nc.regular = map.nc_regular;
+  saveRoster();
+  populateOperators();
+  renderRosterTab(document.getElementById('adminBody'));
+}
+
 populateOperators();
 
 // Get auth session to identify who is making changes
@@ -1060,6 +1342,7 @@ fetch('/api/check', { credentials: 'include' })
         badge.textContent = '★ admin';
         badge.style.cssText = 'font-size:10px;font-family:var(--mono);background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 7px;margin-left:4px';
         document.getElementById('op-badge').after(badge);
+        document.getElementById('admin-btn').style.display = 'block';
       }
     }
   })
@@ -1068,6 +1351,33 @@ fetch('/api/check', { credentials: 'include' })
 
 
 </script>
+<!-- OPERATOR PICK MODAL -->
+<div class="op-pick-overlay" id="opPickOverlay">
+  <div class="op-pick-box">
+    <h3>Выберите оператора для брони</h3>
+    <select id="opPickSel"></select>
+    <div class="op-pick-btns">
+      <button onclick="closeOpPick()">Отмена</button>
+      <button class="confirm" onclick="confirmOpPick()">Забронировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
+  <div class="admin-panel">
+    <div class="admin-head">
+      <span class="admin-head-title">★ Админ-панель</span>
+      <button onclick="closeAdminPanel()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchAdminTab('transfer')">↔ Трансфер</button>
+      <button class="admin-tab" onclick="switchAdminTab('roster')">✎ Состав</button>
+    </div>
+    <div class="admin-body" id="adminBody"></div>
+  </div>
+</div>
+
 <div class="log-overlay" id="logOverlay" onclick="if(event.target===this)closeLog()">
   <div class="log-panel">
     <div class="log-head">

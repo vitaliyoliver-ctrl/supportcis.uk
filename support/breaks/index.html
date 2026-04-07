@@ -1392,37 +1392,14 @@ fetch('/api/check', { credentials: 'include' })
 
 </script>
 <!-- OPERATOR PICK MODAL -->
-<div class="op-pick-overlay" id="opPickOverlay">
-  <div class="op-pick-box">
-    <h3>Выберите оператора для брони</h3>
-    <select id="opPickSel"></select>
-    <div class="op-pick-btns">
-      <button onclick="closeOpPick()">Отмена</button>
-      <button class="confirm" onclick="confirmOpPick()">Забронировать</button>
-    </div>
-  </div>
 </div>
-
-<!-- ADMIN PANEL -->
-<div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
-  <div class="admin-panel">
-    <div class="admin-head">
-      <span class="admin-head-title">★ Админ-панель</span>
-      <button onclick="closeAdminPanel()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
-    </div>
-    <div class="admin-tabs">
-      <button class="admin-tab active" onclick="switchAdminTab('transfer')">↔ Трансфер</button>
-      <button class="admin-tab" onclick="switchAdminTab('roster')">✎ Состав</button>
-    </div>
-    <div class="admin-body" id="adminBody"></div>
-  </div>
 </div>
 
 <!-- OPERATOR PICK MODAL -->
 <div id="opPickOverlay" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:20px;width:320px;max-width:95vw">
-    <div style="font-size:13px;font-family:var(--mono);color:var(--text);margin-bottom:12px">Выберите оператора для брони</div>
-    <select id="opPickSel" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px"></select>
+    <div style="font-size:13px;font-family:var(--mono);color:var(--text);margin-bottom:12px">Выберите оператора</div>
+    <select id="opPickSel" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px;font-family:var(--sans)"></select>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button onclick="closeOpPick()" style="padding:7px 16px;font-size:13px;font-family:var(--mono);border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">Отмена</button>
       <button onclick="confirmOpPick()" style="padding:7px 16px;font-size:13px;font-family:var(--mono);border-radius:8px;border:1px solid rgba(251,191,36,0.35);background:rgba(251,191,36,0.12);color:var(--warn);cursor:pointer">Забронировать</button>
@@ -1430,6 +1407,7 @@ fetch('/api/check', { credentials: 'include' })
   </div>
 </div>
 
+<!-- ADMIN PANEL -->
 <!-- ADMIN PANEL -->
 <div id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:560px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">

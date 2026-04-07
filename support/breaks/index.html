@@ -501,6 +501,7 @@ function pollBookings() {
     .then(r => r.json())
     .then(data => {
       bookings = data || {};
+      loadTransfers();
       setSyncStatus('online');
       render();
     })
@@ -732,6 +733,11 @@ function crossBlockedBy(time) {
 function bookBreak(time, forceOverride) {
   if (!currentOp) { alert('Выберите оператора'); return; }
   const admin = isAdmin();
+  if (!admin && !shiftBookingAllowed(currentShift)) {
+    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
+    alert('Бронирование открывается в ' + (labels[currentShift] || '') + ' по Киеву');
+    return;
+  }
   const k = bKey(currentShift, time);
   if (!admin) {
     if (crossBlockedBy(time)) { alert('Слот ' + time + ' занят оператором смежной смены'); return; }
@@ -754,6 +760,11 @@ function cancelBreak(time) {
 function bookLunch(time) {
   if (!currentOp) { alert('Выберите оператора'); return; }
   const admin = isAdmin();
+  if (!admin && !shiftBookingAllowed(currentShift)) {
+    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
+    alert('Бронирование открывается в ' + (labels[currentShift] || '') + ' по Киеву');
+    return;
+  }
   const k = lKey(currentShift, time);
   if (!admin) {
     if (bookings[k]) return;
@@ -964,27 +975,7 @@ function shiftBookingAllowed(shiftId) {
 
 // Shift reset is handled server-side in the Worker on every GET /bookings
 
-// ── BOOKING ALLOWED CHECK ──────────────────────────────────────
-// Patch bookBreak and bookLunch to check shift open time
-const _origBookBreak = bookBreak;
-window.bookBreak = function(time, forceOverride) {
-  if (!shiftBookingAllowed(currentShift)) {
-    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
-    alert('Бронирование открывается в ' + (labels[currentShift] || '—') + ' по Киеву');
-    return;
-  }
-  _origBookBreak(time, forceOverride);
-};
-
-const _origBookLunch = bookLunch;
-window.bookLunch = function(time) {
-  if (!shiftBookingAllowed(currentShift)) {
-    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
-    alert('Бронирование открывается в ' + (labels[currentShift] || '—') + ' по Киеву');
-    return;
-  }
-  _origBookLunch(time);
-};
+// Booking time check is inline in bookBreak/bookLunch
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────
 let notifAheadMin = 2; // default 2 minutes
@@ -1144,7 +1135,7 @@ function resetTransfersIfNeeded() {
 // ── ROSTER (permanent operator lists, stored in KV) ──
 let customRoster = null; // null = use hardcoded OPERATORS
 
-function getRosterKey() { return 'admin|roster'; }
+function getRosterKey() { return '__roster__'; } // double-underscore prefix is never wiped by shift reset
 
 async function loadRoster() {
   // roster stored as plain key in bookings object

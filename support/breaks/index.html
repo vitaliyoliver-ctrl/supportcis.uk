@@ -1196,8 +1196,9 @@ function closeOpPick() {
 
 function confirmOpPick() {
   const name = document.getElementById('opPickSel').value;
+  const cb = opPickCallback; // save before closeOpPick nulls it
   closeOpPick();
-  if (name && opPickCallback) opPickCallback(name);
+  if (name && cb) cb(name);
 }
 
 // ── ADMIN PANEL ──

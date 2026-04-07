@@ -643,11 +643,17 @@ function myLunchCount() {
   return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|l|') && v === currentOp).length;
 }
 
-// Кросс-блокировка: проверяем, занят ли слот в смежной смене
+// Кросс-блокировка: 9-21 и 12-24 блокируют один слот друг у друга
+// Работает внутри одной секции (sg/nc) и одного отдела (regular/vip)
+// NC и VIP независимы от других отделов
 function crossBlockedBy(time) {
-  const cfg = (currentSection === 'nc' ? NC_SHIFT_CFG : SHIFT_CFG)[currentShift];
-  if (!cfg.crossShift) return null;
-  const crossKey = bKey(cfg.crossShift, time);
+  // Only 9-21 <-> 12-24 cross-block each other
+  const crossMap = { '9-21': '12-24', '12-24': '9-21' };
+  const crossShift = crossMap[currentShift];
+  if (!crossShift) return null; // night has no cross-shift
+
+  // Build the cross key: same section|dept, different shift
+  const crossKey = currentSection + '|' + currentDept + '|' + crossShift + '|b|' + time;
   return bookings[crossKey] || null;
 }
 
@@ -700,7 +706,8 @@ function renderSlotBreak(time, hh, emergencyMode) {
   if (isMe || takenByOther) {
     whoLine = `<div class="slot-who booked-${a}">${who}</div>`;
   } else if (crossWho) {
-    whoLine = `<div class="slot-who cross">12–00: ${crossWho}</div>`;
+    const crossLabel = currentShift === '9-21' ? '12–00' : '09–21';
+    whoLine = `<div class="slot-who cross">${crossLabel}: ${crossWho}</div>`;
   } else if (tooNear && emergencyMode) {
     whoLine = `<div class="slot-who" style="color:var(--warn);font-size:11px">↯ вне очереди</div>`;
   } else {
@@ -794,7 +801,7 @@ function render() {
 
   html += `<div class="section-head">
     <div class="section-title">Перерывы</div>
-    ${currentShift === 'night' ? '<span class="section-sub" style="opacity:.4;font-family:var(--mono);font-size:10px">★ янтарный = занят сменой 12–00</span>' : ''}
+    ${(currentShift === '9-21' || currentShift === '12-24') ? '<span class="section-sub" style="opacity:.4;font-family:var(--mono);font-size:10px">★ янтарный = занят смежной сменой</span>' : ''}
     ${currentOp && mb >= MAX_BREAKS ? '<span class="quota-warn">лимит 4/4</span>' : ''}
     ${emergencyMode ? '<span class="quota-warn" style="color:var(--warn);background:var(--warn-dim);border-color:rgba(251,191,36,0.25)">↯ все слоты заняты — доступно вне очереди</span>' : ''}
     <div class="section-line"></div>
@@ -848,62 +855,8 @@ function shiftBookingAllowed(shiftId) {
   return true;
 }
 
-// Reset keys: which KV keys to clear at shift end
-// 09-21 resets at 21:00, 12-24 resets at 00:00 (next day), night resets at 09:00
-function getResetInfo() {
-  return [
-    { shiftId: '9-21',  resetHour: 21, resetMin: 0  },
-    { shiftId: '12-24', resetHour: 0,  resetMin: 0  },
-    { shiftId: 'night', resetHour: 9,  resetMin: 0  },
-  ];
-}
 
-// Check if a shift should be reset and do it
-async function checkAndResetShifts() {
-  const now = kyivNow();
-  const h = now.getHours(), m = now.getMinutes();
-  const totalMin = h * 60 + m;
-
-  const resets = getResetInfo();
-  for (const { shiftId, resetHour, resetMin } of resets) {
-    const resetMin_ = resetHour * 60 + resetMin;
-    // Reset window: exactly at reset time ±1 minute
-    const diff = Math.abs(totalMin - resetMin_);
-    const atMidnight = (resetHour === 0 && totalMin <= 1); // handle midnight separately
-
-    if (diff <= 1 || atMidnight) {
-      // Check if we already reset this shift in this window (use lastReset flag)
-      const flagKey = `lastReset_${shiftId}`;
-      const lastReset = localStorage.getItem(flagKey);
-      const nowDateStr = now.toDateString() + '_' + resetHour;
-
-      if (lastReset !== nowDateStr) {
-        localStorage.setItem(flagKey, nowDateStr);
-        // Server-side reset via Worker
-        fetch(WORKER_URL + '/reset-shift', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shiftId }),
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.ok) {
-            console.log(`Reset shift ${shiftId}: removed ${data.removed} bookings`);
-            // Reload bookings from server
-            pollBookings();
-          }
-        })
-        .catch(() => {
-          // Fallback: clear locally
-          Object.keys(bookings).filter(k => k.startsWith(shiftId + '|')).forEach(k => delete bookings[k]);
-          saveBookings();
-          render();
-        });
-      }
-    }
-  }
-
-}
+// Shift reset is handled server-side in the Worker on every GET /bookings
 
 // ── BOOKING ALLOWED CHECK ──────────────────────────────────────
 // Patch bookBreak and bookLunch to check shift open time
@@ -936,9 +889,7 @@ fetch('/api/check', { credentials: 'include' })
   .catch(() => {})
   .finally(() => initWorker());
 
-// Check reset every 30 seconds
-setInterval(checkAndResetShifts, 30000);
-checkAndResetShifts();
+
 </script>
 <div class="log-overlay" id="logOverlay" onclick="if(event.target===this)closeLog()">
   <div class="log-panel">

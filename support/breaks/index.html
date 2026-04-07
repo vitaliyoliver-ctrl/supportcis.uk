@@ -1291,7 +1291,7 @@ function renderRosterTab(body) {
     });
     html += '</div>';
     html += '<div class="roster-add">' +
-      '<input type="text" id="new-op-' + key + '" placeholder="Имя оператора" onkeydown="if(event.key==='Enter')addOperator(\'' + key + '\')">' +
+      '<input type="text" id="new-op-' + key + '" placeholder="\u0418\u043c\u044f \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" onkeydown="if(event.keyCode===13)addOperator(\'' + key + '\')">' +
       '<button onclick="addOperator(\'' + key + '\')">+ добавить</button>' +
       '</div></div>';
   });

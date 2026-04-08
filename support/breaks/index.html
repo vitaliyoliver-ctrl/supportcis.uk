@@ -426,6 +426,71 @@ const NC_SHIFT_CFG = {
 const MAX_BREAKS = 4, MAX_LUNCHES = 1;
 let userEmail = ''; // filled from /api/check session
 
+// Email to operator name mapping
+const EMAIL_TO_OPERATOR = {
+  'Rovshan.Will@velvix.org': 'Will',
+  'Elvira.As@velvix.org': 'Bridget',
+  'Nijat.Kenzo@velvix.org': 'Kenzo',
+  'Alina.Ja@velvix.org': 'Nora',
+  'banovsha.florence@velvix.org': 'Florence',
+  'Sherzodjon.Fletcher@velvix.org': 'Fletcher',
+  'Teymur.Ab@velvix.org': 'Charles',
+  'Rashad.Go@velvix.org': 'Earl',
+  'rufat.rudy@velvix.org': 'Rudy',
+  'Emin.Nu@velvix.org': 'Balfour',
+  'Dmitriy.Be@velvix.org': 'Jonathan',
+  'Artsiom.Pu@velvix.org': 'Bill',
+  'Ruslan.Mi@velvix.org': 'Gross',
+  'assel.meadow@velvix.org': 'Meadow',
+  'elvin.norman@velvix.org': 'Norman',
+  'Mikita.Ma@velvix.org': 'Robin',
+  'Maksym.K@velvix.org': 'Bob',
+  'Vladyslav.Bi@velvix.org': 'Lex',
+  'Radik.Mu@velvix.org': 'Calvin',
+  'stanislav.mike@velvix.org': 'Mike',
+  'Dmitry.Sherlock@velvix.org': 'Sherlock',
+  'vusal.colin@velvix.org': 'Colin',
+  'Adil.Ab@velvix.org': 'Robert',
+  'Teymur.Hardy@velvix.org': 'Hardy',
+  'Viktor.Bo@velvix.org': 'Murphy',
+  'Oleh.Vy@velvix.org': 'Joseph',
+  'ivan.bowen@velvix.org': 'Bowen',
+  'nurdaulet.simon@velvix.org': 'Simon',
+  'Ruslan.Casper@velvix.org': 'Casper',
+  'alisher.elijah@velvix.org': 'Elijah',
+  'serghei.scott@velvix.org': 'Scott',
+  'lolita.holly@velvix.org': 'Holly',
+  'fuad.tom@velvix.org': 'Tom',
+  'vladyslav.river@velvix.org': 'River',
+  'temirlan.chadwick@velvix.org': 'Chadwick',
+  'daniil.fabio@velvix.org': 'Fabio',
+  'timur.plover@velvix.org': 'Plover',
+  'vladislav.morgan@velvix.org': 'Morgan',
+  'maksym.reggie@velvix.org': 'Reggie',
+  'teymur.wade@velvix.org': 'Wade',
+  'nigar.felicia@velvix.org': 'Felicia',
+  'Vladimir.Warren@velvix.org': 'Warren',
+  'emil.denzel@velvix.org': 'Denzel',
+  'sabina.ib@velvix.org': 'Alexia',
+  'kateryna.kiana@velvix.org': 'Kiana',
+  'matsvei.ashton@velvix.org': 'Ashton',
+  'Aliyar.Ko@velvix.org': 'Nolan',
+  'Muslmat.Trinity@velvix.org': 'Trinity',
+  'zuleykha.christine@velvix.org': 'Christine',
+  'elnur.skylar@velvix.org': 'Skylar',
+  'azim.isaac@velvix.org': 'Isaac',
+  'Yaroslav.Re@velvix.org': 'Caleb',
+  'Stanislav.Me@velvix.org': 'Grant',
+  'Alexandra.Frey@velvix.org': 'Frey',
+  'ludmila.luciana@velvix.org': 'Luciana',
+  'Rashad.Al@velvix.org': 'Hector',
+  'ramiz.ag@velvix.org': 'Leo',
+  'Katsiaryna.Yo@velvix.org': 'Debra',
+  'olga.evelyn@velvix.org': 'Evelyn',
+  'liudmyla.taylor@velvix.org': 'Taylor',
+  'Tymur.Za@velvix.org': 'Ren',
+};
+
 const ADMINS = new Set([
   'andrey.sammy@velvix.org',
   'linara.shin@velvix.org',
@@ -1505,17 +1570,75 @@ fetch('/api/check', { credentials: 'include' })
   .then(data => {
     if (data.ok && data.email) {
       userEmail = data.email;
+      
+      // Auto-select operator based on email (for non-admins)
+      const operatorName = EMAIL_TO_OPERATOR[userEmail];
+      
       if (isAdmin()) {
+        // Admin badge
         const badge = document.createElement('span');
         badge.textContent = '★ admin';
         badge.style.cssText = 'font-size:10px;font-family:var(--mono);background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 7px;margin-left:4px';
         document.getElementById('op-badge').after(badge);
         document.getElementById('admin-btn').style.display = 'block';
+        
+        // Admins can select any operator freely
+      } else if (operatorName) {
+        // Non-admin: auto-select their operator and lock the selector
+        autoSelectOperator(operatorName);
       }
     }
   })
   .catch(() => {})
   .finally(() => initWorker());
+
+// Auto-select operator for non-admin users
+function autoSelectOperator(name) {
+  // Find which section/dept this operator belongs to
+  let found = false;
+  
+  if (OPERATORS.sg.regular.includes(name)) {
+    setSection('sg');
+    setDept('regular');
+    found = true;
+  } else if (OPERATORS.sg.vip.includes(name)) {
+    setSection('sg');
+    setDept('vip');
+    found = true;
+  } else if (OPERATORS.nc.regular.includes(name)) {
+    setSection('nc');
+    setDept('regular');
+    found = true;
+  }
+  
+  if (found) {
+    // Populate and select
+    populateOperators();
+    currentOp = name;
+    sel.value = name;
+    
+    // Show badge
+    const badge = document.getElementById('op-badge');
+    badge.textContent = name;
+    badge.style.display = 'flex';
+    
+    // Lock the selector (make it read-only)
+    sel.disabled = true;
+    sel.style.opacity = '0.6';
+    sel.style.cursor = 'not-allowed';
+    
+    // Hide section/dept switchers for non-admins - they can only book for themselves
+    const sectionBtns = document.querySelectorAll('#btn-sect-sg, #btn-sect-nc');
+    sectionBtns.forEach(btn => {
+      btn.style.display = 'none';
+    });
+    
+    const deptSeg = document.getElementById('dept-seg');
+    if (deptSeg) deptSeg.style.display = 'none';
+    
+    render();
+  }
+}
 
 
 </script>

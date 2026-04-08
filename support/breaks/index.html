@@ -503,7 +503,30 @@ function pollBookings() {
   fetch(WORKER_URL + '/bookings')
     .then(r => r.json())
     .then(data => {
+      // Умное слияние: не перезаписываем, если у нас есть локальные изменения
+      // Сохраняем текущие брони оператора
+      const myKeys = Object.keys(bookings).filter(k => {
+        const val = bookings[k];
+        // Проверяем, принадлежит ли бронь текущему оператору
+        if (typeof val === 'string') return val === currentOp;
+        if (typeof val === 'object' && val !== null) {
+          return Object.values(val).includes(currentOp);
+        }
+        return false;
+      });
+      
+      // Применяем обновление с сервера
       bookings = data || {};
+      
+      // Восстанавливаем наши брони, если они были удалены
+      // (это защита от race condition, когда наше сохранение ещё не дошло до сервера)
+      const localBackup = JSON.parse(sessionStorage.getItem('bookings_backup') || '{}');
+      myKeys.forEach(k => {
+        if (!bookings[k] && localBackup[k]) {
+          bookings[k] = localBackup[k];
+        }
+      });
+      
       loadTransfers();
       setSyncStatus('online');
       render();
@@ -513,6 +536,9 @@ function pollBookings() {
 
 function saveBookings() {
   setSyncStatus('saving');
+  // Сохраняем бэкап локально для защиты от race condition
+  sessionStorage.setItem('bookings_backup', JSON.stringify(bookings));
+  
   clearTimeout(syncTimer);
   // Debounce 200ms to batch rapid clicks
   syncTimer = setTimeout(() => {
@@ -523,7 +549,10 @@ function saveBookings() {
       body: snapshot,
     })
       .then(r => {
-        if (r.ok) { setSyncStatus('online'); }
+        if (r.ok) { 
+          setSyncStatus('online');
+          syncTimer = null; // Разрешаем poll снова
+        }
         else setSyncStatus('offline');
       })
       .catch(() => setSyncStatus('offline'));
@@ -558,7 +587,26 @@ function closeLog() {
 function loadLog() {
   const body = document.getElementById('logBody');
   body.innerHTML = '<div class="log-empty">загрузка...</div>';
-  fetch(WORKER_URL + '/log')
+  
+  // Для ночной смены после полуночи берём вчерашний лог
+  let logDate = '';
+  let logTitle = 'Лог за сегодня';
+  const now = kyivMinutes();
+  if (currentShift === 'night' && now < 9 * 60) {
+    // Ночная смена после полуночи - берём вчерашнюю дату
+    const yesterday = new Date(Date.now() + 2 * 60 * 60 * 1000); // UTC+2
+    yesterday.setDate(yesterday.getDate() - 1);
+    logDate = yesterday.toISOString().split('T')[0];
+    logTitle = 'Лог смены (вчера)';
+  }
+  
+  // Обновляем заголовок
+  const titleEl = document.querySelector('.log-head-title');
+  if (titleEl) titleEl.textContent = logTitle;
+  
+  const url = logDate ? `${WORKER_URL}/log?date=${logDate}` : `${WORKER_URL}/log`;
+  
+  fetch(url)
     .then(r => r.json())
     .then(entries => {
       if (!entries.length) {
@@ -1052,7 +1100,8 @@ function shiftBookingAllowed(shiftId) {
   const now = kyivMinutes();
   if (shiftId === '9-21')   return now >= (8 * 60 + 45);   // 08:45
   if (shiftId === '12-24')  return now >= (11 * 60 + 45);  // 11:45
-  if (shiftId === 'night')  return now >= (20 * 60 + 45);  // 20:45
+  // Ночь: с 20:45 до 09:00 (через полночь)
+  if (shiftId === 'night')  return now >= (20 * 60 + 45) || now < (9 * 60);
   return true;
 }
 

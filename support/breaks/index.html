@@ -551,6 +551,7 @@ function initWorker() {
     .then(r => r.json())
     .then(data => {
       bookings = data || {};
+      lastServerBookings = JSON.parse(JSON.stringify(bookings)); // snapshot of server state
       loadTransfers();
       loadRoster();
       setSyncStatus('online');
@@ -585,6 +586,7 @@ function pollBookings() {
       }
       
       bookings = serverData;
+      lastServerBookings = JSON.parse(JSON.stringify(serverData)); // keep server snapshot in sync
       loadTransfers();
       setSyncStatus('online');
       render();
@@ -592,25 +594,53 @@ function pollBookings() {
     .catch(() => setSyncStatus('offline'));
 }
 
+// Track last known server state to compute deltas
+let lastServerBookings = {};
+
 function saveBookings() {
   setSyncStatus('saving');
-  
+
   clearTimeout(syncTimer);
   // Debounce 300ms to batch rapid clicks
   syncTimer = setTimeout(() => {
-    const snapshot = JSON.stringify(bookings);
+    // Compute delta: what changed vs last known server state
+    const toSet = {};
+    const toDel = [];
+
+    // Keys added or changed locally
+    for (const [k, v] of Object.entries(bookings)) {
+      if (JSON.stringify(lastServerBookings[k]) !== JSON.stringify(v)) {
+        toSet[k] = v;
+      }
+    }
+    // Keys deleted locally
+    for (const k of Object.keys(lastServerBookings)) {
+      if (!(k in bookings)) {
+        toDel.push(k);
+      }
+    }
+
+    if (Object.keys(toSet).length === 0 && toDel.length === 0) {
+      setSyncStatus('online');
+      syncTimer = null;
+      return;
+    }
+
     fetch(WORKER_URL + '/bookings', {
-      method: 'POST',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: snapshot,
+      body: JSON.stringify({ set: toSet, del: toDel }),
     })
       .then(r => {
-        if (r.ok) { 
+        if (r.ok) {
+          // Update our "last known server state" to current bookings
+          lastServerBookings = JSON.parse(JSON.stringify(bookings));
           setSyncStatus('online');
-          lastSaveTime = Date.now(); // Record time of successful save
-          syncTimer = null; // Allow poll again (after POLL_BLOCK_MS delay)
+          lastSaveTime = Date.now();
+          syncTimer = null;
+        } else {
+          setSyncStatus('offline');
         }
-        else setSyncStatus('offline');
       })
       .catch(() => setSyncStatus('offline'));
   }, 300);

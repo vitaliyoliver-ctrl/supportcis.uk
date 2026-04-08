@@ -527,6 +527,8 @@ let bookings = {};
 const WORKER_URL = 'https://scheduler-data.vitaliy-barkhanskiy.workers.dev';
 
 let syncTimer = null;
+let lastSaveTime = 0; // timestamp of last successful save
+const POLL_BLOCK_MS = 3000; // block poll for 3 sec after save
 
 function setSyncStatus(state) {
   const dot = document.getElementById('sync-dot');
@@ -563,35 +565,26 @@ function initWorker() {
 }
 
 function pollBookings() {
-  // Skip poll if we saved very recently (within 1s)
+  // Skip poll if we saved very recently (within POLL_BLOCK_MS)
   if (syncTimer) return;
+  if (Date.now() - lastSaveTime < POLL_BLOCK_MS) return;
   fetch(WORKER_URL + '/bookings')
     .then(r => r.json())
     .then(data => {
-      // Умное слияние: не перезаписываем, если у нас есть локальные изменения
-      // Сохраняем текущие брони оператора
-      const myKeys = Object.keys(bookings).filter(k => {
-        const val = bookings[k];
-        // Проверяем, принадлежит ли бронь текущему оператору
-        if (typeof val === 'string') return val === currentOp;
-        if (typeof val === 'object' && val !== null) {
-          return Object.values(val).includes(currentOp);
-        }
-        return false;
-      });
+      const serverData = data || {};
       
-      // Применяем обновление с сервера
-      bookings = data || {};
+      // Protect all bookings belonging to current operator from being overwritten
+      // by a stale server response (race condition protection)
+      if (currentOp) {
+        Object.entries(bookings).forEach(([k, v]) => {
+          if (typeof v === 'string' && v === currentOp) {
+            // Keep our booking if server doesn't have it
+            if (!serverData[k]) serverData[k] = v;
+          }
+        });
+      }
       
-      // Восстанавливаем наши брони, если они были удалены
-      // (это защита от race condition, когда наше сохранение ещё не дошло до сервера)
-      const localBackup = JSON.parse(sessionStorage.getItem('bookings_backup') || '{}');
-      myKeys.forEach(k => {
-        if (!bookings[k] && localBackup[k]) {
-          bookings[k] = localBackup[k];
-        }
-      });
-      
+      bookings = serverData;
       loadTransfers();
       setSyncStatus('online');
       render();
@@ -601,11 +594,9 @@ function pollBookings() {
 
 function saveBookings() {
   setSyncStatus('saving');
-  // Сохраняем бэкап локально для защиты от race condition
-  sessionStorage.setItem('bookings_backup', JSON.stringify(bookings));
   
   clearTimeout(syncTimer);
-  // Debounce 200ms to batch rapid clicks
+  // Debounce 300ms to batch rapid clicks
   syncTimer = setTimeout(() => {
     const snapshot = JSON.stringify(bookings);
     fetch(WORKER_URL + '/bookings', {
@@ -616,12 +607,13 @@ function saveBookings() {
       .then(r => {
         if (r.ok) { 
           setSyncStatus('online');
-          syncTimer = null; // Разрешаем poll снова
+          lastSaveTime = Date.now(); // Record time of successful save
+          syncTimer = null; // Allow poll again (after POLL_BLOCK_MS delay)
         }
         else setSyncStatus('offline');
       })
       .catch(() => setSyncStatus('offline'));
-  }, 200);
+  }, 300);
 }
 
 function logAction(action, slot) {
@@ -653,60 +645,70 @@ function loadLog() {
   const body = document.getElementById('logBody');
   body.innerHTML = '<div class="log-empty">загрузка...</div>';
   
-  // Для ночной смены после полуночи берём вчерашний лог
-  let logDate = '';
-  let logTitle = 'Лог за сегодня';
   const now = kyivMinutes();
-  if (currentShift === 'night' && now < 9 * 60) {
-    // Ночная смена после полуночи - берём вчерашнюю дату
-    const yesterday = new Date(Date.now() + 2 * 60 * 60 * 1000); // UTC+2
-    yesterday.setDate(yesterday.getDate() - 1);
-    logDate = yesterday.toISOString().split('T')[0];
-    logTitle = 'Лог смены (вчера)';
-  }
-  
-  // Обновляем заголовок
   const titleEl = document.querySelector('.log-head-title');
-  if (titleEl) titleEl.textContent = logTitle;
-  
-  const url = logDate ? `${WORKER_URL}/log?date=${logDate}` : `${WORKER_URL}/log`;
-  
-  fetch(url)
-    .then(r => r.json())
-    .then(entries => {
-      if (!entries.length) {
-        body.innerHTML = '<div class="log-empty">пока нет действий за сегодня</div>';
-        return;
-      }
-      const actionLabels = {
-        book_break:    { text: 'забронировал перерыв',  cls: 'log-action-book' },
-        cancel_break:  { text: 'отменил перерыв',       cls: 'log-action-cancel' },
-        book_lunch:    { text: 'забронировал обед',     cls: 'log-action-book' },
-        cancel_lunch:  { text: 'отменил обед',          cls: 'log-action-cancel' },
-      };
-      const shiftLabels = { '9-21': '09–21', '12-24': '12–00', 'night': 'Ночь' };
-      body.innerHTML = entries.map(e => {
-        const al = actionLabels[e.action] || { text: e.action, cls: '' };
-        const sectCls = e.section === 'nc' ? 'log-badge-nc' : (e.dept === 'vip' ? 'log-badge-vip' : 'log-badge-sg');
-        const sectLabel = e.section === 'nc' ? 'NC' : (e.dept === 'vip' ? 'VIP' : 'SG');
-        return `<div class="log-entry">
-          <div class="log-time">${e.time}</div>
-          <div class="log-info">
-            <div class="log-op">${e.operator} <span class="log-badge ${sectCls}">${sectLabel}</span>${e.userEmail ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">(${e.userEmail})</span>` : ''}</div>
-            <div class="log-detail"><span class="${al.cls}">${al.text}</span> · ${e.slot} · ${shiftLabels[e.shift] || e.shift}</div>
-          </div>
-        </div>`;
-      }).join('');
-    })
-    .catch(() => {
-      body.innerHTML = '<div class="log-empty">ошибка загрузки</div>';
+
+  // Для ночной смены (21-09) лог может быть разбит на 2 дня:
+  // - до полуночи: записан в "вчера" (когда смена началась)
+  // - после полуночи: записан в "сегодня" (Kyiv)
+  // Нам нужно показать ОБА куска.
+  if (currentShift === 'night') {
+    if (titleEl) titleEl.textContent = 'Лог ночной смены';
+
+    const kyivToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Kiev' });
+    const [y, mo, d] = kyivToday.split('-').map(Number);
+    const prevDate = new Date(y, mo - 1, d - 1).toLocaleDateString('en-CA');
+
+    // Fetch both days and merge
+    Promise.all([
+      fetch(`${WORKER_URL}/log?date=${kyivToday}`).then(r => r.json()).catch(() => []),
+      fetch(`${WORKER_URL}/log?date=${prevDate}`).then(r => r.json()).catch(() => []),
+    ]).then(([todayEntries, yesterdayEntries]) => {
+      // Filter: only show night-shift entries (shift === 'night')
+      const all = [...todayEntries, ...yesterdayEntries].filter(e => e.shift === 'night');
+      renderLogEntries(body, all);
     });
+    return;
+  }
+
+  if (titleEl) titleEl.textContent = 'Лог за сегодня';
+  fetch(`${WORKER_URL}/log`)
+    .then(r => r.json())
+    .then(entries => renderLogEntries(body, entries))
+    .catch(() => { body.innerHTML = '<div class="log-empty">ошибка загрузки</div>'; });
+}
+
+function renderLogEntries(body, entries) {
+  if (!entries || !entries.length) {
+    body.innerHTML = '<div class="log-empty">пока нет действий</div>';
+    return;
+  }
+  const actionLabels = {
+    book_break:    { text: 'забронировал перерыв',  cls: 'log-action-book' },
+    cancel_break:  { text: 'отменил перерыв',       cls: 'log-action-cancel' },
+    book_lunch:    { text: 'забронировал обед',     cls: 'log-action-book' },
+    cancel_lunch:  { text: 'отменил обед',          cls: 'log-action-cancel' },
+  };
+  const shiftLabels = { '9-21': '09–21', '12-24': '12–00', 'night': 'Ночь' };
+  body.innerHTML = entries.map(e => {
+    const al = actionLabels[e.action] || { text: e.action, cls: '' };
+    const sectCls = e.section === 'nc' ? 'log-badge-nc' : (e.dept === 'vip' ? 'log-badge-vip' : 'log-badge-sg');
+    const sectLabel = e.section === 'nc' ? 'NC' : (e.dept === 'vip' ? 'VIP' : 'SG');
+    return `<div class="log-entry">
+      <div class="log-time">${e.time}</div>
+      <div class="log-info">
+        <div class="log-op">${e.operator} <span class="log-badge ${sectCls}">${sectLabel}</span>${e.userEmail ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">(${e.userEmail})</span>` : ''}</div>
+        <div class="log-detail"><span class="${al.cls}">${al.text}</span> · ${e.slot} · ${shiftLabels[e.shift] || e.shift}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // Populate operator select
 const sel = document.getElementById('opsel');
 
-function populateOperators() {
+function populateOperators(forceReset) {
+  const prevOp = currentOp;
   sel.innerHTML = '<option value="">— оператор —</option>';
   const opList = currentSection === 'nc'
     ? OPERATORS.nc.regular
@@ -715,11 +717,17 @@ function populateOperators() {
     const o = document.createElement('option');
     o.value = n; o.textContent = n; sel.appendChild(o);
   });
-  // Reset selection when dept changes
-  currentOp = '';
-  sel.value = '';
-  const badge = document.getElementById('op-badge');
-  if (badge) badge.style.display = 'none';
+  // forceReset=true when user explicitly switches section/dept
+  // Without force: keep operator if still in list (prevents poll from clearing selection)
+  if (!forceReset && prevOp && opList.includes(prevOp)) {
+    currentOp = prevOp;
+    sel.value = prevOp;
+  } else {
+    currentOp = '';
+    sel.value = '';
+    const badge = document.getElementById('op-badge');
+    if (badge) badge.style.display = 'none';
+  }
 }
 
 function ac() { return shiftType === 'night' ? 'night' : 'day'; }
@@ -734,7 +742,7 @@ function setSection(s) {
   document.getElementById('dept-seg').style.display = isNC ? 'none' : 'flex';
   // NC has no VIP — reset to regular
   if (isNC) { currentDept = 'regular'; }
-  populateOperators();
+  populateOperators(true);
   render();
 }
 
@@ -744,7 +752,7 @@ function setDept(d) {
   document.body.classList.remove('nc');
   document.getElementById('btn-dept-regular').className = 'seg-btn' + (d === 'regular' ? ' active-day' : '');
   document.getElementById('btn-dept-vip').className     = 'seg-btn' + (d === 'vip'     ? ' active-vip'  : '');
-  populateOperators();
+  populateOperators(true);
   render();
 }
 

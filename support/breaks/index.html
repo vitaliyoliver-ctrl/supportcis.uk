@@ -553,44 +553,50 @@ function initWorker() {
   setSyncStatus('connecting');
   fetch(WORKER_URL + '/bookings')
     .then(r => r.json())
-    .then(data => {
-      bookings = data || {};
-      lastServerBookings = JSON.parse(JSON.stringify(bookings)); // snapshot of server state
+    .then(resp => {
+      // Support both versioned {data, v} and legacy flat format
+      if (resp && resp.data !== undefined) {
+        bookings = resp.data || {};
+        lastServerBookings = JSON.parse(JSON.stringify(bookings));
+        serverVersion = resp.v || 0;
+      } else {
+        bookings = resp || {};
+        lastServerBookings = JSON.parse(JSON.stringify(bookings));
+        serverVersion = 0;
+      }
       loadTransfers();
       loadRoster();
       setSyncStatus('online');
       render();
-      // Poll every 10 seconds to catch bookings from other users
       setInterval(pollBookings, 10000);
     })
     .catch(() => {
       setSyncStatus('offline');
-      render(); // render locally
+      render();
     });
 }
 
 function pollBookings() {
-  // Skip poll if we saved very recently (within POLL_BLOCK_MS)
   if (syncTimer) return;
   if (Date.now() - lastSaveTime < POLL_BLOCK_MS) return;
   fetch(WORKER_URL + '/bookings')
     .then(r => r.json())
-    .then(data => {
-      const serverData = data || {};
-      
-      // Protect all bookings belonging to current operator from being overwritten
-      // by a stale server response (race condition protection)
+    .then(resp => {
+      const serverData = (resp && resp.data !== undefined) ? (resp.data || {}) : (resp || {});
+      const newVersion = (resp && resp.v !== undefined) ? resp.v : serverVersion;
+
+      // Protect current operator's bookings from stale server response
       if (currentOp) {
         Object.entries(bookings).forEach(([k, v]) => {
-          if (typeof v === 'string' && v === currentOp) {
-            // Keep our booking if server doesn't have it
-            if (!serverData[k]) serverData[k] = v;
+          if (typeof v === 'string' && v === currentOp && !serverData[k]) {
+            serverData[k] = v;
           }
         });
       }
-      
+
       bookings = serverData;
-      lastServerBookings = JSON.parse(JSON.stringify(serverData)); // keep server snapshot in sync
+      lastServerBookings = JSON.parse(JSON.stringify(serverData));
+      serverVersion = newVersion;
       loadTransfers();
       setSyncStatus('online');
       render();
@@ -600,54 +606,72 @@ function pollBookings() {
 
 // Track last known server state to compute deltas
 let lastServerBookings = {};
+let serverVersion = 0; // optimistic lock version
 
 function saveBookings() {
   setSyncStatus('saving');
-
   clearTimeout(syncTimer);
-  // Debounce 300ms to batch rapid clicks
-  syncTimer = setTimeout(() => {
-    // Compute delta: what changed vs last known server state
-    const toSet = {};
-    const toDel = [];
+  syncTimer = setTimeout(() => doSave(0), 300);
+}
 
-    // Keys added or changed locally
-    for (const [k, v] of Object.entries(bookings)) {
-      if (JSON.stringify(lastServerBookings[k]) !== JSON.stringify(v)) {
-        toSet[k] = v;
-      }
-    }
-    // Keys deleted locally
-    for (const k of Object.keys(lastServerBookings)) {
-      if (!(k in bookings)) {
-        toDel.push(k);
-      }
-    }
+function doSave(retryCount) {
+  if (retryCount > 4) {
+    setSyncStatus('offline');
+    syncTimer = null;
+    return;
+  }
 
-    if (Object.keys(toSet).length === 0 && toDel.length === 0) {
-      setSyncStatus('online');
-      syncTimer = null;
-      return;
-    }
+  // Compute delta vs last known server state
+  const toSet = {};
+  const toDel = [];
+  for (const [k, v] of Object.entries(bookings)) {
+    if (JSON.stringify(lastServerBookings[k]) !== JSON.stringify(v)) toSet[k] = v;
+  }
+  for (const k of Object.keys(lastServerBookings)) {
+    if (!(k in bookings)) toDel.push(k);
+  }
 
-    fetch(WORKER_URL + '/bookings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ set: toSet, del: toDel }),
-    })
-      .then(r => {
-        if (r.ok) {
-          // Update our "last known server state" to current bookings
-          lastServerBookings = JSON.parse(JSON.stringify(bookings));
-          setSyncStatus('online');
-          lastSaveTime = Date.now();
-          syncTimer = null;
-        } else {
-          setSyncStatus('offline');
+  if (Object.keys(toSet).length === 0 && toDel.length === 0) {
+    setSyncStatus('online');
+    syncTimer = null;
+    return;
+  }
+
+  fetch(WORKER_URL + '/bookings', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ v: serverVersion, set: toSet, del: toDel }),
+  })
+    .then(async r => {
+      const resp = await r.json();
+      if (r.ok) {
+        // Success — update local snapshot and version
+        lastServerBookings = JSON.parse(JSON.stringify(bookings));
+        serverVersion = resp.v || serverVersion + 1;
+        setSyncStatus('online');
+        lastSaveTime = Date.now();
+        syncTimer = null;
+      } else if (r.status === 409 && resp.conflict) {
+        // Version conflict — someone else wrote first
+        // Merge: apply server state but keep our operator's bookings on top
+        const serverData = resp.data || {};
+        if (currentOp) {
+          Object.entries(bookings).forEach(([k, v]) => {
+            if (typeof v === 'string' && v === currentOp) serverData[k] = v;
+          });
         }
-      })
-      .catch(() => setSyncStatus('offline'));
-  }, 300);
+        bookings = serverData;
+        lastServerBookings = JSON.parse(JSON.stringify(resp.data || {}));
+        serverVersion = resp.v;
+        render();
+        // Retry with updated state after short delay
+        setTimeout(() => doSave(retryCount + 1), 150 * (retryCount + 1));
+      } else {
+        setSyncStatus('offline');
+        syncTimer = null;
+      }
+    })
+    .catch(() => { setSyncStatus('offline'); syncTimer = null; });
 }
 
 function logAction(action, slot) {

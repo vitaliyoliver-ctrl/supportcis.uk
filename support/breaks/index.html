@@ -167,6 +167,50 @@ body.vip .logo-dot { background: var(--warn); }
   margin-top: 4px;
 }
 
+
+/* TOAST NOTIFICATIONS */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-family: var(--mono);
+  color: var(--text);
+  max-width: 320px;
+  pointer-events: all;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  animation: toast-in 0.2s ease;
+}
+.toast.toast-error { border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
+.toast.toast-warn  { border-color: rgba(251,191,36,0.4);  background: rgba(251,191,36,0.08); }
+.toast.toast-ok    { border-color: rgba(110,231,183,0.4); background: rgba(110,231,183,0.08); }
+.toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.toast-body { flex: 1; }
+.toast-title { font-weight: 500; margin-bottom: 2px; }
+.toast-msg { font-size: 11px; color: var(--muted); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+
 /* LOG PANEL */
 .log-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
 .log-overlay.active { display:flex; align-items:flex-end; justify-content:flex-end; }
@@ -577,19 +621,35 @@ function initWorker() {
 }
 
 function pollBookings() {
+  // Never poll while a save is in flight or just completed
   if (syncTimer) return;
   if (Date.now() - lastSaveTime < POLL_BLOCK_MS) return;
+
   fetch(WORKER_URL + '/bookings')
     .then(r => r.json())
     .then(resp => {
+      // If a save started while we were fetching — discard poll result entirely
+      if (syncTimer || Date.now() - lastSaveTime < POLL_BLOCK_MS) return;
+
       const serverData = (resp && resp.data !== undefined) ? (resp.data || {}) : (resp || {});
       const newVersion = (resp && resp.v !== undefined) ? resp.v : serverVersion;
 
-      // Protect current operator's bookings from stale server response
+      // Keep only truly pending local bookings (not yet confirmed by server)
+      // BUT only if the server slot is still free — if someone else took it, server wins
       if (currentOp) {
-        Object.entries(bookings).forEach(([k, v]) => {
-          if (typeof v === 'string' && v === currentOp && !serverData[k]) {
-            serverData[k] = v;
+        Object.keys(bookings).forEach(k => {
+          if (bookings[k] === currentOp && !lastServerBookings[k]) {
+            // This is a pending local booking — keep only if server slot is free
+            if (!serverData[k]) serverData[k] = bookings[k];
+            // If server has someone else — their booking wins, notify and drop ours
+            else if (serverData[k] && serverData[k] !== currentOp) {
+              const slotTime = k.split('|b|')[1] || k.split('|l|')[1] || k;
+              const isLunch = k.includes('|l|');
+              showToast('error',
+                (isLunch ? 'Обед не сохранился' : 'Перерыв не сохранился'),
+                'Слот ' + slotTime + ' уже занят другим оператором'
+              );
+            }
           }
         });
       }
@@ -645,7 +705,6 @@ function doSave(retryCount) {
     .then(async r => {
       const resp = await r.json();
       if (r.ok) {
-        // Success — update local snapshot and version
         lastServerBookings = JSON.parse(JSON.stringify(bookings));
         serverVersion = resp.v || serverVersion + 1;
         setSyncStatus('online');
@@ -653,11 +712,28 @@ function doSave(retryCount) {
         syncTimer = null;
       } else if (r.status === 409 && resp.conflict) {
         // Version conflict — someone else wrote first
-        // Merge: apply server state but keep our operator's bookings on top
+        // Merge: server is authoritative for slots taken by OTHERS
+        // We only keep our bookings if the server slot is still free
         const serverData = resp.data || {};
         if (currentOp) {
           Object.entries(bookings).forEach(([k, v]) => {
-            if (typeof v === 'string' && v === currentOp) serverData[k] = v;
+            if (typeof v === 'string' && v === currentOp) {
+              const serverVal = serverData[k];
+              // Keep our booking only if server slot is free or already ours
+              if (!serverVal || serverVal === currentOp) {
+                serverData[k] = v;
+              }
+              // If server has someone else — their booking wins, we drop ours
+              // Notify operator that their slot was taken
+              else {
+                const slotTime = k.split('|b|')[1] || k.split('|l|')[1] || k;
+                const isLunch = k.includes('|l|');
+                showToast('error',
+                  (isLunch ? 'Обед не сохранился' : 'Перерыв не сохранился'),
+                  'Слот ' + slotTime + ' уже занят другим оператором'
+                );
+              }
+            }
           });
         }
         bookings = serverData;
@@ -665,7 +741,8 @@ function doSave(retryCount) {
         serverVersion = resp.v;
         render();
         // Retry with updated state after short delay
-        setTimeout(() => doSave(retryCount + 1), 150 * (retryCount + 1));
+        // Keep syncTimer non-null during retry to block poll
+        syncTimer = setTimeout(() => doSave(retryCount + 1), 150 * (retryCount + 1));
       } else {
         setSyncStatus('offline');
         syncTimer = null;
@@ -950,7 +1027,7 @@ function bookBreak(time, forceOverride) {
     if (myBreaksCount() >= MAX_BREAKS) { alert('Лимит: 4 перерыва на смену'); return; }
     if (tooClose(time) && !forceOverride) { alert('Между перерывами должен быть минимум 1 час'); return; }
   }
-  bookings[k] = currentOp; saveBookings(); logAction('book_break', time); render();
+  bookings[k] = currentOp; saveBookings(); logAction('book_break', time); render(); showToast('ok', 'Перерыв забронирован', time);
 }
 function cancelBreak(time) {
   // Regular user cancels their own booking (find their key)
@@ -1017,7 +1094,7 @@ function bookLunch(time) {
       return;
     }
   }
-  bookings[k] = currentOp; saveBookings(); logAction('book_lunch', time); render();
+  bookings[k] = currentOp; saveBookings(); logAction('book_lunch', time); render(); showToast('ok', 'Обед забронирован', time);
 }
 function cancelLunch(time) {
   const baseKey = lKey(currentShift, time);
@@ -1245,6 +1322,28 @@ function render() {
   }
 
   document.getElementById('board').innerHTML = html;
+}
+
+
+// ── TOAST NOTIFICATIONS ───────────────────────────────────────
+function showToast(type, title, msg, duration) {
+  duration = duration || 4000;
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const icons = { error: '✕', warn: '⚠', ok: '✓' };
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.innerHTML =
+    '<div class="toast-icon">' + (icons[type] || '•') + '</div>' +
+    '<div class="toast-body">' +
+      '<div class="toast-title">' + title + '</div>' +
+      (msg ? '<div class="toast-msg">' + msg + '</div>' : '') +
+    '</div>';
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'toast-out 0.2s ease forwards';
+    setTimeout(() => el.remove(), 200);
+  }, duration);
 }
 
 // ── KYIV TIME HELPERS ─────────────────────────────────────────
@@ -1786,5 +1885,6 @@ function autoSelectOperator(name) {
     <div class="log-body" id="logBody"><div class="log-empty">загрузка...</div></div>
   </div>
 </div>
+<div id="toast-container"></div>
 </body>
 </html>

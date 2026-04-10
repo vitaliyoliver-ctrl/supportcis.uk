@@ -704,34 +704,28 @@ function doSave(retryCount) {
     body: JSON.stringify({ v: serverVersion, set: toSet, del: toDel }),
   })
     .then(async r => {
-      const resp = await r.json();
+      const resp = await r.json().catch(() => ({}));
       if (r.ok) {
+        // Success
         lastServerBookings = JSON.parse(JSON.stringify(bookings));
         serverVersion = resp.v || serverVersion + 1;
         setSyncStatus('online');
         lastSaveTime = Date.now();
         syncTimer = null;
-        // Show success toast only after server confirmed the save
         if (pendingToast) {
           const pt = pendingToast; pendingToast = null;
           showToast('ok', pt.type === 'lunch' ? 'Обед забронирован' : 'Перерыв забронирован', pt.slot);
         }
       } else if (r.status === 409 && resp.conflict) {
-        // Version conflict — someone else wrote first
-        // Merge: server is authoritative for slots taken by OTHERS
-        // We only keep our bookings if the server slot is still free
+        // Version conflict — merge and retry
         const serverData = resp.data || {};
         if (currentOp) {
           Object.entries(bookings).forEach(([k, v]) => {
             if (typeof v === 'string' && v === currentOp) {
               const serverVal = serverData[k];
-              // Keep our booking only if server slot is free or already ours
               if (!serverVal || serverVal === currentOp) {
                 serverData[k] = v;
-              }
-              // If server has someone else — their booking wins, we drop ours
-              // Notify operator that their slot was taken
-              else {
+              } else {
                 const slotTime = k.split('|b|')[1] || k.split('|l|')[1] || k;
                 const isLunch = k.includes('|l|');
                 showToast('error',
@@ -746,15 +740,28 @@ function doSave(retryCount) {
         lastServerBookings = JSON.parse(JSON.stringify(resp.data || {}));
         serverVersion = resp.v;
         render();
-        // Retry with updated state after short delay
-        // Keep syncTimer non-null during retry to block poll
         syncTimer = setTimeout(() => doSave(retryCount + 1), 150 * (retryCount + 1));
+      } else {
+        // Any other error — retry instead of going offline
+        if (retryCount < 4) {
+          syncTimer = setTimeout(() => doSave(retryCount + 1), 300 * (retryCount + 1));
+        } else {
+          setSyncStatus('offline');
+          syncTimer = null;
+          showToast('error', 'Не удалось сохранить', 'Проверьте соединение и попробуйте снова');
+        }
+      }
+    })
+    .catch(() => {
+      // Network error — retry
+      if (retryCount < 4) {
+        syncTimer = setTimeout(() => doSave(retryCount + 1), 300 * (retryCount + 1));
       } else {
         setSyncStatus('offline');
         syncTimer = null;
+        showToast('error', 'Не удалось сохранить', 'Проверьте соединение и попробуйте снова');
       }
-    })
-    .catch(() => { setSyncStatus('offline'); syncTimer = null; });
+    });
 }
 
 function logAction(action, slot) {

@@ -701,7 +701,7 @@ function doSave(retryCount) {
   fetch(WORKER_URL + '/bookings', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ v: serverVersion, set: toSet, del: toDel }),
+    body: JSON.stringify({ set: toSet, del: toDel }),
   })
     .then(async r => {
       const resp = await r.json().catch(() => ({}));

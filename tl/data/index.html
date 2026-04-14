@@ -584,10 +584,14 @@ function secToMin(s) {
 // =====================================================================
 // СМЕНЫ
 // =====================================================================
+// Смены в UTC (Киев = UTC+3, летнее время апрель)
+// Утренняя: Киев 09:00-21:00 = UTC 06:00-18:00
+// Дневная:  Киев 12:00-00:00 = UTC 09:00-21:00 (cross midnight UTC)
+// Ночная:   Киев 21:00-09:00 = UTC 18:00-06:00 (cross midnight UTC)
 const SHIFT_WINDOWS = [
-  { name: 'Утренняя', sh:9,  sm:0, eh:21, em:0, cross:false, stol:130, etol:70, span:9.5 },
-  { name: 'Дневная',  sh:12, sm:0, eh:0,  em:0, cross:true,  stol:130, etol:70, span:9.5 },
-  { name: 'Ночная',   sh:21, sm:0, eh:9,  em:0, cross:true,  stol:130, etol:70, span:9.5 },
+  { name: 'Утренняя', sh:6,  sm:0, eh:18, em:0, cross:false, stol:720, etol:720, span:3 },
+  { name: 'Дневная',  sh:9,  sm:0, eh:21, em:0, cross:false, stol:720, etol:720, span:3 },
+  { name: 'Ночная',   sh:18, sm:0, eh:6,  em:0, cross:true,  stol:720, etol:720, span:3 },
 ];
 
 function makeShiftDates(baseDate, sw, prevDay) {
@@ -844,18 +848,26 @@ function computeDayResult(dayStr) {
   const nextDayStr = new Date(new Date(dayStr+'T00:00:00Z').getTime()+86400000).toISOString().substring(0,10);
   parsedData.forEach(r=>{
     const dt=getDateStr(r), h=getHour(r);
-    if(dt===nextDayStr&&h<9) periodSet2.add(getChatId(r));
+    if(dt===nextDayStr&&h<6) periodSet2.add(getChatId(r));
   });
 
   const opStats2={};
   ALL_OPERATORS.forEach(n=>opStats2[n]={chats:0,durations:[],multiChats:0,multiDurations:[],fullShifts:0,shiftType:''});
   const opAllChats2={}, opMultiChats2={};
   ALL_OPERATORS.forEach(n=>{opAllChats2[n]=[];opMultiChats2[n]=[];});
+
+  // Собираем операторов: чат засчитывается ПОСЛЕДНЕМУ оператору в цепочке
   parsedData.forEach(r=>{
-    const humanOps=[];
-    for(let i=COL.op1;i<=COL.op5;i+=2){const nick=(r[i]||'').toString().trim();if(nick&&nick.split(/\s+/).length===1&&ALL_OPERATORS.includes(nick))humanOps.push(nick);}
-    if(humanOps.length===1){opAllChats2[humanOps[0]].push(r);}
-    else if(humanOps.length>1){humanOps.forEach(nick=>opMultiChats2[nick].push(r));}
+    const ops=[];
+    for(let i=COL.op1;i<=COL.op5;i+=2){
+      const nick=(r[i]||'').toString().trim();
+      if(nick) ops.push({nick, dur: parseDuration(r[i+1]), col: i});
+    }
+    if(!ops.length) return;
+    const last = ops[ops.length-1];
+    if(!ALL_OPERATORS.includes(last.nick)) return;
+    if(ops.length===1){opAllChats2[last.nick].push(r);}
+    else{opMultiChats2[last.nick].push(r);}
   });
 
   ALL_OPERATORS.forEach(nick=>{
@@ -865,8 +877,8 @@ function computeDayResult(dayStr) {
     Object.entries(byDate2).forEach(([ds,dd])=>{
       const nextDs=new Date(Date.UTC(...ds.split('-').map(Number).map((v,i)=>i===1?v-1:v))+86400000).toISOString().substring(0,10);
       const nd=byDate2[nextDs]||{solo:[],multi:[]};
-      const nSolo=nd.solo.filter(r=>getHour(r)<9);
-      const nMulti=nd.multi.filter(r=>getHour(r)<9);
+      const nSolo=nd.solo.filter(r=>getHour(r)<6);
+      const nMulti=nd.multi.filter(r=>getHour(r)<6);
       const allDay=[...(dd.solo||[]),...(dd.multi||[]),...nSolo,...nMulti];
       allDay.sort((a,b)=>new Date(a[COL.date])-new Date(b[COL.date]));
       if(!allDay.length)return;
@@ -880,36 +892,45 @@ function computeDayResult(dayStr) {
           const last=new Date(wchats[wchats.length-1][COL.date]);
           const span=(last-first)/3600000;
           const fd=(first-wstart)/60000, ld=(wend-last)/60000;
-          if(fd>=0&&fd<=sw.stol&&ld>=0&&ld<=sw.etol&&span>=sw.span){candidates.push({score:-wchats.length,wstart,wend,sw});}
+          if(wchats.length>=1&&span>=sw.span){candidates.push({score:-wchats.length,wstart,wend,sw});}
         });
       });
       if(!candidates.length)return;
       candidates.sort((a,b)=>a.score-b.score);
-      const {wstart,wend,sw}=candidates[0];
+      const {wstart,wend}=candidates[0];
       const wstartDate=wstart.toISOString().substring(0,10);
       if(wstartDate!==dayStr)return;
       opStats2[nick].fullShifts++;
       const shiftH=wstart.getUTCHours();
-      opStats2[nick].shiftType=shiftH===9?'morning':shiftH===12?'day':'night';
+      opStats2[nick].shiftType=shiftH===6?'morning':shiftH===9?'day':'night';
       const nextDs2=new Date(Date.UTC(...ds.split('-').map(Number).map((v,i)=>i===1?v-1:v))+86400000).toISOString().substring(0,10);
       const nd2=byDate2[nextDs2]||{solo:[],multi:[]};
-      const nS2=nd2.solo.filter(r=>getHour(r)<9);
-      const nM2=nd2.multi.filter(r=>getHour(r)<9);
+      const nS2=nd2.solo.filter(r=>getHour(r)<6);
+      const nM2=nd2.multi.filter(r=>getHour(r)<6);
+
+      // Личная длительность: ищем колонку с ником оператора
+      function getPersonalDur(r) {
+        for(let i=COL.op1;i<=COL.op5;i+=2){
+          if((r[i]||'').toString().trim()===nick){
+            const d=parseDuration(r[i+1]); return (d!==null&&d>0)?d:null;
+          }
+        }
+        return null;
+      }
+
       [...(dd.solo||[]),...nS2].forEach(r=>{
         const t=new Date(r[COL.date]);
         if(t<wstart||t>wend)return;
         if(!periodSet2.has(getChatId(r)))return;
         opStats2[nick].chats++;
-        const agDur=parseDuration(r[COL.agentDur]);
-        if(agDur!==null&&agDur>0)opStats2[nick].durations.push(agDur);
+        const d=getPersonalDur(r); if(d)opStats2[nick].durations.push(d);
       });
       [...(dd.multi||[]),...nM2].forEach(r=>{
         const t=new Date(r[COL.date]);
         if(t<wstart||t>wend)return;
         if(!periodSet2.has(getChatId(r)))return;
         opStats2[nick].multiChats++;
-        const agDur=parseDuration(r[COL.agentDur]);
-        if(agDur!==null&&agDur>0)opStats2[nick].multiDurations.push(agDur);
+        const d=getPersonalDur(r); if(d)opStats2[nick].multiDurations.push(d);
       });
     });
   });
@@ -1195,23 +1216,39 @@ function analyze() {
   }).join('');
 
   // -------- BY OPERATOR --------
+  // Chatwoot считает чаты по финальному assignee — последнему оператору в цепочке.
+  // Соло = он единственный оператор в чате.
+  // Совместный = он последний, но до него были другие операторы.
+  // Длительность = личная (из его конкретной колонки).
+
+  function getOpsWithDur(r) {
+    const ops = [];
+    for (let i = COL.op1; i <= COL.op5; i += 2) {
+      const nick = (r[i] || '').toString().trim();
+      if (nick) {
+        const dur = parseDuration(r[i + 1]);
+        ops.push({ nick, dur, col: i });
+      }
+    }
+    return ops;
+  }
+
+  // opAllChats[nick]  = строки где он ЕДИНСТВЕННЫЙ оператор (соло)
+  // opMultiChats[nick] = строки где он ПОСЛЕДНИЙ из нескольких (совместный)
   const opAllChats = {};
   ALL_OPERATORS.forEach(n => opAllChats[n] = []);
   const opMultiChats = {};
   ALL_OPERATORS.forEach(n => opMultiChats[n] = []);
 
   parsedData.forEach(r => {
-    const humanOps = [];
-    for (let i = COL.op1; i <= COL.op5; i += 2) {
-      const nick = (r[i] || '').toString().trim();
-      if (nick && nick.split(/\s+/).length === 1 && ALL_OPERATORS.includes(nick)) {
-        humanOps.push(nick);
-      }
-    }
-    if (humanOps.length === 1) {
-      opAllChats[humanOps[0]].push(r);
-    } else if (humanOps.length > 1) {
-      humanOps.forEach(nick => opMultiChats[nick].push(r));
+    const ops = getOpsWithDur(r);
+    if (!ops.length) return;
+    const last = ops[ops.length - 1]; // финальный assignee
+    if (!ALL_OPERATORS.includes(last.nick)) return;
+    if (ops.length === 1) {
+      opAllChats[last.nick].push({ r, dur: last.dur });
+    } else {
+      opMultiChats[last.nick].push({ r, dur: last.dur });
     }
   });
 
@@ -1222,7 +1259,7 @@ function analyze() {
   parsedData.forEach(r => {
     const dt = getDateStr(r), h = getHour(r);
     if (periodDates.has(dt)) { periodIdSet.add(getChatId(r)); return; }
-    if (h < 9) {
+    if (h < 6) {
       const [y,mo,da] = dt.split('-').map(Number);
       const d = new Date(Date.UTC(y, mo-1, da) - 86400000);
       const prevDay = d.toISOString().substring(0,10);
@@ -1232,12 +1269,13 @@ function analyze() {
 
   ALL_OPERATORS.forEach(nick => {
     const byDate = {};
-    opAllChats[nick].forEach(r => {
+
+    opAllChats[nick].forEach(({ r }) => {
       const dt = getDateStr(r); if (!dt) return;
       if (!byDate[dt]) byDate[dt] = { solo:[], multi:[] };
       byDate[dt].solo.push(r);
     });
-    opMultiChats[nick].forEach(r => {
+    opMultiChats[nick].forEach(({ r }) => {
       const dt = getDateStr(r); if (!dt) return;
       if (!byDate[dt]) byDate[dt] = { solo:[], multi:[] };
       byDate[dt].multi.push(r);
@@ -1252,8 +1290,8 @@ function analyze() {
       const allDayChats = [
         ...(dayData.solo || []),
         ...(dayData.multi || []),
-        ...(nextData.solo || []).filter(r => getHour(r) < 9),
-        ...(nextData.multi || []).filter(r => getHour(r) < 9),
+        ...(nextData.solo || []).filter(r => getHour(r) < 6),
+        ...(nextData.multi || []).filter(r => getHour(r) < 6),
       ];
       allDayChats.sort((a,b) => new Date(a[COL.date]) - new Date(b[COL.date]));
       if (!allDayChats.length) return;
@@ -1277,7 +1315,7 @@ function analyze() {
           const firstDiff = (first - wstart) / 60000;
           const lastDiff  = (wend - last) / 60000;
 
-          if (firstDiff >= 0 && firstDiff <= sw.stol && lastDiff >= 0 && lastDiff <= sw.etol && span >= sw.span) {
+          if (wchats.length >= 1 && span >= sw.span) {
             candidates.push({ score: -wchats.length, wstart, wend, sw });
           }
         });
@@ -1296,29 +1334,41 @@ function analyze() {
         opStats[nick].effHours += (tLast - tFirst) / 3600000;
       } else { opStats[nick].effHours += 1; }
       const shiftH = wstart.getUTCHours();
-      opStats[nick].shiftType = shiftH === 9 ? 'morning' : shiftH === 12 ? 'day' : 'night';
+      opStats[nick].shiftType = shiftH === 6 ? 'morning' : shiftH === 9 ? 'day' : 'night';
 
       const nextDateStr2 = new Date(Date.UTC(...dateStr.split('-').map(Number).map((v,i)=>i===1?v-1:v)) + 86400000).toISOString().substring(0,10);
       const nextData2 = byDate[nextDateStr2] || { solo:[], multi:[] };
-      const nextSolo = nextData2.solo.filter(r => getHour(r) < 9);
-      const nextMulti = nextData2.multi.filter(r => getHour(r) < 9);
+      const nextSolo = nextData2.solo.filter(r => getHour(r) < 6);
+      const nextMulti = nextData2.multi.filter(r => getHour(r) < 6);
 
+      // Соло чаты — личная длительность последнего оператора
       [...(dayData.solo || []), ...nextSolo].forEach(r => {
         const t = new Date(r[COL.date]);
         if (t < wstart || t > wend) return;
         if (!periodIdSet.has(getChatId(r))) return;
         opStats[nick].chats++;
-        const agDur = parseDuration(r[COL.agentDur]);
-        if (agDur !== null && agDur > 0) opStats[nick].durations.push(agDur);
+        for (let i = COL.op5; i >= COL.op1; i -= 2) {
+          if ((r[i] || '').toString().trim() === nick) {
+            const d = parseDuration(r[i + 1]);
+            if (d !== null && d > 0) opStats[nick].durations.push(d);
+            break;
+          }
+        }
       });
 
+      // Совместные чаты — личная длительность последнего оператора
       [...(dayData.multi || []), ...nextMulti].forEach(r => {
         const t = new Date(r[COL.date]);
         if (t < wstart || t > wend) return;
         if (!periodIdSet.has(getChatId(r))) return;
         opStats[nick].multiChats++;
-        const agDur = parseDuration(r[COL.agentDur]);
-        if (agDur !== null && agDur > 0) opStats[nick].multiDurations.push(agDur);
+        for (let i = COL.op5; i >= COL.op1; i -= 2) {
+          if ((r[i] || '').toString().trim() === nick) {
+            const d = parseDuration(r[i + 1]);
+            if (d !== null && d > 0) opStats[nick].multiDurations.push(d);
+            break;
+          }
+        }
       });
     });
   });

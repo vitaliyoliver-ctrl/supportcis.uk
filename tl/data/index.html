@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LiveChat Analyzer</title>
+<title>Chatwoot Analyzer</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg: #080a0e;
@@ -25,7 +26,6 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; }
 
-/* HEADER */
 .header {
   background: var(--s1);
   border-bottom: 1px solid var(--border);
@@ -36,7 +36,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); min-
 .logo span { color: var(--accent); }
 .header-badge { font-size: 10px; color: var(--muted); background: var(--s3); border: 1px solid var(--border); padding: 3px 8px; border-radius: 3px; margin-left: auto; }
 
-/* UPLOAD ZONE */
 .upload-section { padding: 28px; max-width: 1400px; margin: 0 auto; }
 .drop-zone {
   border: 2px dashed var(--border2);
@@ -54,7 +53,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); min-
 .drop-title { font-family: var(--head); font-size: 14px; color: var(--text); margin-bottom: 6px; }
 .drop-sub { font-size: 11px; color: var(--muted); }
 
-/* DATE FILTER */
 .filter-bar {
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   background: var(--s1); border: 1px solid var(--border);
@@ -79,11 +77,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); min-
 .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
 .file-info { font-size: 11px; color: var(--accent2); }
 
-/* RESULTS */
 .results { max-width: 1400px; margin: 0 auto; padding: 0 28px 48px; display: none; }
 .results.show { display: block; }
 
-/* Section headers */
 .sec-title {
   font-family: var(--head); font-size: 11px; font-weight: 600;
   color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em;
@@ -93,7 +89,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); min-
 }
 .sec-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
 
-/* Summary grid */
 .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .stat-card {
   background: var(--s2); border: 1px solid var(--border);
@@ -107,7 +102,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--mono); min-
 .stat-value.green { color: var(--accent2); }
 .stat-value.red { color: var(--accent3); }
 
-/* Projects table */
 .proj-table-wrap { overflow-x: auto; }
 table.proj-table {
   width: 100%; border-collapse: collapse; font-size: 12px;
@@ -128,7 +122,6 @@ table.proj-table {
 .pct { color: var(--accent2); font-size: 11px; }
 .pct-bad { color: var(--accent3); }
 
-/* Operators table */
 .ops-table-wrap { overflow-x: auto; }
 table.ops-table {
   width: 100%; border-collapse: collapse; font-size: 12px;
@@ -149,20 +142,12 @@ table.ops-table {
 .ops-sub-title { font-family:var(--head); font-size:10px; font-weight:600; color:var(--label); text-transform:uppercase; letter-spacing:0.12em; margin:20px 0 8px; padding:6px 0; border-bottom:1px solid var(--border); }
 .op-name { color: var(--accent); font-size: 12px; }
 
-/* Webhook bar */
 .webhook-section {
   background: var(--s1); border: 1px solid var(--border);
   border-radius: 10px; padding: 16px 20px;
   margin-top: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
 }
 .webhook-section label { font-size: 11px; color: var(--label); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
-.webhook-section input {
-  flex: 1; min-width: 200px;
-  background: var(--s3); border: 1px solid var(--border2);
-  border-radius: 6px; padding: 8px 12px; font-family: var(--mono);
-  font-size: 11px; color: var(--text); outline: none;
-}
-.webhook-section input:focus { border-color: var(--accent); }
 .btn-send {
   background: linear-gradient(135deg, var(--accent2), #00b090);
   color: #000; border: none; border-radius: 7px;
@@ -177,22 +162,21 @@ table.ops-table {
 .send-status.err { background: rgba(255,107,107,0.1); border: 1px solid var(--accent3); color: var(--accent3); display: block; }
 .send-status.loading { background: rgba(79,158,255,0.1); border: 1px solid var(--accent); color: var(--accent); display: block; }
 
-/* Empty state */
 .empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">Live<span>Chat</span> Analyzer</div>
+  <div class="logo">Chat<span>Woot</span> Analyzer</div>
   <div class="header-badge">INTERNAL TOOL</div>
 </div>
 
 <div class="upload-section">
   <div class="drop-zone" id="dropZone">
-    <input type="file" id="fileInput" accept=".csv" />
+    <input type="file" id="fileInput" accept=".xlsx,.xls" />
     <div class="drop-icon">📂</div>
-    <div class="drop-title">Загрузи выгрузку LiveChat (.csv)</div>
+    <div class="drop-title">Загрузи выгрузку Chatwoot (.xlsx)</div>
     <div class="drop-sub">Перетащи файл или кликни для выбора</div>
   </div>
 
@@ -209,15 +193,10 @@ table.ops-table {
 </div>
 
 <div class="results" id="results">
-
-
-
-  <!-- Summary -->
   <div style="padding: 0 28px;">
     <div class="sec-title">Общие показатели</div>
     <div class="summary-grid" id="summaryGrid"></div>
 
-    <!-- By project -->
     <div class="sec-title">По проектам</div>
     <div class="proj-table-wrap">
       <table class="proj-table" id="projTable">
@@ -235,7 +214,6 @@ table.ops-table {
       </table>
     </div>
 
-    <!-- By operator -->
     <div class="sec-title">По операторам — полные смены · средняя длительность</div>
 
     <div class="ops-filter-bar">
@@ -281,27 +259,361 @@ table.ops-table {
 </div>
 
 <script>
+// =====================================================================
+// КОНФИГУРАЦИЯ ОПЕРАТОРОВ
+// =====================================================================
 const REGULAR_OPERATORS = [
-    'Will','Kenzo','Nora','Florence','Fletcher','Charles','Earl','Rudy','Balfour',
-    'Jonathan','Bill','Gross','Meadow','Norman','Robin','Bob','Lex','Calvin','Mike',
-    'Sherlock','Colin','Robert','Hardy','Murphy','Joseph','Bowen','Bridget'
-  ];
+  'Will','Kenzo','Nora','Florence','Fletcher','Charles','Earl','Rudy','Balfour',
+  'Jonathan','Bill','Gross','Meadow','Norman','Robin','Bob','Lex','Calvin','Mike',
+  'Sherlock','Colin','Robert','Hardy','Murphy','Joseph','Bowen','Bridget'
+];
 
 const VIP_OPERATORS = [
-    'Simon','Elijah','Scott','Chadwick','Holly','Tom','Fabio','River','Casper','Plover',
-    'Morgan','Reggie','Wade','Warren','Denzel','Felicia','Alexia','Kiana','Ashton','Nolan',
-    'Trinity','Christine','Skylar','Isaac'
-  ];
+  'Simon','Elijah','Scott','Chadwick','Holly','Tom','Fabio','River','Casper','Plover',
+  'Morgan','Reggie','Wade','Warren','Denzel','Felicia','Alexia','Kiana','Ashton','Nolan',
+  'Trinity','Christine','Skylar','Isaac','Irma','Amelia SV','Oliver','Amelia'
+];
 
 const ALL_OPERATORS = [...REGULAR_OPERATORS, ...VIP_OPERATORS];
 
+// =====================================================================
+// МАППИНГ КОЛОНОК CHATWOOT
+// Индексы (0-based) в файле выгрузки
+// =====================================================================
+const COL = {
+  id:          0,   // ID чата
+  date:        1,   // Дата и время начала (YYYY-MM-DD HH:MM:SS)
+  source:      2,   // Источник (название чанела: "Gama Support", "Gama TG", etc.)
+  group:       3,   // Группа (обычно пусто)
+  email:       4,   // Почта клиента
+  op1:         5,   // Ник оператора 1
+  dur1:        6,   // Длительность диалога оператора 1 (текст "X минут Y секунд")
+  op2:         7,   // Ник оператора 2
+  dur2:        8,
+  op3:         9,
+  dur3:        10,
+  op4:         11,
+  dur4:        12,
+  op5:         13,
+  dur5:        14,
+  totalTime:   15,  // Общее время до решения (текст)
+  frt:         16,  // Время первого ответа (текст)
+  art:         17,  // Среднее время ответа (текст)
+  agentDur:    18,  // Общее время длительности чата агентов (текст)
+  csat:        19,  // Оценка чата (CSAT): число 1-5
+  csatComment: 20,  // Комментарий к оценке
+  // Категории 1-8: индексы 21-28
+  // Содержат системные маркеры: 'bot','operator','vip','privip','regular','tg'
+  // и тематические теги
+  cat1: 21, cat2: 22, cat3: 23, cat4: 24,
+  cat5: 25, cat6: 26, cat7: 27, cat8: 28,
+  clientName:  29,  // Имя клиента
+  // кастом инфо: 30-42
+  customEmail: 30,
+  customName:  31,
+  deviceType:  32,
+  language:    33,
+  lastDepDate: 34,
+  loyalty:     35,
+  phone:       36,
+  project:     37,  // Проект (URL сайта)
+  siteUrl:     38,
+  surname:     39,
+  userId:      40,  // Ссылка на пользователя в бэкофисе
+  userTag:     41,
+  userTime:    42,
+};
+
+// =====================================================================
+// ПРОЕКТЫ И КЛАССИФИКАЦИЯ ИСТОЧНИКОВ
+//
+// VIP     = просто имя проекта: "Gama", "Cat", "R7" ...
+// Regular = "Gama Support", "Cat Support" ... (проект + Support)
+//           + все TG-каналы: "Gama TG", "Cat TG" ...
+// Privip  = "Support Gama", "Support Cat" ... (Support + проект)
+// TG      = любой источник с "TG" в конце
+// =====================================================================
+const PROJECTS = ['Cat', 'Gama', 'Daddy', 'Mers', 'Kent', 'R7', 'Kometa', 'Arkada', 'Highroll'];
+
+// Возвращает 'vip' | 'regular' | 'privip' | 'tg' | 'unknown'
+function classifySource(src) {
+  if (!src) return 'unknown';
+  src = src.toString().trim();
+  const lo = src.toLowerCase();
+  // TG-каналы
+  if (lo.endsWith(' tg') || src === 'TG') return 'tg';
+  // Privip: "Support Gama" — Support идёт первым
+  if (src.startsWith('Support ')) return 'privip';
+  // Regular: "Gama Support" — Support идёт последним
+  if (src.endsWith(' Support')) return 'regular';
+  // VIP: строго имя проекта
+  for (const p of PROJECTS) {
+    if (src === p) return 'vip';
+  }
+  return 'unknown';
+}
+
+function getProject(row) {
+  const src = (row[COL.source] || '').toString().trim();
+  for (const p of PROJECTS) {
+    if (src.toLowerCase().includes(p.toLowerCase())) return p;
+  }
+  return null;
+}
+
+// =====================================================================
+// ВСПОМОГАТЕЛЬНЫЕ: получение значений из строки
+// =====================================================================
+
+// Получить все категории строки (массив строк)
+function getCats(row) {
+  const cats = [];
+  for (let i = COL.cat1; i <= COL.cat8; i++) {
+    const v = (row[i] || '').toString().trim();
+    if (v) cats.push(v);
+  }
+  return cats;
+}
+
+// Источник — TG-канал?
+function isTG(row) {
+  return classifySource(row[COL.source]) === 'tg';
+}
+
+// Источник — VIP?
+function isVIPSource(row) {
+  return classifySource(row[COL.source]) === 'vip';
+}
+
+// Источник — Regular или TG?
+function isRegularSource(row) {
+  const t = classifySource(row[COL.source]);
+  return t === 'regular' || t === 'tg';
+}
+
+// Источник — Privip?
+function isPrivipSource(row) {
+  return classifySource(row[COL.source]) === 'privip';
+}
+
+// Закрыт ботом = нет ни одного оператора в op-колонках
+function isBotOnly(row) {
+  return !hasHumanOp(row);
+}
+
+// Прошёл через бота = в категориях есть маркер 'bot'
+// (Regular и Privip проходят через бота)
+function hasBot(row) {
+  return getCats(row).some(c => c.toLowerCase() === 'bot');
+}
+
+// Есть хотя бы один живой оператор (любое непустое значение в op-колонках)
+function hasHumanOp(row) {
+  for (let i = COL.op1; i <= COL.op5; i += 2) {
+    const nick = (row[i] || '').toString().trim();
+    if (nick) return true;
+  }
+  return false;
+}
+
+// VIP = источник VIP-типа
+function isVIP(row) {
+  return isVIPSource(row);
+}
+
+// Privip = источник Privip-типа
+function isPrivip(row) {
+  return isPrivipSource(row);
+}
+
+// Regular = Regular или TG
+function isRegular(row) {
+  return isRegularSource(row);
+}
+
+// Чат в очереди = в категориях есть 'очередь'
+function inQueue(row) {
+  return getCats(row).some(c => c.toLowerCase() === 'очередь');
+}
+
+// Тематические теги (не системные маркеры и не ники операторов)
+const SYSTEM_TAGS = new Set(['bot', 'operator', 'vip', 'privip', 'regular', 'tg', 'vip_reactivation']);
+const SALE_WORDS = ['продаж', 'spam', 'спам', 'scam', 'ИИ'];
+
+function isSaleOrSpam(tag) {
+  const lo = tag.toLowerCase();
+  return SALE_WORDS.some(w => lo.includes(w));
+}
+
+function getTopicTags(row) {
+  return getCats(row).filter(t => {
+    const lo = t.toLowerCase();
+    if (SYSTEM_TAGS.has(lo)) return false;
+    if (isSaleOrSpam(t)) return false;
+    if (ALL_OPERATORS.map(o=>o.toLowerCase()).includes(lo)) return false;
+    return true;
+  });
+}
+
+// CSAT: 4-5 = хорошо (лайк), 1-3 = плохо (дизлайк)
+// Лайки считаются все.
+// Дизлайки: считается только первый дизлайк от посетителя;
+// если следующий дизлайк от того же посетителя пришёл раньше чем через 24 ч
+// после предыдущего — он не учитывается.
+function isRated(row) {
+  const v = row[COL.csat];
+  return v !== null && v !== undefined && v !== '' && !isNaN(parseInt(v));
+}
+
+function isGoodRated(row) {
+  const v = parseInt(row[COL.csat]);
+  return !isNaN(v) && v >= 3;
+}
+
+function isBadRated(row) {
+  const v = parseInt(row[COL.csat]);
+  return !isNaN(v) && v <= 2;
+}
+
+// Строит Set chat-id'шников, чьи дизлайки УЧИТЫВАЮТСЯ (первый или через 24ч+)
+// rows — ВСЕ строки файла (для контекста 24ч)
+// filterRows — строки за анализируемый период (их чаты считаем)
+function buildCountedDislikes(allParsedData) {
+  // Группируем все дизлайки по посетителю, сортируем по дате
+  const byVisitorDis = {};
+  allParsedData.forEach(r => {
+    if (!isBadRated(r)) return;
+    const vid = getVisitorId(r);
+    if (!vid) return;
+    if (!byVisitorDis[vid]) byVisitorDis[vid] = [];
+    byVisitorDis[vid].push(r);
+  });
+
+  const counted = new Set(); // chat ids, которые считаются
+  Object.values(byVisitorDis).forEach(chats => {
+    chats.sort((a,b) => new Date(a[COL.date]) - new Date(b[COL.date]));
+    let lastCountedTime = null;
+    chats.forEach(r => {
+      const t = new Date(r[COL.date]);
+      if (lastCountedTime === null || (t - lastCountedTime) / 3600000 >= 24) {
+        counted.add(getChatId(r));
+        lastCountedTime = t;
+      }
+      // иначе — дизлайк в течение 24ч, не считаем
+    });
+  });
+  return counted;
+}
+
+// Рассчитать CSAT для набора строк с учётом логики дедупликации дизлайков
+// countedDislikes — Set chat-id'шников учитываемых дизлайков
+function calcCSAT(rows, countedDislikes) {
+  let good = 0, total = 0;
+  rows.forEach(r => {
+    if (!isRated(r)) return;
+    if (isGoodRated(r)) { good++; total++; }
+    else if (isBadRated(r) && countedDislikes.has(getChatId(r))) { total++; }
+    // дизлайк не в counted — пропускаем
+  });
+  return total > 0 ? (good / total * 100) : null;
+}
+
+// Парсинг русского текстового времени "X минут Y секунд" → секунды
+function parseDuration(s) {
+  if (!s) return null;
+  s = s.toString().trim();
+  const mins = s.match(/(\d+)\s*минут/);
+  const secs = s.match(/(\d+)\s*секунд/);
+  if (!mins && !secs) return null;
+  return (mins ? parseInt(mins[1]) * 60 : 0) + (secs ? parseInt(secs[1]) : 0);
+}
+
+// Получить дату строки (YYYY-MM-DD)
+function getDateStr(row) {
+  return (row[COL.date] || '').toString().substring(0, 10);
+}
+
+// Получить час строки (UTC, как в файле)
+function getHour(row) {
+  return parseInt((row[COL.date] || '').toString().substring(11, 13)) || 0;
+}
+
+// Уникальный ID чата
+function getChatId(row) {
+  return (row[COL.id] || '').toString().trim();
+}
+
+// Уникальный ID посетителя (email или userId)
+function getVisitorId(row) {
+  const email = (row[COL.email] || '').toString().trim().toLowerCase();
+  if (email) return email;
+  const uid = (row[COL.userId] || '').toString().trim();
+  if (uid) return uid;
+  return getChatId(row); // fallback
+}
+
+// Spam check
+const SPAM_WORDS = ['spam', 'спам', 'scam'];
+function isSpam(row) {
+  return getCats(row).some(t => SPAM_WORDS.some(s => t.toLowerCase().includes(s)));
+}
+
+// =====================================================================
+// УТИЛИТЫ
+// =====================================================================
+function avg(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((a,b) => a+b, 0) / arr.length;
+}
+
+function fmt(n, decimals=0) {
+  if (isNaN(n) || n === null || n === undefined) return '—';
+  return Number(n).toFixed(decimals);
+}
+
+function fmtPct(n) {
+  if (isNaN(n) || n === null) return '—';
+  return Number(n).toFixed(1) + '%';
+}
+
+function secToMin(s) {
+  if (!s) return '—';
+  return (s / 60).toFixed(1);
+}
+
+// =====================================================================
+// СМЕНЫ
+// =====================================================================
+const SHIFT_WINDOWS = [
+  { name: 'Утренняя', sh:9,  sm:0, eh:21, em:0, cross:false, stol:130, etol:70, span:9.5 },
+  { name: 'Дневная',  sh:12, sm:0, eh:0,  em:0, cross:true,  stol:130, etol:70, span:9.5 },
+  { name: 'Ночная',   sh:21, sm:0, eh:9,  em:0, cross:true,  stol:130, etol:70, span:9.5 },
+];
+
+function makeShiftDates(baseDate, sw, prevDay) {
+  const [y,m,d] = baseDate.split('-').map(Number);
+  let sd = new Date(Date.UTC(y, m-1, d, sw.sh, sw.sm, 0));
+  let ed = new Date(Date.UTC(y, m-1, d, sw.eh, sw.em, 0));
+  if (prevDay) sd = new Date(sd.getTime() - 86400000);
+  if (sw.cross && !prevDay) ed = new Date(ed.getTime() + 86400000);
+  return { wstart: sd, wend: ed };
+}
+
+// =====================================================================
+// СОСТОЯНИЕ
+// =====================================================================
 let parsedData = [];
 let lastResult = null;
 let lastResults = [];
 let byVisitor = {};
-let SHIFT_WINDOWS_GLOBAL = null;
+let currentOpsFilter = 'all';
+let opStats = {};
+let REGULAR_OPERATORS_GLOBAL = [];
+let VIP_OPERATORS_GLOBAL = [];
 
-// Drag and drop
+// =====================================================================
+// ЗАГРУЗКА ФАЙЛА
+// =====================================================================
 const dropZone = document.getElementById('dropZone');
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
@@ -318,151 +630,48 @@ function handleFile(file) {
   document.getElementById('fileInfo').textContent = `📄 ${file.name}`;
   const reader = new FileReader();
   reader.onload = e => {
-    parsedData = parseCSV(e.target.result);
-    // Auto-set dates
-    const dates = parsedData.map(r => r['chat creation date Europe/Kiev']?.substring(0,10)).filter(Boolean);
-    if (dates.length) {
-      const unique = [...new Set(dates)].sort();
-      // Default: +1 from min, -1 from max
-      const fromD = unique.length > 2 ? unique[1] : unique[0];
-      const toD   = unique.length > 2 ? unique[unique.length-2] : unique[unique.length-1];
-      document.getElementById('dateFrom').value = fromD;
-      document.getElementById('dateTo').value   = toD;
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      
+      if (raw.length < 2) {
+        alert('Файл пустой или не содержит данных');
+        return;
+      }
+
+      // Проверяем что это Chatwoot-выгрузка по заголовку
+      const header = raw[0];
+      if (!header || !header[0] || header[0].toString() !== 'ID чата') {
+        alert('⚠ Файл не похож на выгрузку Chatwoot. Ожидается первый столбец "ID чата".');
+        return;
+      }
+
+      // Данные — всё кроме заголовка
+      parsedData = raw.slice(1).filter(r => r && r[COL.id]);
+
+      // Авто-определение дат
+      const dates = parsedData.map(r => getDateStr(r)).filter(Boolean);
+      if (dates.length) {
+        const unique = [...new Set(dates)].sort();
+        const fromD = unique.length > 2 ? unique[1] : unique[0];
+        const toD   = unique.length > 2 ? unique[unique.length-2] : unique[unique.length-1];
+        document.getElementById('dateFrom').value = fromD;
+        document.getElementById('dateTo').value   = toD;
+      }
+      document.getElementById('analyzeBtn').disabled = false;
+      document.getElementById('fileInfo').textContent += ` (${parsedData.length} строк)`;
+    } catch(err) {
+      alert('Ошибка чтения файла: ' + err.message);
+      console.error(err);
     }
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('fileInfo').textContent += ` (${parsedData.length} строк)`;
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsArrayBuffer(file);
 }
 
-function parseCSV(text) {
-  const lines = text.split('\n');
-  if (!lines.length) return [];
-  const headers = parseCSVLine(lines[0]);
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const vals = parseCSVLine(lines[i]);
-    const obj = {};
-    headers.forEach((h, idx) => obj[h.trim()] = (vals[idx] || '').trim());
-    rows.push(obj);
-  }
-  return rows;
-}
-
-function parseCSVLine(line) {
-  const result = []; let cur = ''; let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') { inQ = !inQ; }
-    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
-    else cur += c;
-  }
-  result.push(cur);
-  return result;
-}
-
-const PROJECTS = ['Cat', 'Gama', 'Daddy', 'Mers', 'Kent', 'R7', 'Kometa', 'Arkada'];
-const SPAM_TAGS = ['spam', 'спам', 'scam'];
-
-function getProject(groupName) {
-  if (!groupName) return null;
-  for (const p of PROJECTS) {
-    if (groupName.toLowerCase().includes(p.toLowerCase())) return p;
-  }
-  return null;
-}
-
-function isVIP(row) {
-  const g = (row['group name'] || '');
-  const parts = g.split(',').map(s => s.trim());
-  // TG-only = regular. TG + VIP group = VIP. Any VIP/Privip/HighRoll = VIP.
-  const hasVipGroup = parts.some(p => {
-    const lo = p.toLowerCase();
-    return lo.includes('vip') || lo.includes('privip') || lo.includes('highroll');
-  });
-  return hasVipGroup;
-}
-
-function isRegular(row) {
-  return !isVIP(row);
-}
-
-function isBot(row) {
-  // Bot = no real operator involvement (TG bot groups only, no operator responded)
-  const g = row['group name'] || '';
-  const op1 = row['operator 1 nick'] || '';
-  // Check Is Bot user custom var
-  const cv7name = row['custom variable 7 name'] || '';
-  if (cv7name === 'Is Bot user (yes/no)') {
-    return (row['custom variable 7 value'] || '').toLowerCase() === 'yes';
-  }
-  return false;
-}
-
-function isTG(row) {
-  return (row['group name'] || '').toLowerCase().includes('tg');
-}
-
-function isPrivip(row) {
-  const g = (row['group name'] || '');
-  const parts = g.split(',').map(s => s.trim());
-  return parts.some(p => p.toLowerCase().includes('privip'));
-}
-
-function hasHumanOp(row) {
-  for (let i = 1; i <= 14; i++) {
-    const nick = (row['operator ' + i + ' nick'] || '').trim();
-    if (nick && nick.split(/\s+/).length === 1) return true;
-  }
-  return false;
-}
-
-function hasOperator(row) {
-  return hasHumanOp(row);
-}
-
-function isSpam(row) {
-  for (let i = 1; i <= 5; i++) {
-    const tag = (row[`tag ${i}`] || '').toLowerCase();
-    if (tag.includes('spam') || tag.includes('спам') || tag.includes('scam')) return true;
-  }
-  return false;
-}
-
-function isRated(row) {
-  return row['rate'] === 'rated good' || row['rate'] === 'rated bad';
-}
-
-function isGoodRated(row) {
-  return row['rate'] === 'rated good';
-}
-
-function avg(arr) {
-  if (!arr.length) return 0;
-  return arr.reduce((a,b) => a+b, 0) / arr.length;
-}
-
-function fmt(n, decimals=0) {
-  if (isNaN(n) || n === null) return '—';
-  return Number(n).toFixed(decimals);
-}
-
-function fmtPct(n) {
-  if (isNaN(n) || n === null) return '—';
-  return Number(n).toFixed(1) + '%';
-}
-
-function secToMin(s) {
-  if (!s) return '—';
-  return (s / 60).toFixed(1);
-}
-
-let currentOpsFilter = 'all';
-let opStats = {};
-let REGULAR_OPERATORS_GLOBAL = [];
-let VIP_OPERATORS_GLOBAL = [];
-
+// =====================================================================
+// РЕНДЕР ОПЕРАТОРОВ
+// =====================================================================
 function filterOps(type, btn) {
   currentOpsFilter = type;
   document.querySelectorAll('.ops-filter-btn').forEach(b => b.classList.remove('active'));
@@ -540,178 +749,135 @@ function renderOpsRows() {
     '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:16px">Нет данных</td></tr>';
 }
 
-const SHIFT_WINDOWS = [
-    { name: 'Утренняя',  sh:9,  sm:0,  eh:21, em:0,  cross:false, stol:130, etol:70, span:9.5 },
-    { name: 'Дневная',   sh:12, sm:0,  eh:0,  em:0,  cross:true,  stol:130, etol:70, span:9.5 },
-    { name: 'Ночная',    sh:21, sm:0,  eh:9,  em:0,  cross:true,  stol:130, etol:70, span:9.5 },
-  ];
-
-function getSaleOrSpamTag(t) {
-  const lo = t.toLowerCase();
-  return lo.includes('продаж') || lo.includes('spam') || lo.includes('спам') || lo.includes('scam') || lo.includes('ИИ');
-}
-
-function getRealTagsLC(tags) {
-  return tags.filter(t => !getSaleOrSpamTag(t));
-}
-
-function getTagsFromRow(r) {
-  const tags = [];
-  for (let i = 1; i <= 3; i++) { const t = (r['tag ' + i] || '').trim(); if (t) tags.push(t); }
-  return getRealTagsLC(tags);
-}
-
-function makeShiftDates(baseDate, sw, prevDay) {
-  // Use Date.UTC so no browser timezone offset is applied
-  const [y,m,d] = baseDate.split('-').map(Number);
-  let sd = new Date(Date.UTC(y, m-1, d, sw.sh, sw.sm, 0));
-  let ed = new Date(Date.UTC(y, m-1, d, sw.eh, sw.em, 0));
-  if (prevDay) sd = new Date(sd.getTime() - 86400000);
-  if (sw.cross && !prevDay) ed = new Date(ed.getTime() + 86400000);
-  return { wstart: sd, wend: ed };
-}
-
-
+// =====================================================================
+// АНАЛИЗ ПЕРИОДА (computeDayResult — для одного дня для webhook)
+// =====================================================================
 function computeDayResult(dayStr) {
-  // Filter rows for this day only (for period-based metrics)
-  const rows = parsedData.filter(r =>
-    (r['chat creation date Europe/Kiev'] || '').substring(0,10) === dayStr
-  );
+  const rows = parsedData.filter(r => getDateStr(r) === dayStr);
   if (!rows.length) return null;
 
-  // General metrics
-  const hasBot2 = r => { for(let i=1;i<=14;i++){const n=(r['operator '+i+' nick']||'').trim();if(n&&n.split(/\s+/).length>=2)return true;}return false; };
-  const hasM2 = r => { for(let i=1;i<=14;i++){const n=(r['operator '+i+' nick']||'').trim();if(n&&n.split(/\s+/).length>=2&&n.endsWith('M.'))return true;}return false; };
-  const botRows2 = rows.filter(r => !hasHumanOp(r) && hasBot2(r));
   const totalChats2 = rows.length;
-  const botChats2 = botRows2.length;
-  const botTGChats2 = rows.filter(r => !hasHumanOp(r) && hasBot2(r) && isTG(r)).length;
-  const botRegularChats2 = rows.filter(r => hasBot2(r) && !hasM2(r)).length;
-  const botPrivipChats2 = rows.filter(r => hasM2(r)).length;
-  const tgChats2 = rows.filter(r => isTG(r)).length;
-  const botClosurePercent2 = totalChats2 > 0 ? (botChats2 / totalChats2 * 100) : 0;
+  // Закрыты ботом = нет оператора, только Regular и Privip
+  const botChats2        = rows.filter(r => isBotOnly(r) && (isRegular(r) || isPrivip(r))).length;
+  const botTGChats2      = rows.filter(r => isBotOnly(r) && isTG(r)).length;
+  const botRegularChats2 = rows.filter(r => isBotOnly(r) && isRegular(r)).length;
+  const botPrivipChats2  = rows.filter(r => isBotOnly(r) && isPrivip(r)).length;
+  const tgChats2         = rows.filter(isTG).length;
+  // Прошли через бота = Regular + Privip
+  const passedBot2               = rows.filter(r => hasBot(r) && (isRegular(r) || isPrivip(r))).length;
+  const passedBotTG2             = rows.filter(r => hasBot(r) && isTG(r)).length;
+  // Процент закрытия = закрыто ботом / ВСЕ Regular + Privip чаты
+  const allRegPrivip2 = rows.filter(r => isRegular(r) || isPrivip(r)).length;
+  const botClosurePercent2   = allRegPrivip2 > 0 ? (botChats2 / allRegPrivip2 * 100) : 0;
   const botTGClosurePercent2 = tgChats2 > 0 ? (botTGChats2 / tgChats2 * 100) : 0;
-  const passedBot2 = rows.filter(hasBot2).length;
-  const regularChats2 = rows.filter(r=>!isVIP(r)).length;
-  const vipChats2 = rows.filter(r=>isVIP(r)).length;
-  const tgVipChats2 = rows.filter(r=>isVIP(r)&&isTG(r)).length;
+  const regularChats2            = rows.filter(isRegular).length;
+  const vipChats2                = rows.filter(isVIP).length;
+  const privipChats2             = rows.filter(isPrivip).length;
+  const passedThroughBotRegular2   = rows.filter(r => hasBot(r) && isRegular(r)).length;
+  const passedThroughBotTGRegular2 = rows.filter(r => hasBot(r) && isTG(r)).length;
+  const closedByBotRegular2        = rows.filter(r => isBotOnly(r) && isRegular(r)).length;
+  const closedByBotTGRegular2      = rows.filter(r => isBotOnly(r) && isTG(r)).length;
+  const handledByHumanRegular2     = rows.filter(r => hasHumanOp(r) && isRegular(r)).length;
+  const queueCount2                = rows.filter(inQueue).length;
 
-  // New regular metrics for daily
-  const passedThroughBotRegular2 = rows.filter(r => hasBot2(r) && !hasM2(r) && !isVIP(r)).length;
-  const passedThroughBotTGRegular2 = rows.filter(r => hasBot2(r) && !hasM2(r) && !isVIP(r) && isTG(r)).length;
-  const closedByBotRegular2 = rows.filter(r => !hasHumanOp(r) && hasBot2(r) && !hasM2(r) && !isVIP(r)).length;
-  const closedByBotTGRegular2 = rows.filter(r => !hasHumanOp(r) && hasBot2(r) && !hasM2(r) && !isVIP(r) && isTG(r)).length;
-  const handledByHumanRegular2 = rows.filter(r => hasHumanOp(r) && !isVIP(r)).length;
+  // CSAT с логикой дедупликации дизлайков
+  const cd2 = buildCountedDislikes(parsedData);
+  const nonSpam2   = rows.filter(r => !isSpam(r));
+  const csatAll2   = calcCSAT(nonSpam2, cd2);
+  const csatNoBot2 = calcCSAT(nonSpam2.filter(hasHumanOp), cd2);
+  const csatBot2   = calcCSAT(nonSpam2.filter(isBotOnly), cd2);
+  const csatVip2   = calcCSAT(nonSpam2.filter(isVIP), cd2);
+  const csatReg2   = calcCSAT(nonSpam2.filter(isRegular), cd2);
 
-  const nonSpam2 = rows.filter(r=>!isSpam(r));
-  const nsRated2 = nonSpam2.filter(isRated);
-  const csatAll2 = nsRated2.length?(nsRated2.filter(isGoodRated).length/nsRated2.length*100):0;
-  const withOp2 = nonSpam2.filter(r=>hasHumanOp(r));
-  const woRated2 = withOp2.filter(isRated);
-  const csatNoBot2 = woRated2.length?(woRated2.filter(isGoodRated).length/woRated2.length*100):0;
-  const botNS2 = botRows2.filter(r=>!isSpam(r));
-  const botRated2 = botNS2.filter(isRated);
-  const csatBot2 = botRated2.length?(botRated2.filter(isGoodRated).length/botRated2.length*100):0;
-  const vipNS2 = nonSpam2.filter(r=>isVIP(r));
-  const vipR2 = vipNS2.filter(isRated);
-  const csatVip2 = vipR2.length?(vipR2.filter(isGoodRated).length/vipR2.length*100):0;
-  const regNS2 = nonSpam2.filter(r=>!isVIP(r));
-  const regR2 = regNS2.filter(isRated);
-  const csatReg2 = regR2.length?(regR2.filter(isGoodRated).length/regR2.length*100):0;
+  const frtV2 = rows.map(r => parseDuration(r[COL.frt])).filter(v => v !== null && v > 0);
+  const artV2 = rows.map(r => parseDuration(r[COL.art])).filter(v => v !== null && v > 0);
+  const durV2 = rows.filter(hasHumanOp).map(r => parseDuration(r[COL.agentDur])).filter(v => v !== null && v > 0);
+  const avgDur2 = durV2.length ? avg(durV2) : 0;
 
-  const frtV2 = rows.map(r=>parseFloat(r['first response time'])).filter(v=>!isNaN(v)&&v>0);
-  const artV2 = rows.map(r=>parseFloat(r['average response time'])).filter(v=>!isNaN(v)&&v>0);
-  const queueCount2 = rows.filter(r=>{ const q=r['queue duration in seconds']; return q!==undefined&&q!==null&&q!==''&&parseFloat(q)>0; }).length;
-  const durV2 = rows.filter(r=>hasHumanOp(r)).map(r=>{const a=parseFloat(r['agents chatting duration']);return(!isNaN(a)&&a>0)?a:NaN;}).filter(v=>!isNaN(v));
-  const avgDur2 = durV2.length?avg(durV2):0;
-
-  // FCR for this day
-  const pidSet2 = new Set(rows.map(r=>r['conferenceId']));
+  // FCR
+  const pidSet2 = new Set(rows.map(r => getChatId(r)));
   let fcrTotal2=0, fcrCount2=0;
   const pp2 = new Set();
-  Object.values(byVisitor).forEach(chats=>{
+  Object.values(byVisitor).forEach(chats => {
     const tagChats={};
-    chats.forEach(c=>{getTagsFromRow(c).forEach(tag=>{if(!tagChats[tag])tagChats[tag]=[];tagChats[tag].push(c);});});
-    Object.entries(tagChats).forEach(([tag,tc])=>{
-      tc.forEach((chat,i)=>{
-        if(!pidSet2.has(chat['conferenceId']))return;
-        const pk=chat['conferenceId']+'|'+tag;
-        if(pp2.has(pk))return; pp2.add(pk); fcrTotal2++;
+    chats.forEach(c => { getTopicTags(c).forEach(tag => { if(!tagChats[tag])tagChats[tag]=[]; tagChats[tag].push(c); }); });
+    Object.entries(tagChats).forEach(([tag,tc]) => {
+      tc.forEach((chat,i) => {
+        if(!pidSet2.has(getChatId(chat))) return;
+        const pk = getChatId(chat)+'|'+tag;
+        if(pp2.has(pk)) return; pp2.add(pk); fcrTotal2++;
         let isFCR=true;
-        if(tc[i+1]){const diff=(new Date(tc[i+1]['chat creation date Europe/Kiev'].replace(' ','T')+'Z')-new Date(chat['chat creation date Europe/Kiev'].replace(' ','T')+'Z'))/3600000;if(diff<=24)isFCR=false;}
-        if(isFCR)fcrCount2++;
+        if(tc[i+1]){ const diff=(new Date(tc[i+1][COL.date])-new Date(chat[COL.date]))/3600000; if(diff<=24)isFCR=false; }
+        if(isFCR) fcrCount2++;
       });
     });
   });
 
-  // Projects
-  const projStats2 = {};
-  PROJECTS.forEach(p=>projStats2[p]={regular:0,vip:0,total:0,rated:0,goodRated:0,fcrTotal:0,fcrCount:0});
+  // By project
+  const projStats2={};
+  PROJECTS.forEach(p=>projStats2[p]={regular:0,vip:0,total:0,fcrTotal:0,fcrCount:0,csatRows:[]});
   rows.forEach(r=>{
-    const p=getProject(r['group name']); if(!p)return;
-    projStats2[p].total++; if(isVIP(r))projStats2[p].vip++; else projStats2[p].regular++;
-    if(!isSpam(r)&&isRated(r)){projStats2[p].rated++;if(isGoodRated(r))projStats2[p].goodRated++;}
+    const p=getProject(r); if(!p)return;
+    projStats2[p].total++;
+    if(isVIP(r)) projStats2[p].vip++; else projStats2[p].regular++;
+    if(!isSpam(r)) projStats2[p].csatRows.push(r);
   });
   const pp3={}; PROJECTS.forEach(p=>pp3[p]=new Set());
   Object.values(byVisitor).forEach(chats=>{
     const tagChats={};
-    chats.forEach(c=>{getTagsFromRow(c).forEach(tag=>{if(!tagChats[tag])tagChats[tag]=[];tagChats[tag].push(c);});});
+    chats.forEach(c=>{getTopicTags(c).forEach(tag=>{if(!tagChats[tag])tagChats[tag]=[];tagChats[tag].push(c);});});
     Object.entries(tagChats).forEach(([tag,tc])=>{
       tc.forEach((chat,i)=>{
-        if(!pidSet2.has(chat['conferenceId']))return;
-        const p=getProject(chat['group name']); if(!p)return;
-        const pk=chat['conferenceId']+'|'+tag; if(pp3[p].has(pk))return; pp3[p].add(pk);
+        if(!pidSet2.has(getChatId(chat)))return;
+        const p=getProject(chat); if(!p)return;
+        const pk=getChatId(chat)+'|'+tag; if(pp3[p].has(pk))return; pp3[p].add(pk);
         projStats2[p].fcrTotal++;
         let isFCR=true;
-        if(tc[i+1]){const diff=(new Date(tc[i+1]['chat creation date Europe/Kiev'].replace(' ','T')+'Z')-new Date(chat['chat creation date Europe/Kiev'].replace(' ','T')+'Z'))/3600000;if(diff<=24)isFCR=false;}
+        if(tc[i+1]){const diff=(new Date(tc[i+1][COL.date])-new Date(chat[COL.date]))/3600000;if(diff<=24)isFCR=false;}
         if(isFCR)projStats2[p].fcrCount++;
       });
     });
   });
 
   // Operators for this day
-  const periodSet2 = new Set(rows.map(r=>r['conferenceId']));
-  // Also include night-continuation chats (next day 00:00-08:59)
+  const periodSet2 = new Set(rows.map(r => getChatId(r)));
   const nextDayStr = new Date(new Date(dayStr+'T00:00:00Z').getTime()+86400000).toISOString().substring(0,10);
   parsedData.forEach(r=>{
-    const dt=(r['chat creation date Europe/Kiev']||'').substring(0,10);
-    const h=parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13));
-    if(dt===nextDayStr&&h<9) periodSet2.add(r['conferenceId']);
+    const dt=getDateStr(r), h=getHour(r);
+    if(dt===nextDayStr&&h<9) periodSet2.add(getChatId(r));
   });
 
-  const opStats2 = {};
+  const opStats2={};
   ALL_OPERATORS.forEach(n=>opStats2[n]={chats:0,durations:[],multiChats:0,multiDurations:[],fullShifts:0,shiftType:''});
-
   const opAllChats2={}, opMultiChats2={};
   ALL_OPERATORS.forEach(n=>{opAllChats2[n]=[];opMultiChats2[n]=[];});
   parsedData.forEach(r=>{
     const humanOps=[];
-    for(let i=1;i<=14;i++){const nick=(r['operator '+i+' nick']||'').trim();if(nick&&nick.split(/\s+/).length===1&&ALL_OPERATORS.includes(nick))humanOps.push(nick);}
+    for(let i=COL.op1;i<=COL.op5;i+=2){const nick=(r[i]||'').toString().trim();if(nick&&nick.split(/\s+/).length===1&&ALL_OPERATORS.includes(nick))humanOps.push(nick);}
     if(humanOps.length===1){opAllChats2[humanOps[0]].push(r);}
     else if(humanOps.length>1){humanOps.forEach(nick=>opMultiChats2[nick].push(r));}
   });
 
   ALL_OPERATORS.forEach(nick=>{
     const byDate2={};
-    opAllChats2[nick].forEach(r=>{const dt=(r['chat creation date Europe/Kiev']||'').substring(0,10);if(!byDate2[dt])byDate2[dt]={solo:[],multi:[]};byDate2[dt].solo.push(r);});
-    opMultiChats2[nick].forEach(r=>{const dt=(r['chat creation date Europe/Kiev']||'').substring(0,10);if(!byDate2[dt])byDate2[dt]={solo:[],multi:[]};byDate2[dt].multi.push(r);});
+    opAllChats2[nick].forEach(r=>{const dt=getDateStr(r);if(!byDate2[dt])byDate2[dt]={solo:[],multi:[]};byDate2[dt].solo.push(r);});
+    opMultiChats2[nick].forEach(r=>{const dt=getDateStr(r);if(!byDate2[dt])byDate2[dt]={solo:[],multi:[]};byDate2[dt].multi.push(r);});
     Object.entries(byDate2).forEach(([ds,dd])=>{
       const nextDs=new Date(Date.UTC(...ds.split('-').map(Number).map((v,i)=>i===1?v-1:v))+86400000).toISOString().substring(0,10);
       const nd=byDate2[nextDs]||{solo:[],multi:[]};
-      const nSolo=nd.solo.filter(r=>parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13))<9);
-      const nMulti=nd.multi.filter(r=>parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13))<9);
+      const nSolo=nd.solo.filter(r=>getHour(r)<9);
+      const nMulti=nd.multi.filter(r=>getHour(r)<9);
       const allDay=[...(dd.solo||[]),...(dd.multi||[]),...nSolo,...nMulti];
-      allDay.sort((a,b)=>new Date(a['chat creation date Europe/Kiev'].replace(' ','T')+'Z')-new Date(b['chat creation date Europe/Kiev'].replace(' ','T')+'Z'));
+      allDay.sort((a,b)=>new Date(a[COL.date])-new Date(b[COL.date]));
       if(!allDay.length)return;
-      const dayFirst=new Date(allDay[0]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
       const candidates=[];
       SHIFT_WINDOWS.forEach(sw=>{
         const variants=sw.cross?[makeShiftDates(ds,sw,false),makeShiftDates(ds,sw,true)]:[makeShiftDates(ds,sw,false)];
         variants.forEach(({wstart,wend})=>{
-          const wchats=allDay.filter(r=>{const t=new Date((r['chat creation date Europe/Kiev']||'').replace(' ','T')+'Z');return t>=wstart&&t<=wend;});
+          const wchats=allDay.filter(r=>{const t=new Date(r[COL.date]);return t>=wstart&&t<=wend;});
           if(!wchats.length)return;
-          const first=new Date(wchats[0]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
-          const last=new Date(wchats[wchats.length-1]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
+          const first=new Date(wchats[0][COL.date]);
+          const last=new Date(wchats[wchats.length-1][COL.date]);
           const span=(last-first)/3600000;
           const fd=(first-wstart)/60000, ld=(wend-last)/60000;
           if(fd>=0&&fd<=sw.stol&&ld>=0&&ld<=sw.etol&&span>=sw.span){candidates.push({score:-wchats.length,wstart,wend,sw});}
@@ -727,41 +893,55 @@ function computeDayResult(dayStr) {
       opStats2[nick].shiftType=shiftH===9?'morning':shiftH===12?'day':'night';
       const nextDs2=new Date(Date.UTC(...ds.split('-').map(Number).map((v,i)=>i===1?v-1:v))+86400000).toISOString().substring(0,10);
       const nd2=byDate2[nextDs2]||{solo:[],multi:[]};
-      const nS2=nd2.solo.filter(r=>parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13))<9);
-      const nM2=nd2.multi.filter(r=>parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13))<9);
+      const nS2=nd2.solo.filter(r=>getHour(r)<9);
+      const nM2=nd2.multi.filter(r=>getHour(r)<9);
       [...(dd.solo||[]),...nS2].forEach(r=>{
-        const t=new Date((r['chat creation date Europe/Kiev']||'').replace(' ','T')+'Z');
+        const t=new Date(r[COL.date]);
         if(t<wstart||t>wend)return;
-        if(!periodSet2.has(r['conferenceId']))return;
+        if(!periodSet2.has(getChatId(r)))return;
         opStats2[nick].chats++;
-        const agDur=parseFloat(r['agents chatting duration']);
-        if(!isNaN(agDur)&&agDur>0)opStats2[nick].durations.push(agDur);
+        const agDur=parseDuration(r[COL.agentDur]);
+        if(agDur!==null&&agDur>0)opStats2[nick].durations.push(agDur);
       });
       [...(dd.multi||[]),...nM2].forEach(r=>{
-        const t=new Date((r['chat creation date Europe/Kiev']||'').replace(' ','T')+'Z');
+        const t=new Date(r[COL.date]);
         if(t<wstart||t>wend)return;
-        if(!periodSet2.has(r['conferenceId']))return;
+        if(!periodSet2.has(getChatId(r)))return;
         opStats2[nick].multiChats++;
-        const agDur=parseFloat(r['agents chatting duration']);
-        if(!isNaN(agDur)&&agDur>0)opStats2[nick].multiDurations.push(agDur);
+        const agDur=parseDuration(r[COL.agentDur]);
+        if(agDur!==null&&agDur>0)opStats2[nick].multiDurations.push(agDur);
       });
     });
   });
 
   return {
     date_from: dayStr, date_to: dayStr,
-    total_chats: totalChats2, bot_chats: botChats2, bot_closure_percent: fmt(botClosurePercent2, 2), bot_regular_chats: botRegularChats2, bot_privip_chats: botPrivipChats2, bot_tg_chats: botTGChats2, bot_tg_closure_percent: fmt(botTGClosurePercent2, 2), tg_chats: tgChats2, passed_through_bot: passedBot2,
-    regular_chats: regularChats2, vip_chats: vipChats2, tg_vip_chats: tgVipChats2,
-    csat_all: fmt(csatAll2,2), csat_no_bot: fmt(csatNoBot2,2), csat_bot: fmt(csatBot2,2),
-    csat_vip: fmt(csatVip2,2), csat_regular: fmt(csatReg2,2),
+    total_chats: totalChats2, bot_chats: botChats2,
+    bot_closure_percent: fmt(botClosurePercent2, 2),
+    bot_regular_chats: botRegularChats2, bot_privip_chats: botPrivipChats2,
+    bot_tg_chats: botTGChats2, bot_tg_closure_percent: fmt(botTGClosurePercent2, 2),
+    tg_chats: tgChats2, passed_through_bot: passedBot2,
+    regular_chats: regularChats2, vip_chats: vipChats2, privip_chats: privipChats2,
+    passed_through_bot_regular: passedThroughBotRegular2,
+    passed_through_bot_tg_regular: passedThroughBotTGRegular2,
+    closed_by_bot_regular: closedByBotRegular2,
+    closed_by_bot_tg_regular: closedByBotTGRegular2,
+    handled_by_human_regular: handledByHumanRegular2,
+    queue_count: queueCount2,
+    csat_all: csatAll2 !== null ? fmt(csatAll2,2) : null,
+    csat_no_bot: csatNoBot2 !== null ? fmt(csatNoBot2,2) : null,
+    csat_bot: csatBot2 !== null ? fmt(csatBot2,2) : null,
+    csat_vip: csatVip2 !== null ? fmt(csatVip2,2) : null,
+    csat_regular: csatReg2 !== null ? fmt(csatReg2,2) : null,
+    avg_frt_sec: fmt(avg(frtV2),1), avg_art_sec: fmt(avg(artV2),1),
+    avg_duration_sec: fmt(avgDur2,0), avg_duration_min: fmt(avgDur2/60,1),
     fcr_total: fcrTotal2>0?fmt(fcrCount2/fcrTotal2*100,2):'0',
     fcr_resolved: fcrCount2, fcr_chats: fcrTotal2,
-    avg_frt_sec: fmt(avg(frtV2),1), avg_art_sec: fmt(avg(artV2),1),
-    queue_count: queueCount2, avg_duration_sec: fmt(avgDur2,0), avg_duration_min: fmt(avgDur2/60,1),
     projects: PROJECTS.reduce((acc,p)=>{
       const s=projStats2[p]; if(!s.total)return acc;
+      const csatP = calcCSAT(s.csatRows, cd2);
       acc[p]={regular:s.regular,vip:s.vip,total:s.total,
-        csat:s.rated?fmt(s.goodRated/s.rated*100,2):null,
+        csat: csatP !== null ? fmt(csatP,2) : null,
         fcr:s.fcrTotal>0?fmt(s.fcrCount/s.fcrTotal*100,2):null};
       return acc;
     },{}),
@@ -778,159 +958,130 @@ function computeDayResult(dayStr) {
   };
 }
 
+// =====================================================================
+// ОСНОВНАЯ ФУНКЦИЯ АНАЛИЗА
+// =====================================================================
 function analyze() {
   const dateFrom = document.getElementById('dateFrom').value;
-  const dateTo = document.getElementById('dateTo').value;
+  const dateTo   = document.getElementById('dateTo').value;
 
   let rows = parsedData;
-  if (dateFrom) rows = rows.filter(r => (r['chat creation date Europe/Kiev'] || '') >= dateFrom);
-  if (dateTo) rows = rows.filter(r => (r['chat creation date Europe/Kiev'] || '').substring(0,10) <= dateTo);
+  if (dateFrom) rows = rows.filter(r => getDateStr(r) >= dateFrom);
+  if (dateTo)   rows = rows.filter(r => getDateStr(r) <= dateTo);
 
   if (!rows.length) { alert('Нет данных за выбранный период'); return; }
 
-  // === SUMMARY ===
+  // -------- SUMMARY --------
   const totalChats = rows.length;
-  // Bot chats = NO human operator (all ops are 2+ word bots or empty)
-  const hasBot = r => {
-    for (let i = 1; i <= 14; i++) {
-      const nick = (r['operator ' + i + ' nick'] || '').trim();
-      if (nick && nick.split(/\s+/).length >= 2) return true;
-    }
-    return false;
-  };
-  
-  // Check if chat has M. bot (bot with 'M.' suffix)
-  const hasM = r => {
-    for (let i = 1; i <= 14; i++) {
-      const nick = (r['operator ' + i + ' nick'] || '').trim();
-      if (nick && nick.split(/\s+/).length >= 2 && nick.endsWith('M.')) return true;
-    }
-    return false;
-  };
-  
-  // Closed by bot = has bot AND no human operator
-  const botRows = rows.filter(r => !hasHumanOp(r) && hasBot(r));
-  const botChats = botRows.length;
-  
-  // Closed by bot in TG = has bot AND no human operator AND is TG
-  const botTGChats = rows.filter(r => !hasHumanOp(r) && hasBot(r) && isTG(r)).length;
-  
-  // Closed by bot regular = has bot AND NOT M. bot
-  const botRegularChats = rows.filter(r => hasBot(r) && !hasM(r)).length;
-  
-  // Closed by bot privip = has M. bot
-  const botPrivipChats = rows.filter(r => hasM(r)).length;
-  
-  // All TG chats (all projects with TG)
-  const tgChats = rows.filter(r => isTG(r)).length;
-  
-  // Percentages
-  const botClosurePercent = totalChats > 0 ? (botChats / totalChats * 100) : 0;
-  const botTGClosurePercent = tgChats > 0 ? (botTGChats / tgChats * 100) : 0;
 
-  const regularChats = rows.filter(r => !isVIP(r)).length;
+  // Закрыты ботом = нет ни одного оператора (по источнику: Regular и Privip)
+  const botRows        = rows.filter(r => isBotOnly(r) && (isRegular(r) || isPrivip(r)));
+  const botChats       = botRows.length;
+  // ТГ-боты = закрыты ботом в TG-каналах
+  const botTGChats     = rows.filter(r => isBotOnly(r) && isTG(r)).length;
+  // Регуляр боты = закрыты ботом в Regular-источниках (включая TG)
+  const botRegularChats = rows.filter(r => isBotOnly(r) && isRegular(r)).length;
+  // Привип боты = закрыты ботом в Privip-источниках
+  const botPrivipChats  = rows.filter(r => isBotOnly(r) && isPrivip(r)).length;
+  // Все TG чаты
+  const tgChats = rows.filter(isTG).length;
+
+  // Прошли через бота = regular + privip (маркер 'bot' в категориях)
+  const passedThroughBot = rows.filter(r => hasBot(r) && (isRegular(r) || isPrivip(r))).length;
+  const passedThroughBotTG = rows.filter(r => hasBot(r) && isTG(r)).length;
+
+  // Процент закрытия ботом:
+  // знаменатель = ВСЕ Regular + Privip чаты (не только те где был маркер bot)
+  const allRegPrivip = rows.filter(r => isRegular(r) || isPrivip(r)).length;
+  const allTGChatsBot = tgChats; // все ТГ чаты как знаменатель для ТГ-процента
+  const botClosurePercent   = allRegPrivip > 0 ? (botChats / allRegPrivip * 100) : 0;
+  const botTGClosurePercent = allTGChatsBot > 0 ? (botTGChats / allTGChatsBot * 100) : 0;
+
+  const passedThroughBotRegular   = rows.filter(r => hasBot(r) && isRegular(r)).length;
+  const passedThroughBotTGRegular = rows.filter(r => hasBot(r) && isTG(r)).length;
+  const closedByBotRegular        = rows.filter(r => isBotOnly(r) && isRegular(r)).length;
+  const closedByBotTGRegular      = rows.filter(r => isBotOnly(r) && isTG(r)).length;
+  const handledByHumanRegular     = rows.filter(r => hasHumanOp(r) && isRegular(r)).length;
+
+  // Регуляр чаты = Regular + TG (все)
+  const regularChats = rows.filter(r => isRegular(r)).length;
+  // VIP чаты
   const vipChats = rows.filter(r => isVIP(r)).length;
-  const tgVipChats = rows.filter(r => isVIP(r) && isTG(r)).length;
+  // Privip чаты
+  const privipChats = rows.filter(r => isPrivip(r)).length;
 
-  // New regular metrics
-  const passedThroughBotRegular = rows.filter(r => hasBot(r) && !hasM(r) && !isVIP(r)).length;
-  const passedThroughBotTGRegular = rows.filter(r => hasBot(r) && !hasM(r) && !isVIP(r) && isTG(r)).length;
-  const closedByBotRegular = rows.filter(r => !hasHumanOp(r) && hasBot(r) && !hasM(r) && !isVIP(r)).length;
-  const closedByBotTGRegular = rows.filter(r => !hasHumanOp(r) && hasBot(r) && !hasM(r) && !isVIP(r) && isTG(r)).length;
-  const handledByHumanRegular = rows.filter(r => hasHumanOp(r) && !isVIP(r)).length;
+  // Людей в очереди = категория 'очередь' в чате
+  const totalQueue = rows.filter(inQueue).length;
 
-  // CSAT all (excluding spam)
-  const nonSpam = rows.filter(r => !isSpam(r));
-  const nonSpamRated = nonSpam.filter(isRated);
-  const csatAll = nonSpamRated.length ? (nonSpamRated.filter(isGoodRated).length / nonSpamRated.length * 100) : 0;
+  // -------- CSAT (новая логика) --------
+  // Строим set учитываемых дизлайков по ВСЕМ данным файла
+  const countedDislikes = buildCountedDislikes(parsedData);
 
-  // CSAT without bot (has human operator)
-  const withOp = nonSpam.filter(r => hasHumanOp(r));
-  const withOpRated = withOp.filter(isRated);
-  const csatNoBot = withOpRated.length ? (withOpRated.filter(isGoodRated).length / withOpRated.length * 100) : 0;
+  // CSAT все = без спама, обе стороны (бот + люди)
+  const nonSpamRows   = rows.filter(r => !isSpam(r));
+  const csatAll       = calcCSAT(nonSpamRows, countedDislikes);
 
-  // CSAT bot (no human operator)
-  const botNonSpam = botRows.filter(r => !isSpam(r));
-  const botRated = botNonSpam.filter(isRated);
-  const csatBot = botRated.length ? (botRated.filter(isGoodRated).length / botRated.length * 100) : 0;
+  // CSAT без бота = только чаты с оператором (нет чатов без оператора)
+  const withOpRows    = nonSpamRows.filter(hasHumanOp);
+  const csatNoBot     = calcCSAT(withOpRows, countedDislikes);
 
-  // CSAT VIP (all VIP chats, no spam)
-  const vipNonSpam = nonSpam.filter(r => isVIP(r));
-  const vipRated = vipNonSpam.filter(isRated);
-  const csatVip = vipRated.length ? (vipRated.filter(isGoodRated).length / vipRated.length * 100) : 0;
+  // CSAT бота = только чаты без оператора
+  const botOnlyRows   = nonSpamRows.filter(isBotOnly);
+  const csatBot       = calcCSAT(botOnlyRows, countedDislikes);
 
-  // CSAT Regular (non-VIP chats, no spam)
-  const regNonSpam = nonSpam.filter(r => !isVIP(r));
-  const regRated = regNonSpam.filter(isRated);
-  const csatReg = regRated.length ? (regRated.filter(isGoodRated).length / regRated.length * 100) : 0;
+  // CSAT VIP = только VIP-источники, без спама
+  const vipNonSpam    = nonSpamRows.filter(isVIP);
+  const csatVip       = calcCSAT(vipNonSpam, countedDislikes);
 
-  // Response times
-  const frtVals = rows.map(r => parseFloat(r['first response time'])).filter(v => !isNaN(v) && v > 0);
-  const artVals = rows.map(r => parseFloat(r['average response time'])).filter(v => !isNaN(v) && v > 0);
+  // CSAT Регуляр = Regular + TG источники, без спама
+  const regNonSpam    = nonSpamRows.filter(isRegular);
+  const csatReg       = calcCSAT(regNonSpam, countedDislikes);
+
+  // Времена ответа (из текстовых полей)
+  const frtVals = rows.map(r => parseDuration(r[COL.frt])).filter(v => v !== null && v > 0);
+  const artVals = rows.map(r => parseDuration(r[COL.art])).filter(v => v !== null && v > 0);
   const avgFRT = avg(frtVals);
   const avgART = avg(artVals);
 
-  // Queue
-  const totalQueue = rows.filter(r => {
-    const q = r['queue duration in seconds'];
-    return q !== undefined && q !== null && q !== '' && parseFloat(q) > 0;
-  }).length;
-
-  // Chats that had a bot involved (has 2+ word operator nick)
-  const passedThroughBot = rows.filter(hasBot).length;
-
-  // Duration — use agents chatting duration (operator time only), fallback to chat duration
-  const durVals = rows.filter(r => hasHumanOp(r)).map(r => {
-    const agentDur = parseFloat(r['agents chatting duration']);
-    if (!isNaN(agentDur) && agentDur > 0) return agentDur;
-    return NaN;
-  }).filter(v => !isNaN(v));
+  // Длительность (только для чатов с человеком)
+  const durVals = rows.filter(hasHumanOp).map(r => parseDuration(r[COL.agentDur])).filter(v => v !== null && v > 0);
   const avgDurSec = avg(durVals);
   const avgDurMin = avgDurSec / 60;
 
-  // FCR — same logic as FCR Calculator:
-  // Per visitor+tag: if next chat with SAME tag within 24h exists → not FCR
-  // Uses ALL rows as context (full file), filters period separately
-
-  // Build visitor->chats map from ALL parsed data (full context for 24h check)
+  // -------- FCR --------
   const allRows = parsedData;
   byVisitor = {};
   allRows.forEach(r => {
-    const vid = (r['visitor livechat id'] || r['visitor nick'] || '').trim();
+    const vid = getVisitorId(r);
     if (!vid) return;
     if (!byVisitor[vid]) byVisitor[vid] = [];
     byVisitor[vid].push(r);
   });
-  // Sort each visitor's chats by date
-  Object.values(byVisitor).forEach(chats => chats.sort((a,b) => new Date(a['chat creation date Europe/Kiev'].replace(' ','T')+'Z') - new Date(b['chat creation date Europe/Kiev'].replace(' ','T')+'Z')));
+  Object.values(byVisitor).forEach(chats => chats.sort((a,b) => new Date(a[COL.date]) - new Date(b[COL.date])));
 
-  // Period chat IDs (for filtering which ones to count)
-  const periodIds = new Set(rows.map(r => r['conferenceId']));
+  const periodIds = new Set(rows.map(r => getChatId(r)));
 
-  // Compute FCR per visitor+tag
   let fcrTotal = 0, fcrCount = 0;
   const processedPairs = new Set();
 
   Object.values(byVisitor).forEach(chats => {
-    // group chats by tag
     const tagChats = {};
     chats.forEach(c => {
-      getTagsFromRow(c).forEach(tag => {
+      getTopicTags(c).forEach(tag => {
         if (!tagChats[tag]) tagChats[tag] = [];
         tagChats[tag].push(c);
       });
     });
     Object.entries(tagChats).forEach(([tag, tc]) => {
       tc.forEach((chat, i) => {
-        if (!periodIds.has(chat['conferenceId'])) return;
-        const pairKey = chat['conferenceId'] + '|' + tag;
+        if (!periodIds.has(getChatId(chat))) return;
+        const pairKey = getChatId(chat) + '|' + tag;
         if (processedPairs.has(pairKey)) return;
         processedPairs.add(pairKey);
         fcrTotal++;
-        // FCR = true if no next chat with same tag within 24h
         let isFCR = true;
         if (tc[i+1]) {
-          const diff = (new Date(tc[i+1]['chat creation date Europe/Kiev']) - new Date(chat['chat creation date Europe/Kiev'])) / 3600000;
+          const diff = (new Date(tc[i+1][COL.date]) - new Date(chat[COL.date])) / 3600000;
           if (diff <= 24) isFCR = false;
         }
         if (isFCR) fcrCount++;
@@ -939,33 +1090,36 @@ function analyze() {
   });
   const fcr = fcrTotal > 0 ? (fcrCount / fcrTotal * 100) : 0;
 
-  // Render summary
+  // -------- RENDER SUMMARY --------
+  const fmtCSAT = v => v !== null ? fmtPct(v) : '—';
+  const csatCls = v => v === null ? '' : (v >= 80 ? 'green' : 'red');
+
   const summaryData = [
     { label: 'Всего чатов', value: totalChats },
-    { label: 'Закрыто ботом', value: botChats, cls: 'accent' },
+    { label: 'Закрыто ботом (Рег + Привип)', value: botChats, cls: 'accent' },
     { label: 'Процент закрытия ботом', value: fmtPct(botClosurePercent), cls: botClosurePercent >= 30 ? 'green' : '', raw: true },
-    { label: 'Решено ботом регуляр', value: botRegularChats, cls: 'accent' },
-    { label: 'Решено ботом привип', value: botPrivipChats, cls: 'accent' },
+    { label: 'Закрыто ботом Регуляр', value: botRegularChats, cls: 'accent' },
+    { label: 'Закрыто ботом Привип', value: botPrivipChats, cls: 'accent' },
     { label: 'Закрыто ботом ТГ', value: botTGChats, cls: 'accent' },
     { label: 'Процент закрытия ботом ТГ', value: fmtPct(botTGClosurePercent), cls: botTGClosurePercent >= 30 ? 'green' : '', raw: true },
     { label: 'Все ТГ чаты', value: tgChats },
-    { label: 'Прошли через бота', value: passedThroughBot, cls: 'accent' },
-    { label: 'Прошли через бота (Регуляр)', value: passedThroughBotRegular, cls: 'accent' },
-    { label: 'Прошли через бота ТГ (Регуляр)', value: passedThroughBotTGRegular, cls: 'accent' },
-    { label: 'Решены ботом (Регуляр)', value: closedByBotRegular, cls: 'accent' },
-    { label: 'Решены ботом ТГ (Регуляр)', value: closedByBotTGRegular, cls: 'accent' },
-    { label: 'Обработано людьми (Регуляр)', value: handledByHumanRegular, cls: 'accent' },
-    { label: 'Регуляр чаты', value: regularChats },
+    { label: 'Прошли через бота (Рег + Привип)', value: passedThroughBot, cls: 'accent' },
+    { label: 'Прошли через бота Регуляр', value: passedThroughBotRegular, cls: 'accent' },
+    { label: 'Прошли через бота ТГ', value: passedThroughBotTGRegular, cls: 'accent' },
+    { label: 'Решены ботом Регуляр', value: closedByBotRegular, cls: 'accent' },
+    { label: 'Решены ботом ТГ', value: closedByBotTGRegular, cls: 'accent' },
+    { label: 'Обработано людьми Регуляр', value: handledByHumanRegular, cls: 'accent' },
+    { label: 'Регуляр чаты (Рег + ТГ)', value: regularChats },
     { label: 'VIP чаты', value: vipChats },
-    { label: 'VIP с TG', value: tgVipChats },
-    { label: 'CSAT все (без спама)', value: fmtPct(csatAll), cls: csatAll >= 80 ? 'green' : 'red', raw: true },
-    { label: 'CSAT без бота', value: fmtPct(csatNoBot), cls: csatNoBot >= 80 ? 'green' : 'red', raw: true },
-    { label: 'CSAT бота', value: fmtPct(csatBot), cls: csatBot >= 80 ? 'green' : 'red', raw: true },
-    { label: 'CSAT VIP', value: fmtPct(csatVip), cls: csatVip >= 80 ? 'green' : 'red', raw: true },
-    { label: 'CSAT Регуляр', value: fmtPct(csatReg), cls: csatReg >= 80 ? 'green' : 'red', raw: true },
+    { label: 'Привип чаты', value: privipChats },
+    { label: 'Людей в очереди', value: totalQueue },
+    { label: 'CSAT все (без спама)', value: fmtCSAT(csatAll), cls: csatCls(csatAll), raw: true },
+    { label: 'CSAT без бота', value: fmtCSAT(csatNoBot), cls: csatCls(csatNoBot), raw: true },
+    { label: 'CSAT бота', value: fmtCSAT(csatBot), cls: csatCls(csatBot), raw: true },
+    { label: 'CSAT VIP', value: fmtCSAT(csatVip), cls: csatCls(csatVip), raw: true },
+    { label: 'CSAT Регуляр', value: fmtCSAT(csatReg), cls: csatCls(csatReg), raw: true },
     { label: 'Первое время ответа (сек)', value: fmt(avgFRT, 1) },
     { label: 'Среднее время ответа (сек)', value: fmt(avgART, 1) },
-    { label: 'Людей в очереди', value: totalQueue },
     { label: 'Длит. оператора (сек)', value: fmt(avgDurSec, 0) },
     { label: 'Длит. оператора (мин)', value: fmt(avgDurMin, 1) },
     { label: 'FCR общий', value: fmtPct(fcr), cls: fcr >= 80 ? 'green' : 'red', raw: true },
@@ -975,51 +1129,46 @@ function analyze() {
   grid.innerHTML = summaryData.map(s => `
     <div class="stat-card">
       <div class="stat-label">${s.label}</div>
-      <div class="stat-value ${s.cls||''}">${s.raw ? s.value : s.value}</div>
+      <div class="stat-value ${s.cls||''}">${s.value}</div>
     </div>
   `).join('');
 
-  // === BY PROJECT ===
+  // -------- BY PROJECT --------
   const projStats = {};
-  PROJECTS.forEach(p => projStats[p] = { regular:0, vip:0, total:0, rated:0, goodRated:0, fcrTotal:0, fcrCount:0 });
+  PROJECTS.forEach(p => projStats[p] = { regular:0, vip:0, total:0, csatRows:[], fcrTotal:0, fcrCount:0 });
 
   rows.forEach(r => {
-    const p = getProject(r['group name']);
+    const p = getProject(r);
     if (!p) return;
     projStats[p].total++;
     if (isVIP(r)) projStats[p].vip++;
     else projStats[p].regular++;
-    // CSAT all chats (VIP + regular)
-    if (!isSpam(r) && isRated(r)) {
-      projStats[p].rated++;
-      if (isGoodRated(r)) projStats[p].goodRated++;
-    }
+    if (!isSpam(r)) projStats[p].csatRows.push(r);
   });
 
-  // FCR per project — same tag+24h logic scoped to project
   const projProcessed = {};
   PROJECTS.forEach(p => projProcessed[p] = new Set());
 
   Object.values(byVisitor).forEach(chats => {
     const tagChats = {};
     chats.forEach(c => {
-      getTagsFromRow(c).forEach(tag => {
+      getTopicTags(c).forEach(tag => {
         if (!tagChats[tag]) tagChats[tag] = [];
         tagChats[tag].push(c);
       });
     });
     Object.entries(tagChats).forEach(([tag, tc]) => {
       tc.forEach((chat, i) => {
-        if (!periodIds.has(chat['conferenceId'])) return;
-        const p = getProject(chat['group name']);
+        if (!periodIds.has(getChatId(chat))) return;
+        const p = getProject(chat);
         if (!p) return;
-        const pairKey = chat['conferenceId'] + '|' + tag;
+        const pairKey = getChatId(chat) + '|' + tag;
         if (projProcessed[p].has(pairKey)) return;
         projProcessed[p].add(pairKey);
         projStats[p].fcrTotal++;
         let isFCR = true;
         if (tc[i+1]) {
-          const diff = (new Date(tc[i+1]['chat creation date Europe/Kiev']) - new Date(chat['chat creation date Europe/Kiev'])) / 3600000;
+          const diff = (new Date(tc[i+1][COL.date]) - new Date(chat[COL.date])) / 3600000;
           if (diff <= 24) isFCR = false;
         }
         if (isFCR) projStats[p].fcrCount++;
@@ -1031,41 +1180,30 @@ function analyze() {
   projBody.innerHTML = PROJECTS.map(p => {
     const s = projStats[p];
     if (!s.total) return '';
-    const csat = s.rated ? (s.goodRated/s.rated*100) : null;
+    const csat = calcCSAT(s.csatRows, countedDislikes);
     const fcrP = s.fcrTotal > 0 ? (s.fcrCount / s.fcrTotal * 100) : null;
-    const csatCls = csat !== null ? (csat >= 80 ? 'pct' : 'pct pct-bad') : '';
-    const fcrCls = fcrP !== null ? (fcrP >= 80 ? 'pct' : 'pct pct-bad') : '';
+    const csatClsP = csat !== null ? (csat >= 80 ? 'pct' : 'pct pct-bad') : '';
+    const fcrCls  = fcrP  !== null ? (fcrP  >= 80 ? 'pct' : 'pct pct-bad') : '';
     return `<tr>
       <td><span class="proj-name">${p}</span></td>
       <td class="num">${s.regular}</td>
       <td class="num">${s.vip}</td>
       <td class="num">${s.total}</td>
-      <td><span class="${csatCls}">${csat !== null ? fmtPct(csat) : '—'}</span></td>
+      <td><span class="${csatClsP}">${csat !== null ? fmtPct(csat) : '—'}</span></td>
       <td><span class="${fcrCls}">${fcrP !== null ? fmtPct(fcrP) : '—'}</span></td>
     </tr>`;
   }).join('');
 
-  // === BY OPERATOR ===
-
-  // Shift windows definition: [name, startH, startM, endH, endM, crossMidnight]
-  // first_tol: max minutes after window start for operator's first chat
-  // last_tol:  max minutes before window end for operator's last chat
-  // span_min:  minimum hours between first and last chat
-  // Shift times are UTC+2 (as in CSV)
-  // Morning: 09:00–21:00, Day: 12:00–00:00, Night: 21:00–09:00
-
-
-  // Build op->chats map from ALL parsed data (all dates), last human op attribution
+  // -------- BY OPERATOR --------
   const opAllChats = {};
   ALL_OPERATORS.forEach(n => opAllChats[n] = []);
-
   const opMultiChats = {};
   ALL_OPERATORS.forEach(n => opMultiChats[n] = []);
 
   parsedData.forEach(r => {
     const humanOps = [];
-    for (let i = 1; i <= 14; i++) {
-      const nick = (r['operator ' + i + ' nick'] || '').trim();
+    for (let i = COL.op1; i <= COL.op5; i += 2) {
+      const nick = (r[i] || '').toString().trim();
       if (nick && nick.split(/\s+/).length === 1 && ALL_OPERATORS.includes(nick)) {
         humanOps.push(nick);
       }
@@ -1073,79 +1211,52 @@ function analyze() {
     if (humanOps.length === 1) {
       opAllChats[humanOps[0]].push(r);
     } else if (humanOps.length > 1) {
-      // Add multi chat to EVERY operator who participated
       humanOps.forEach(nick => opMultiChats[nick].push(r));
     }
   });
 
-  // Group each operator's chats by calendar date
-  // opStats is global
-  ALL_OPERATORS.forEach(n => opStats[n] = { chats: 0, durations: [], multiChats: 0, multiDurations: [], fullShifts: 0, shiftType: '', effHours: 0 });
+  ALL_OPERATORS.forEach(n => opStats[n] = { chats:0, durations:[], multiChats:0, multiDurations:[], fullShifts:0, shiftType:'', effHours:0 });
 
-  // periodIdSet: chats that belong to the selected date period via shift key
-  // Include chats from next day 00:00-08:59 that belong to night shift of selected period
-  const periodDates = new Set(rows.map(r => (r['chat creation date Europe/Kiev'] || '').substring(0,10)));
+  const periodDates = new Set(rows.map(r => getDateStr(r)));
   const periodIdSet = new Set();
   parsedData.forEach(r => {
-    const dtStr = r['chat creation date Europe/Kiev'] || '';
-    const dt = dtStr.substring(0,10);
-    const h = parseInt(dtStr.substring(11,13));
-    // Direct match: chat date is in period
-    if (periodDates.has(dt)) { periodIdSet.add(r['conferenceId']); return; }
-    // Night continuation: chat is 00:00-08:59 and previous day is in period
+    const dt = getDateStr(r), h = getHour(r);
+    if (periodDates.has(dt)) { periodIdSet.add(getChatId(r)); return; }
     if (h < 9) {
-      // Use UTC to avoid timezone issues with date subtraction
       const [y,mo,da] = dt.split('-').map(Number);
       const d = new Date(Date.UTC(y, mo-1, da) - 86400000);
       const prevDay = d.toISOString().substring(0,10);
-      if (periodDates.has(prevDay)) periodIdSet.add(r['conferenceId']);
+      if (periodDates.has(prevDay)) periodIdSet.add(getChatId(r));
     }
   });
 
   ALL_OPERATORS.forEach(nick => {
     const byDate = {};
-
-    // Group by raw calendar date (no shift-key tricks)
     opAllChats[nick].forEach(r => {
-      const dt = (r['chat creation date Europe/Kiev'] || '').substring(0,10);
-      if (!dt) return;
-      if (!byDate[dt]) byDate[dt] = { solo: [], multi: [] };
+      const dt = getDateStr(r); if (!dt) return;
+      if (!byDate[dt]) byDate[dt] = { solo:[], multi:[] };
       byDate[dt].solo.push(r);
     });
     opMultiChats[nick].forEach(r => {
-      const dt = (r['chat creation date Europe/Kiev'] || '').substring(0,10);
-      if (!dt) return;
-      if (!byDate[dt]) byDate[dt] = { solo: [], multi: [] };
+      const dt = getDateStr(r); if (!dt) return;
+      if (!byDate[dt]) byDate[dt] = { solo:[], multi:[] };
       byDate[dt].multi.push(r);
     });
 
-    if (['Lex','Hardy'].includes(nick)) {
-      console.log('[BYDATE]', nick, 'keys:', Object.keys(byDate), 'sizes:', Object.entries(byDate).map(([k,v])=>k+':'+(v.solo.length+v.multi.length)));
-      // Check nextDate for 2026-03-17
-      const _nd = new Date(Date.UTC(2026,2,17)); _nd.setUTCDate(_nd.getUTCDate()+1);
-      const _nds = _nd.toISOString().substring(0,10);
-      const _nextD = byDate[_nds] || {solo:[],multi:[]};
-      console.log('[NEXTDATA]', nick, 'nextDateStr:', _nds, 'solo:', _nextD.solo.length, 'multi:', _nextD.multi.length);
-      const _filtered = _nextD.solo.filter(r => { const h=parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13)); return h<9; });
-      console.log('[NEXTDATA filtered h<9]', nick, 'count:', _filtered.length);
-    }
-
     Object.entries(byDate).forEach(([dateStr, dayData]) => {
-      // For night shifts: also include chats from next calendar day (00:00-09:00)
       const nextDate = new Date(Date.UTC(...dateStr.split('-').map(Number).map((v,i)=>i===1?v-1:v)));
       nextDate.setUTCDate(nextDate.getUTCDate() + 1);
       const nextDateStr = nextDate.toISOString().substring(0,10);
-      const nextData = byDate[nextDateStr] || { solo: [], multi: [] };
+      const nextData = byDate[nextDateStr] || { solo:[], multi:[] };
 
       const allDayChats = [
         ...(dayData.solo || []),
         ...(dayData.multi || []),
-        ...(nextData.solo || []).filter(r => { const h = parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13)); return h < 9; }),
-        ...(nextData.multi || []).filter(r => { const h = parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13)); return h < 9; }),
+        ...(nextData.solo || []).filter(r => getHour(r) < 9),
+        ...(nextData.multi || []).filter(r => getHour(r) < 9),
       ];
-      allDayChats.sort((a,b) => new Date(a['chat creation date Europe/Kiev'].replace(' ','T')+'Z') - new Date(b['chat creation date Europe/Kiev'].replace(' ','T')+'Z'));
+      allDayChats.sort((a,b) => new Date(a[COL.date]) - new Date(b[COL.date]));
       if (!allDayChats.length) return;
-      const dayFirst = new Date(allDayChats[0]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
 
       const candidates = [];
       SHIFT_WINDOWS.forEach(sw => {
@@ -1155,114 +1266,99 @@ function analyze() {
 
         variants.forEach(({ wstart, wend }) => {
           const wchats = allDayChats.filter(r => {
-            const t = new Date(((r['chat creation date Europe/Kiev'] || '').replace(' ','T'))+'Z');
+            const t = new Date(r[COL.date]);
             return t >= wstart && t <= wend;
           });
           if (!wchats.length) return;
 
-          const first = new Date(wchats[0]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
-          const last  = new Date(wchats[wchats.length-1]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
+          const first = new Date(wchats[0][COL.date]);
+          const last  = new Date(wchats[wchats.length-1][COL.date]);
           const span  = (last - first) / 3600000;
           const firstDiff = (first - wstart) / 60000;
           const lastDiff  = (wend - last) / 60000;
 
           if (firstDiff >= 0 && firstDiff <= sw.stol && lastDiff >= 0 && lastDiff <= sw.etol && span >= sw.span) {
-            // Score: total chats in window (more = better match)
-            const score = -wchats.length;
-            candidates.push({ score, wstart, wend });
+            candidates.push({ score: -wchats.length, wstart, wend, sw });
           }
         });
       });
-
-      if (!candidates.length) {
-        if (['Lex','Hardy','Robert','Murphy','Alexia','Trinity','Christine'].includes(nick) && Object.keys(byDate).length > 0) {
-          console.log('[DEBUG]', nick, dateStr, 'NO CANDIDATES. allDayChats:', allDayChats.length);
-          if (allDayChats.length) {
-            const ft = allDayChats[0]['chat creation date Europe/Kiev'];
-            const lt = allDayChats[allDayChats.length-1]['chat creation date Europe/Kiev'];
-            console.log('  first:', ft, '→', new Date(ft.replace(' ','T')+'Z').toISOString());
-            console.log('  last:', lt, '→', new Date(lt.replace(' ','T')+'Z').toISOString());
-            // Try night window manually
-            const ws = new Date(Date.UTC(...dateStr.split('-').map(Number).map((v,i)=>i===1?v-1:v), 21, 0, 0));
-            const we = new Date(Date.UTC(...dateStr.split('-').map(Number).map((v,i)=>i===1?v-1:v), 21, 0, 0) + 86400000*1); we.setUTCHours(9,0,0,0);
-            console.log('  Night window:', ws.toISOString(), '→', we.toISOString());
-            const inW = allDayChats.filter(r => { const t = new Date(r['chat creation date Europe/Kiev'].replace(' ','T')); return t >= ws && t <= we; });
-            console.log('  Chats in night window:', inW.length);
-          }
-        }
-        return;
-      }
+      if (!candidates.length) return;
       candidates.sort((a,b) => a.score - b.score);
       const { wstart, wend } = candidates[0];
-
-      // Only count shift if it STARTS within the selected period
       const wstartDate = wstart.toISOString().substring(0,10);
-      if (!periodDates.has(wstartDate)) return;
+      if (wstartDate !== dateStr) return;
 
       opStats[nick].fullShifts++;
-      // Track actual working hours (first to last chat in shift window)
-      const wchatsEff = allDayChats.filter(r => { const t=new Date((r['chat creation date Europe/Kiev']||'').replace(' ','T')+'Z'); return t>=wstart&&t<=wend; });
+      const wchatsEff = allDayChats.filter(r => { const t=new Date(r[COL.date]); return t>=wstart&&t<=wend; });
       if (wchatsEff.length >= 2) {
-        const tFirst = new Date(wchatsEff[0]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
-        const tLast  = new Date(wchatsEff[wchatsEff.length-1]['chat creation date Europe/Kiev'].replace(' ','T')+'Z');
+        const tFirst = new Date(wchatsEff[0][COL.date]);
+        const tLast  = new Date(wchatsEff[wchatsEff.length-1][COL.date]);
         opStats[nick].effHours += (tLast - tFirst) / 3600000;
       } else { opStats[nick].effHours += 1; }
-      // Store which shift type this operator worked
       const shiftH = wstart.getUTCHours();
       opStats[nick].shiftType = shiftH === 9 ? 'morning' : shiftH === 12 ? 'day' : 'night';
 
-      // All chats to count: current day + next day 00:00-08:59 (night continuation)
       const nextDateStr2 = new Date(Date.UTC(...dateStr.split('-').map(Number).map((v,i)=>i===1?v-1:v)) + 86400000).toISOString().substring(0,10);
-      const nextData2 = byDate[nextDateStr2] || { solo: [], multi: [] };
-      const nextSolo = nextData2.solo.filter(r => parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13)) < 9);
-      const nextMulti = nextData2.multi.filter(r => parseInt((r['chat creation date Europe/Kiev']||'').substring(11,13)) < 9);
+      const nextData2 = byDate[nextDateStr2] || { solo:[], multi:[] };
+      const nextSolo = nextData2.solo.filter(r => getHour(r) < 9);
+      const nextMulti = nextData2.multi.filter(r => getHour(r) < 9);
 
-      // Solo chats in shift window
       [...(dayData.solo || []), ...nextSolo].forEach(r => {
-        const t = new Date(((r['chat creation date Europe/Kiev'] || '').replace(' ','T'))+'Z');
+        const t = new Date(r[COL.date]);
         if (t < wstart || t > wend) return;
-        if (!periodIdSet.has(r['conferenceId'])) return;
+        if (!periodIdSet.has(getChatId(r))) return;
         opStats[nick].chats++;
-        const agDur = parseFloat(r['agents chatting duration']);
-        if (!isNaN(agDur) && agDur > 0) opStats[nick].durations.push(agDur);
+        const agDur = parseDuration(r[COL.agentDur]);
+        if (agDur !== null && agDur > 0) opStats[nick].durations.push(agDur);
       });
 
-      // Multi chats in shift window
       [...(dayData.multi || []), ...nextMulti].forEach(r => {
-        const t = new Date(((r['chat creation date Europe/Kiev'] || '').replace(' ','T'))+'Z');
+        const t = new Date(r[COL.date]);
         if (t < wstart || t > wend) return;
-        if (!periodIdSet.has(r['conferenceId'])) return;
+        if (!periodIdSet.has(getChatId(r))) return;
         opStats[nick].multiChats++;
-        const agDur = parseFloat(r['agents chatting duration']);
-        if (!isNaN(agDur) && agDur > 0) opStats[nick].multiDurations.push(agDur);
+        const agDur = parseDuration(r[COL.agentDur]);
+        if (agDur !== null && agDur > 0) opStats[nick].multiDurations.push(agDur);
       });
     });
   });
 
-  // Sync globals for filter functions
   REGULAR_OPERATORS_GLOBAL = REGULAR_OPERATORS.slice();
   VIP_OPERATORS_GLOBAL = VIP_OPERATORS.slice();
   currentOpsFilter = 'all';
   document.querySelectorAll('.ops-filter-btn').forEach((b,i) => b.classList.toggle('active', i===0));
-
   renderOpsRows();
 
   // Store for webhook
   lastResult = {
     date_from: dateFrom, date_to: dateTo,
-    total_chats: totalChats, bot_chats: botChats, bot_closure_percent: fmt(botClosurePercent, 2), bot_regular_chats: botRegularChats, bot_privip_chats: botPrivipChats, bot_tg_chats: botTGChats, bot_tg_closure_percent: fmt(botTGClosurePercent, 2), tg_chats: tgChats, passed_through_bot: passedThroughBot,
-    regular_chats: regularChats, vip_chats: vipChats, tg_vip_chats: tgVipChats,
-    passed_through_bot_regular: passedThroughBotRegular, passed_through_bot_tg_regular: passedThroughBotTGRegular, closed_by_bot_regular: closedByBotRegular, closed_by_bot_tg_regular: closedByBotTGRegular, handled_by_human_regular: handledByHumanRegular,
-    csat_all: fmt(csatAll, 2), csat_no_bot: fmt(csatNoBot, 2), csat_bot: fmt(csatBot, 2), csat_vip: fmt(csatVip, 2), csat_regular: fmt(csatReg, 2),
+    total_chats: totalChats, bot_chats: botChats,
+    bot_closure_percent: fmt(botClosurePercent, 2),
+    bot_regular_chats: botRegularChats, bot_privip_chats: botPrivipChats,
+    bot_tg_chats: botTGChats, bot_tg_closure_percent: fmt(botTGClosurePercent, 2),
+    tg_chats: tgChats, passed_through_bot: passedThroughBot,
+    regular_chats: regularChats, vip_chats: vipChats, privip_chats: privipChats,
+    passed_through_bot_regular: passedThroughBotRegular,
+    passed_through_bot_tg_regular: passedThroughBotTGRegular,
+    closed_by_bot_regular: closedByBotRegular,
+    closed_by_bot_tg_regular: closedByBotTGRegular,
+    handled_by_human_regular: handledByHumanRegular,
+    queue_count: totalQueue,
+    csat_all: csatAll !== null ? fmt(csatAll, 2) : null,
+    csat_no_bot: csatNoBot !== null ? fmt(csatNoBot, 2) : null,
+    csat_bot: csatBot !== null ? fmt(csatBot, 2) : null,
+    csat_vip: csatVip !== null ? fmt(csatVip, 2) : null,
+    csat_regular: csatReg !== null ? fmt(csatReg, 2) : null,
     avg_frt_sec: fmt(avgFRT, 1), avg_art_sec: fmt(avgART, 1),
-    queue_count: totalQueue, avg_duration_sec: fmt(avgDurSec, 0), avg_duration_min: fmt(avgDurMin, 1),
+    avg_duration_sec: fmt(avgDurSec, 0), avg_duration_min: fmt(avgDurMin, 1),
     fcr_total: fmt(fcr, 2), fcr_resolved: fcrCount, fcr_chats: fcrTotal,
     projects: PROJECTS.reduce((acc, p) => {
       const s = projStats[p];
       if (!s.total) return acc;
-      const csat = s.rated ? fmt(s.goodRated/s.rated*100, 2) : null;
+      const csatP = calcCSAT(s.csatRows, countedDislikes);
       const fcrP = s.fcrTotal > 0 ? fmt(s.fcrCount/s.fcrTotal*100, 2) : null;
-      acc[p] = { regular: s.regular, vip: s.vip, total: s.total, csat, fcr: fcrP };
+      acc[p] = { regular: s.regular, vip: s.vip, total: s.total,
+        csat: csatP !== null ? fmt(csatP, 2) : null, fcr: fcrP };
       return acc;
     }, {}),
     operators: ALL_OPERATORS.reduce((acc, nick) => {
@@ -1279,7 +1375,7 @@ function analyze() {
   document.getElementById('results').classList.add('show');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
-  // Build per-day results — re-analyze each day separately
+  // Per-day results for webhook
   lastResults = [];
   const df = new Date(dateFrom + 'T00:00:00Z');
   const dt = new Date(dateTo   + 'T00:00:00Z');
@@ -1289,10 +1385,12 @@ function analyze() {
     if (dayResult) lastResults.push(dayResult);
   }
 
-  // Enable send button
   document.getElementById('sendBtn').disabled = false;
 }
 
+// =====================================================================
+// WEBHOOK
+// =====================================================================
 const WEBHOOK_URL = 'https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8ac8d4a24d0c4dfabbafb2330f0cd563/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=t5S9cOQah631lZBnYhQCVMp88IDhn8Qjg-_dBB7kces';
 
 async function sendWebhook() {
@@ -1302,20 +1400,14 @@ async function sendWebhook() {
   document.getElementById('sendBtn').disabled = true;
 
   try {
-    // Send each day separately
     const results = lastResults || [lastResult];
-    console.log('Sending webhook:', { lastResult, lastResults, results });
     for (const result of results) {
-      console.log('Sending result:', result);
-      const resp = await fetch(WEBHOOK_URL, {
+      await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(result)
       });
-      // no-cors returns opaque response, so we can't check resp.ok
-      // Just assume success if fetch didn't throw
     }
-    // no-cors returns opaque response — assume success if no exception
     const n = (lastResults && lastResults.length) || 1;
     setStatus(`✓ Отправлено ${n} ${n===1?'запись':'записей'}`, 'ok');
   } catch(e) {

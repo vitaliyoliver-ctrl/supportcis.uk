@@ -954,6 +954,30 @@ function computeDayResult(dayStr) {
     });
   });
 
+  // Плоская структура для Power Automate
+  const _pf2 = {};
+  PROJECTS.forEach(p => {
+    const s = projStats2[p];
+    const csatP = calcCSAT(s.csatRows, cd2);
+    _pf2[`proj_${p}_regular`] = s.regular;
+    _pf2[`proj_${p}_vip`]     = s.vip;
+    _pf2[`proj_${p}_total`]   = s.total;
+    _pf2[`proj_${p}_csat`]    = csatP !== null ? fmt(csatP,2) : null;
+    _pf2[`proj_${p}_fcr`]     = s.fcrTotal>0 ? fmt(s.fcrCount/s.fcrTotal*100,2) : null;
+  });
+
+  const _of2 = {};
+  _allOps2.forEach(nick => {
+    const s = opStats2[nick] || {chats:0, durations:[], multiChats:0};
+    const ad = s.durations.length ? avg(s.durations) : 0;
+    const tc = s.chats + s.multiChats;
+    _of2[`op_${nick}_chats`]      = tc;
+    _of2[`op_${nick}_solo`]       = s.chats;
+    _of2[`op_${nick}_multi`]      = s.multiChats;
+    _of2[`op_${nick}_dur_min`]    = ad > 0 ? fmt(ad/60,1) : '0';
+    _of2[`op_${nick}_efficiency`] = tc > 0 ? (tc/12).toFixed(1) : '0';
+  });
+
   return {
     date_from: dayStr, date_to: dayStr,
     total_chats: totalChats2, bot_chats: botChats2,
@@ -977,23 +1001,8 @@ function computeDayResult(dayStr) {
     avg_duration_sec: fmt(avgDur2,0), avg_duration_min: fmt(avgDur2/60,1),
     fcr_total: fcrTotal2>0?fmt(fcrCount2/fcrTotal2*100,2):'0',
     fcr_resolved: fcrCount2, fcr_chats: fcrTotal2,
-    projects: PROJECTS.reduce((acc,p)=>{
-      const s=projStats2[p]; if(!s.total)return acc;
-      const csatP = calcCSAT(s.csatRows, cd2);
-      acc[p]={regular:s.regular,vip:s.vip,total:s.total,
-        csat: csatP !== null ? fmt(csatP,2) : null,
-        fcr:s.fcrTotal>0?fmt(s.fcrCount/s.fcrTotal*100,2):null};
-      return acc;
-    },{}),
-    operators: _allOps2.reduce((acc,nick)=>{
-      const s=opStats2[nick]||{chats:0,durations:[],multiChats:0};
-      const ad=s.durations.length?avg(s.durations):0;
-      const tc=s.chats+s.multiChats;
-      acc[nick]={chats:tc,solo:s.chats,multiChats:s.multiChats,
-        avg_duration_sec:ad>0?fmt(ad,0):'0',avg_duration_min:ad>0?fmt(ad/60,1):'0',
-        efficiency:tc>0?(tc/12).toFixed(1):'0'};
-      return acc;
-    },{}),
+    ..._pf2,
+    ..._of2,
     created_at: new Date().toISOString()
   };
 }
@@ -1420,7 +1429,32 @@ function analyze() {
   document.querySelectorAll('.ops-filter-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   renderOpsRows();
 
-  // Store for webhook
+  // Store for webhook — плоская структура для Power Automate
+  const _projFlat = {};
+  PROJECTS.forEach(p => {
+    const s = projStats[p];
+    const csatP = calcCSAT(s.csatRows, countedDislikes);
+    const fcrP = s.fcrTotal > 0 ? fmt(s.fcrCount/s.fcrTotal*100, 2) : null;
+    _projFlat[`proj_${p}_regular`] = s.regular;
+    _projFlat[`proj_${p}_vip`]     = s.vip;
+    _projFlat[`proj_${p}_total`]   = s.total;
+    _projFlat[`proj_${p}_csat`]    = csatP !== null ? fmt(csatP, 2) : null;
+    _projFlat[`proj_${p}_fcr`]     = fcrP;
+  });
+
+  const _opFlat = {};
+  effectiveAll.forEach(nick => {
+    const s = opStats[nick] || { chats:0, durations:[], multiChats:0, fullShifts:0, effHours:0 };
+    const avgDur = s.durations.length ? avg(s.durations) : 0;
+    const totalC = s.chats + s.multiChats;
+    const effVal = s.effHours > 0 ? (totalC / s.effHours).toFixed(1) : '0';
+    _opFlat[`op_${nick}_chats`]      = totalC;
+    _opFlat[`op_${nick}_solo`]       = s.chats;
+    _opFlat[`op_${nick}_multi`]      = s.multiChats;
+    _opFlat[`op_${nick}_dur_min`]    = avgDur > 0 ? secToMin(avgDur) : '0';
+    _opFlat[`op_${nick}_efficiency`] = effVal;
+  });
+
   lastResult = {
     date_from: dateFrom, date_to: dateTo,
     total_chats: totalChats, bot_chats: botChats,
@@ -1443,23 +1477,8 @@ function analyze() {
     avg_frt_sec: fmt(avgFRT, 1), avg_art_sec: fmt(avgART, 1),
     avg_duration_sec: fmt(avgDurSec, 0), avg_duration_min: fmt(avgDurMin, 1),
     fcr_total: fmt(fcr, 2), fcr_resolved: fcrCount, fcr_chats: fcrTotal,
-    projects: PROJECTS.reduce((acc, p) => {
-      const s = projStats[p];
-      if (!s.total) return acc;
-      const csatP = calcCSAT(s.csatRows, countedDislikes);
-      const fcrP = s.fcrTotal > 0 ? fmt(s.fcrCount/s.fcrTotal*100, 2) : null;
-      acc[p] = { regular: s.regular, vip: s.vip, total: s.total,
-        csat: csatP !== null ? fmt(csatP, 2) : null, fcr: fcrP };
-      return acc;
-    }, {}),
-    operators: effectiveAll.reduce((acc, nick) => {
-      const s = opStats[nick] || { chats:0, durations:[], multiChats:0, fullShifts:0, effHours:0 };
-      const avgDur = s.durations.length ? avg(s.durations) : 0;
-      const totalChatsOp2 = s.chats + s.multiChats;
-      const effVal = (s.effHours > 0) ? (totalChatsOp2 / s.effHours).toFixed(1) : '0';
-      acc[nick] = { chats: s.chats, full_shifts: s.fullShifts, avg_duration_sec: avgDur > 0 ? fmt(avgDur, 0) : '0', avg_duration_min: avgDur > 0 ? secToMin(avgDur) : '0', efficiency: effVal, multiChats: s.multiChats };
-      return acc;
-    }, {}),
+    ..._projFlat,
+    ..._opFlat,
     created_at: new Date().toISOString()
   };
 

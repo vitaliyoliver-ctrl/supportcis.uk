@@ -277,52 +277,56 @@ const VIP_OPERATORS = [
 const ALL_OPERATORS = [...REGULAR_OPERATORS, ...VIP_OPERATORS];
 
 // =====================================================================
-// МАППИНГ КОЛОНОК CHATWOOT
-// Индексы (0-based) в файле выгрузки
+// МАППИНГ КОЛОНОК CHATWOOT — строится динамически по заголовкам
 // =====================================================================
-const COL = {
-  id:          0,   // ID чата
-  date:        1,   // Дата и время начала (YYYY-MM-DD HH:MM:SS)
-  source:      2,   // Источник (название чанела: "Gama Support", "Gama TG", etc.)
-  group:       3,   // Группа (обычно пусто)
-  email:       4,   // Почта клиента
-  op1:         5,   // Ник оператора 1
-  dur1:        6,   // Длительность диалога оператора 1 (текст "X минут Y секунд")
-  op2:         7,   // Ник оператора 2
-  dur2:        8,
-  op3:         9,
-  dur3:        10,
-  op4:         11,
-  dur4:        12,
-  op5:         13,
-  dur5:        14,
-  totalTime:   15,  // Общее время до решения (текст)
-  frt:         16,  // Время первого ответа (текст)
-  art:         17,  // Среднее время ответа (текст)
-  agentDur:    18,  // Общее время длительности чата агентов (текст)
-  csat:        19,  // Оценка чата (CSAT): число 1-5
-  csatComment: 20,  // Комментарий к оценке
-  // Категории 1-8: индексы 21-28
-  // Содержат системные маркеры: 'bot','operator','vip','privip','regular','tg'
-  // и тематические теги
-  cat1: 21, cat2: 22, cat3: 23, cat4: 24,
-  cat5: 25, cat6: 26, cat7: 27, cat8: 28,
-  clientName:  29,  // Имя клиента
-  // кастом инфо: 30-42
-  customEmail: 30,
-  customName:  31,
-  deviceType:  32,
-  language:    33,
-  lastDepDate: 34,
-  loyalty:     35,
-  phone:       36,
-  project:     37,  // Проект (URL сайта)
-  siteUrl:     38,
-  surname:     39,
-  userId:      40,  // Ссылка на пользователя в бэкофисе
-  userTag:     41,
-  userTime:    42,
-};
+let COL = {};
+let OP_COLS = []; // пары [nick_col, dur_col] для всех операторов
+
+function buildColMap(header) {
+  COL = {};
+  OP_COLS = [];
+
+  header.forEach((h, i) => {
+    if (!h) return;
+    const name = h.toString().trim();
+
+    if (name === 'ID чата')                                    COL.id = i;
+    else if (name === 'Дата и время начала')                   COL.date = i;
+    else if (name === 'Источник')                              COL.source = i;
+    else if (name === 'Группа')                                COL.group = i;
+    else if (name === 'Почта клиента')                         COL.email = i;
+    else if (name === 'Общее время до решения')                COL.totalTime = i;
+    else if (name === 'Время первого ответа')                  COL.frt = i;
+    else if (name === 'Среднее время ответа')                  COL.art = i;
+    else if (name === 'Общее время длительности чата агентов') COL.agentDur = i;
+    else if (name === 'Оценка чата (CSAT)')                    COL.csat = i;
+    else if (name === 'Комментарий к оценке')                  COL.csatComment = i;
+    else if (name === 'Имя клиента')                           COL.clientName = i;
+    else if (name === 'Кастом инфо о контакте: _email' || name === 'Кастом инфо о контакте: user_email') COL.customEmail = i;
+    else if (name === 'Кастом инфо о контакте: phone' || name === 'Кастом инфо о контакте: user_phone')  COL.phone = i;
+    else if (name === 'Кастом инфо о контакте: userId' || name === 'Кастом инфо о контакте: user_id')    COL.userId = i;
+
+    // Операторные пары: "Ник оператора N" + "Длительность диалога оператора N"
+    const opMatch = name.match(/^Ник оператора (\d+)$/);
+    if (opMatch) {
+      const n = parseInt(opMatch[1]);
+      OP_COLS[n - 1] = { nick: i, dur: i + 1 }; // dur всегда следующий столбец
+    }
+  });
+
+  // Категории: все столбцы с "Категория N"
+  COL.cats = [];
+  header.forEach((h, i) => {
+    if (h && /^Категория \d+$/.test(h.toString().trim())) COL.cats.push(i);
+  });
+
+  // Алиасы для совместимости
+  COL.op1 = OP_COLS[0]?.nick;
+  COL.op5 = OP_COLS[OP_COLS.length - 1]?.nick;
+
+  console.log('[COL] Detected:', { ...COL, OP_COLS });
+  return COL;
+}
 
 // =====================================================================
 // ПРОЕКТЫ И КЛАССИФИКАЦИЯ ИСТОЧНИКОВ
@@ -333,7 +337,7 @@ const COL = {
 // Privip  = "Support Gama", "Support Cat" ... (Support + проект)
 // TG      = любой источник с "TG" в конце
 // =====================================================================
-const PROJECTS = ['Cat', 'Gama', 'Daddy', 'Mers', 'Kent', 'R7', 'Kometa', 'Arkada', 'Highroll'];
+const PROJECTS = ['Cat', 'Gama', 'Daddy', 'Mers', 'Kent', 'R7', 'Kometa', 'Arkada', 'Highroll', 'Atom', 'Motor'];
 
 // Возвращает 'vip' | 'regular' | 'privip' | 'tg' | 'unknown'
 function classifySource(src) {
@@ -368,8 +372,8 @@ function getProject(row) {
 // Получить все категории строки (массив строк)
 function getCats(row) {
   const cats = [];
-  for (let i = COL.cat1; i <= COL.cat8; i++) {
-    const v = (row[i] || '').toString().trim();
+  for (const idx of (COL.cats || [])) {
+    const v = (row[idx] || '').toString().trim();
     if (v) cats.push(v);
   }
   return cats;
@@ -409,9 +413,8 @@ function hasBot(row) {
 
 // Есть хотя бы один живой оператор (любое непустое значение в op-колонках)
 function hasHumanOp(row) {
-  for (let i = COL.op1; i <= COL.op5; i += 2) {
-    const nick = (row[i] || '').toString().trim();
-    if (nick) return true;
+  for (const { nick } of OP_COLS) {
+    if ((row[nick] || '').toString().trim()) return true;
   }
   return false;
 }
@@ -437,7 +440,7 @@ function inQueue(row) {
 }
 
 // Тематические теги (не системные маркеры и не ники операторов)
-const SYSTEM_TAGS = new Set(['bot', 'operator', 'vip', 'privip', 'regular', 'tg', 'vip_reactivation']);
+const SYSTEM_TAGS = new Set(['bot', 'operator', 'operator_chat', 'vip', 'privip', 'regular', 'tg', 'vip_reactivation']);
 const SALE_WORDS = ['продаж', 'spam', 'спам', 'scam', 'ИИ'];
 
 function isSaleOrSpam(tag) {
@@ -545,11 +548,13 @@ function getChatId(row) {
 
 // Уникальный ID посетителя (email или userId)
 function getVisitorId(row) {
-  const email = (row[COL.email] || '').toString().trim().toLowerCase();
+  const email = (row[COL.email] || row[COL.customEmail] || '').toString().trim().toLowerCase();
   if (email) return email;
   const uid = (row[COL.userId] || '').toString().trim();
   if (uid) return uid;
-  return getChatId(row); // fallback
+  const phone = (row[COL.phone] || '').toString().trim();
+  if (phone && phone !== 'None') return phone;
+  return getChatId(row);
 }
 
 // Spam check
@@ -611,6 +616,7 @@ let lastResult = null;
 let lastResults = [];
 let byVisitor = {};
 let currentOpsFilter = 'all';
+let fileType = 'sg'; // 'sg' = СГ (Gama/Cat/etc), 'nk' = НК (Atom/Motor)
 let opStats = {};
 let REGULAR_OPERATORS_GLOBAL = [];
 let VIP_OPERATORS_GLOBAL = [];
@@ -651,8 +657,18 @@ function handleFile(file) {
         return;
       }
 
+      // Строим маппинг колонок по заголовкам — универсально для любой выгрузки
+      buildColMap(header);
+
       // Данные — всё кроме заголовка
-      parsedData = raw.slice(1).filter(r => r && r[COL.id]);
+      parsedData = raw.slice(1).filter(r => r && r[0] != null);
+
+      // Определяем тип выгрузки по источникам
+      const nkProjects = new Set(['atom', 'motor']);
+      const sources = parsedData.map(r => (r[COL.source] || '').toString().toLowerCase());
+      const hasNK = sources.some(s => nkProjects.has(s.replace(/\s*(support|tg)\s*/gi, '').trim()));
+      fileType = hasNK ? 'nk' : 'sg';
+      console.log('[fileType]', fileType);
 
       // Авто-определение дат
       const dates = parsedData.map(r => getDateStr(r)).filter(Boolean);
@@ -852,25 +868,28 @@ function computeDayResult(dayStr) {
   });
 
   const opStats2={};
-  ALL_OPERATORS.forEach(n=>opStats2[n]={chats:0,durations:[],multiChats:0,multiDurations:[],fullShifts:0,shiftType:''});
+  const _allOps2 = [...(REGULAR_OPERATORS_GLOBAL||[]), ...(VIP_OPERATORS_GLOBAL||[])];
+  _allOps2.forEach(n=>opStats2[n]={chats:0,durations:[],multiChats:0,multiDurations:[],fullShifts:0,shiftType:''});
   const opAllChats2={}, opMultiChats2={};
-  ALL_OPERATORS.forEach(n=>{opAllChats2[n]=[];opMultiChats2[n]=[];});
+  _allOps2.forEach(n=>{opAllChats2[n]=[];opMultiChats2[n]=[];});
 
   // Собираем операторов: чат засчитывается ПОСЛЕДНЕМУ оператору в цепочке
   parsedData.forEach(r=>{
     const ops=[];
-    for(let i=COL.op1;i<=COL.op5;i+=2){
-      const nick=(r[i]||'').toString().trim();
-      if(nick) ops.push({nick, dur: parseDuration(r[i+1]), col: i});
+    for(const {nick: ni, dur: di} of OP_COLS){
+      const nick=(r[ni]||'').toString().trim();
+      if(nick) ops.push({nick, dur: parseDuration(r[di]), col: ni});
     }
     if(!ops.length) return;
     const last = ops[ops.length-1];
-    if(!ALL_OPERATORS.includes(last.nick)) return;
+    if(!_allOps2.includes(last.nick)) return;
+    if(!opAllChats2[last.nick]) opAllChats2[last.nick]=[];
+    if(!opMultiChats2[last.nick]) opMultiChats2[last.nick]=[];
     if(ops.length===1){opAllChats2[last.nick].push(r);}
     else{opMultiChats2[last.nick].push(r);}
   });
 
-  ALL_OPERATORS.forEach(nick=>{
+  _allOps2.forEach(nick=>{
     const byDate2={};
     opAllChats2[nick].forEach(r=>{const dt=getDateStr(r);if(!byDate2[dt])byDate2[dt]={solo:[],multi:[]};byDate2[dt].solo.push(r);});
     opMultiChats2[nick].forEach(r=>{const dt=getDateStr(r);if(!byDate2[dt])byDate2[dt]={solo:[],multi:[]};byDate2[dt].multi.push(r);});
@@ -910,9 +929,9 @@ function computeDayResult(dayStr) {
 
       // Личная длительность: ищем колонку с ником оператора
       function getPersonalDur(r) {
-        for(let i=COL.op1;i<=COL.op5;i+=2){
-          if((r[i]||'').toString().trim()===nick){
-            const d=parseDuration(r[i+1]); return (d!==null&&d>0)?d:null;
+        for(const {nick: ni, dur: di} of [...OP_COLS].reverse()){
+          if((r[ni]||'').toString().trim()===nick){
+            const d=parseDuration(r[di]); return (d!==null&&d>0)?d:null;
           }
         }
         return null;
@@ -966,8 +985,8 @@ function computeDayResult(dayStr) {
         fcr:s.fcrTotal>0?fmt(s.fcrCount/s.fcrTotal*100,2):null};
       return acc;
     },{}),
-    operators: ALL_OPERATORS.reduce((acc,nick)=>{
-      const s=opStats2[nick];
+    operators: _allOps2.reduce((acc,nick)=>{
+      const s=opStats2[nick]||{chats:0,durations:[],multiChats:0};
       const ad=s.durations.length?avg(s.durations):0;
       const tc=s.chats+s.multiChats;
       acc[nick]={chats:tc,solo:s.chats,multiChats:s.multiChats,
@@ -1223,28 +1242,49 @@ function analyze() {
 
   function getOpsWithDur(r) {
     const ops = [];
-    for (let i = COL.op1; i <= COL.op5; i += 2) {
-      const nick = (r[i] || '').toString().trim();
+    for (const { nick: ni, dur: di } of OP_COLS) {
+      const nick = (r[ni] || '').toString().trim();
       if (nick) {
-        const dur = parseDuration(r[i + 1]);
-        ops.push({ nick, dur, col: i });
+        const dur = parseDuration(r[di]);
+        ops.push({ nick, dur, col: ni });
       }
     }
     return ops;
   }
 
+  // Собираем всех уникальных операторов из данных файла
+  const detectedOps = new Set();
+  parsedData.forEach(r => {
+    for (const { nick: ni } of OP_COLS) {
+      const nick = (r[ni] || '').toString().trim();
+      if (nick) detectedOps.add(nick);
+    }
+  });
+
+  // Определяем кто регуляр, кто вип из захардкоженных списков
+  // Операторы не из списков (Atom Motor и др.) попадают в регуляры
+  const effectiveRegular = [...new Set([
+    ...REGULAR_OPERATORS.filter(n => detectedOps.has(n)),
+    ...[...detectedOps].filter(n => !ALL_OPERATORS.includes(n))
+  ])];
+  const effectiveVip = VIP_OPERATORS.filter(n => detectedOps.has(n));
+  const effectiveAll = [...effectiveRegular, ...effectiveVip];
+
+  REGULAR_OPERATORS_GLOBAL = effectiveRegular;
+  VIP_OPERATORS_GLOBAL = effectiveVip;
+
   // opAllChats[nick]  = строки где он ЕДИНСТВЕННЫЙ оператор (соло)
   // opMultiChats[nick] = строки где он ПОСЛЕДНИЙ из нескольких (совместный)
   const opAllChats = {};
-  ALL_OPERATORS.forEach(n => opAllChats[n] = []);
+  effectiveAll.forEach(n => opAllChats[n] = []);
   const opMultiChats = {};
-  ALL_OPERATORS.forEach(n => opMultiChats[n] = []);
+  effectiveAll.forEach(n => opMultiChats[n] = []);
 
   parsedData.forEach(r => {
     const ops = getOpsWithDur(r);
     if (!ops.length) return;
     const last = ops[ops.length - 1]; // финальный assignee
-    if (!ALL_OPERATORS.includes(last.nick)) return;
+    if (!effectiveAll.includes(last.nick)) return;
     if (ops.length === 1) {
       opAllChats[last.nick].push({ r, dur: last.dur });
     } else {
@@ -1252,7 +1292,10 @@ function analyze() {
     }
   });
 
-  ALL_OPERATORS.forEach(n => opStats[n] = { chats:0, durations:[], multiChats:0, multiDurations:[], fullShifts:0, shiftType:'', effHours:0 });
+  ALL_OPERATORS.forEach(n => {
+    if (!opStats[n]) opStats[n] = { chats:0, durations:[], multiChats:0, multiDurations:[], fullShifts:0, shiftType:'', effHours:0 };
+  });
+  effectiveAll.forEach(n => opStats[n] = { chats:0, durations:[], multiChats:0, multiDurations:[], fullShifts:0, shiftType:'', effHours:0 });
 
   const periodDates = new Set(rows.map(r => getDateStr(r)));
   const periodIdSet = new Set();
@@ -1267,15 +1310,15 @@ function analyze() {
     }
   });
 
-  ALL_OPERATORS.forEach(nick => {
+  effectiveAll.forEach(nick => {
     const byDate = {};
 
-    opAllChats[nick].forEach(({ r }) => {
+    (opAllChats[nick] || []).forEach(({ r }) => {
       const dt = getDateStr(r); if (!dt) return;
       if (!byDate[dt]) byDate[dt] = { solo:[], multi:[] };
       byDate[dt].solo.push(r);
     });
-    opMultiChats[nick].forEach(({ r }) => {
+    (opMultiChats[nick] || []).forEach(({ r }) => {
       const dt = getDateStr(r); if (!dt) return;
       if (!byDate[dt]) byDate[dt] = { solo:[], multi:[] };
       byDate[dt].multi.push(r);
@@ -1347,9 +1390,9 @@ function analyze() {
         if (t < wstart || t > wend) return;
         if (!periodIdSet.has(getChatId(r))) return;
         opStats[nick].chats++;
-        for (let i = COL.op5; i >= COL.op1; i -= 2) {
-          if ((r[i] || '').toString().trim() === nick) {
-            const d = parseDuration(r[i + 1]);
+        for (const { nick: ni, dur: di } of [...OP_COLS].reverse()) {
+          if ((r[ni] || '').toString().trim() === nick) {
+            const d = parseDuration(r[di]);
             if (d !== null && d > 0) opStats[nick].durations.push(d);
             break;
           }
@@ -1362,9 +1405,9 @@ function analyze() {
         if (t < wstart || t > wend) return;
         if (!periodIdSet.has(getChatId(r))) return;
         opStats[nick].multiChats++;
-        for (let i = COL.op5; i >= COL.op1; i -= 2) {
-          if ((r[i] || '').toString().trim() === nick) {
-            const d = parseDuration(r[i + 1]);
+        for (const { nick: ni, dur: di } of [...OP_COLS].reverse()) {
+          if ((r[ni] || '').toString().trim() === nick) {
+            const d = parseDuration(r[di]);
             if (d !== null && d > 0) opStats[nick].multiDurations.push(d);
             break;
           }
@@ -1373,8 +1416,6 @@ function analyze() {
     });
   });
 
-  REGULAR_OPERATORS_GLOBAL = REGULAR_OPERATORS.slice();
-  VIP_OPERATORS_GLOBAL = VIP_OPERATORS.slice();
   currentOpsFilter = 'all';
   document.querySelectorAll('.ops-filter-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   renderOpsRows();
@@ -1411,8 +1452,8 @@ function analyze() {
         csat: csatP !== null ? fmt(csatP, 2) : null, fcr: fcrP };
       return acc;
     }, {}),
-    operators: ALL_OPERATORS.reduce((acc, nick) => {
-      const s = opStats[nick];
+    operators: effectiveAll.reduce((acc, nick) => {
+      const s = opStats[nick] || { chats:0, durations:[], multiChats:0, fullShifts:0, effHours:0 };
       const avgDur = s.durations.length ? avg(s.durations) : 0;
       const totalChatsOp2 = s.chats + s.multiChats;
       const effVal = (s.effHours > 0) ? (totalChatsOp2 / s.effHours).toFixed(1) : '0';
@@ -1441,25 +1482,29 @@ function analyze() {
 // =====================================================================
 // WEBHOOK
 // =====================================================================
-const WEBHOOK_URL = 'https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8ac8d4a24d0c4dfabbafb2330f0cd563/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=t5S9cOQah631lZBnYhQCVMp88IDhn8Qjg-_dBB7kces';
+const WEBHOOK_URL_SG = 'https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/8ac8d4a24d0c4dfabbafb2330f0cd563/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=t5S9cOQah631lZBnYhQCVMp88IDhn8Qjg-_dBB7kces';
+const WEBHOOK_URL_NK = 'https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/707c15c34dd84298904db48db2654f44/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=xAk_IbkY_akDLZgirLaBzT5o-diiiUeoa1Dgc5VnJLk';
 
 async function sendWebhook() {
   if (!lastResult && !lastResults) { setStatus('⚠ Сначала проанализируй данные', 'err'); return; }
 
-  setStatus('⏳ Отправка...', 'loading');
+  const webhookUrl = fileType === 'nk' ? WEBHOOK_URL_NK : WEBHOOK_URL_SG;
+  const label = fileType === 'nk' ? 'НК' : 'СГ';
+
+  setStatus(`⏳ Отправка (${label})...`, 'loading');
   document.getElementById('sendBtn').disabled = true;
 
   try {
     const results = lastResults || [lastResult];
     for (const result of results) {
-      await fetch(WEBHOOK_URL, {
+      await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(result)
       });
     }
     const n = (lastResults && lastResults.length) || 1;
-    setStatus(`✓ Отправлено ${n} ${n===1?'запись':'записей'}`, 'ok');
+    setStatus(`✓ Отправлено ${n} ${n===1?'запись':'записей'} → ${label}`, 'ok');
   } catch(e) {
     setStatus('✗ Ошибка соединения', 'err');
     console.error('Webhook error:', e);

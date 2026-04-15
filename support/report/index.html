@@ -356,28 +356,7 @@
       </div>
     </div>
 
-    <!-- ДОПОЛНИТЕЛЬНО -->
-    <div class="section">
-      <div class="section-label">Дополнительно</div>
-      <div class="grid-2">
-        <div class="field">
-          <label>Amatic прогрузился</label>
-          <select id="amaticLoaded">
-            <option value="">— не указано —</option>
-            <option value="Страница прогрузилась">Страница прогрузилась</option>
-            <option value="Не прогрузилась">Не прогрузилась</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Предложил бонус</label>
-          <select id="bonusOffered">
-            <option value="">— не указано —</option>
-            <option value="Да">Да</option>
-            <option value="Нет">Нет</option>
-          </select>
-        </div>
-      </div>
-    </div>
+    <!-- ДОПОЛНИТЕЛЬНО убрано -->
 
     <!-- ОТПРАВКА В TEAMS -->
     <div class="section" id="teamsSection">
@@ -534,8 +513,8 @@
       gmt:           document.getElementById("gmt").value.trim(),
       isp:           document.getElementById("isp").value.trim(),
       screenshot:    document.getElementById("screenshot").value.trim(),
-      amaticLoaded:  document.getElementById("amaticLoaded").value,
-      bonusOffered:  document.getElementById("bonusOffered").value,
+      amaticLoaded:  "",
+      bonusOffered:  "",
       provider1:     document.getElementById("provider1").value,
       provider2:     document.getElementById("provider2").value,
       provider3:     document.getElementById("provider3").value,

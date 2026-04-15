@@ -98,45 +98,8 @@
 
   .divider { width: 120px; height: 2px; margin: 20px auto 0; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
 
-  /* ─── Mode switcher ─── */
-  .mode-switcher {
-    display: flex;
-    justify-content: center;
-    gap: 0;
-    margin-bottom: 32px;
-    animation: fadeDown 0.8s ease-out 0.05s both;
-  }
-
-  .mode-btn {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    text-transform: uppercase;
-    letter-spacing: 2.5px;
-    padding: 14px 40px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.03);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    user-select: none;
-  }
-
-  .mode-btn:first-child { border-radius: 10px 0 0 10px; border-right: none; }
-  .mode-btn:last-child  { border-radius: 0 10px 10px 0; border-left: none; }
-
-  .mode-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
-
-  .mode-btn.active {
-    background: var(--bg-card);
-    color: var(--gold);
-    border-color: rgba(255,215,0,0.25);
-    box-shadow: 0 0 20px var(--glow-gold);
-  }
-
   /* ─── Mode sections ─── */
-  .mode-section { display: none; }
-  .mode-section.active { display: block; animation: fadeUp 0.4s ease-out; }
+  .mode-section { display: block; }
 
   /* ─── Tabs ─── */
   .tabs {
@@ -214,6 +177,7 @@
   /* Фиксированные ширины для таблиц чемпионата */
   #tab-feb table:not(.table-special),
   #tab-jan table:not(.table-special),
+  #tab-mar table:not(.table-special),
   #tab-dec table:not(.table-special) {
     width: 100%;
     table-layout: fixed;
@@ -221,30 +185,37 @@
 
   #tab-feb table:not(.table-special) th:nth-child(1),
   #tab-jan table:not(.table-special) th:nth-child(1),
+  #tab-mar table:not(.table-special) th:nth-child(1),
   #tab-dec table:not(.table-special) th:nth-child(1) { width: 8%; }
 
   #tab-feb table:not(.table-special) th:nth-child(2),
   #tab-jan table:not(.table-special) th:nth-child(2),
+  #tab-mar table:not(.table-special) th:nth-child(2),
   #tab-dec table:not(.table-special) th:nth-child(2) { width: 15%; }
 
   #tab-feb table:not(.table-special) th:nth-child(3),
   #tab-jan table:not(.table-special) th:nth-child(3),
+  #tab-mar table:not(.table-special) th:nth-child(3),
   #tab-dec table:not(.table-special) th:nth-child(3) { width: 12%; }
 
   #tab-feb table:not(.table-special) th:nth-child(4),
   #tab-jan table:not(.table-special) th:nth-child(4),
+  #tab-mar table:not(.table-special) th:nth-child(4),
   #tab-dec table:not(.table-special) th:nth-child(4) { width: 12%; }
 
   #tab-feb table:not(.table-special) th:nth-child(5),
   #tab-jan table:not(.table-special) th:nth-child(5),
+  #tab-mar table:not(.table-special) th:nth-child(5),
   #tab-dec table:not(.table-special) th:nth-child(5) { width: 12%; }
 
   #tab-feb table:not(.table-special) th:nth-child(6),
   #tab-jan table:not(.table-special) th:nth-child(6),
+  #tab-mar table:not(.table-special) th:nth-child(6),
   #tab-dec table:not(.table-special) th:nth-child(6) { width: 20%; }
 
   #tab-feb table:not(.table-special) th:nth-child(7),
   #tab-jan table:not(.table-special) th:nth-child(7),
+  #tab-mar table:not(.table-special) th:nth-child(7),
   #tab-dec table:not(.table-special) th:nth-child(7) { width: 21%; }
 
   thead th {
@@ -311,10 +282,12 @@
   /* Выравнивание для таблиц чемпионата (материальные и нематериальные) */
   #tab-feb table:not(.table-special) thead th:nth-child(2),
   #tab-jan table:not(.table-special) thead th:nth-child(2),
+  #tab-mar table:not(.table-special) thead th:nth-child(2),
   #tab-dec table:not(.table-special) thead th:nth-child(2) { text-align: left; }
   
   #tab-feb table:not(.table-special) td:nth-child(2),
   #tab-jan table:not(.table-special) td:nth-child(2),
+  #tab-mar table:not(.table-special) td:nth-child(2),
   #tab-dec table:not(.table-special) td:nth-child(2) { text-align: left; font-family: 'Nunito', sans-serif; font-weight: 700; }
 
   .name { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; }
@@ -399,142 +372,17 @@
   @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
   .table-wrapper { animation: fadeUp 0.5s ease-out both; }
 
-  /* ─── Sales Rating ─── */
-  .sales-table thead th {
-    text-align: right;
-    width: auto;
-  }
-  .sales-table thead th:nth-child(1) { text-align: center; width: 52px; }
-  .sales-table thead th:nth-child(2) { text-align: left; width: 130px; }
-  .sales-table thead th:nth-child(3),
-  .sales-table thead th:nth-child(4),
-  .sales-table thead th:nth-child(5) { text-align: right; }
-  .sales-table thead th:nth-child(6),
-  .sales-table thead th:nth-child(7),
-  .sales-table thead th:nth-child(8) { text-align: right; }
-  .sales-table thead th:last-child { text-align: right; }
-
-  .sales-table td {
-    text-align: right;
-    font-size: 14px;
-    padding: 13px 16px;
-  }
-  .sales-table td:nth-child(1) { text-align: center; font-size: 18px; padding: 13px 10px; width: 52px; }
-  .sales-table td:nth-child(2) { text-align: left; font-weight: 700; font-size: 15px; padding: 13px 16px; }
-  .sales-table td:nth-child(3) { color: var(--text-primary); opacity: 1; font-family: 'Nunito', sans-serif; }
-
-  .sales-table tbody tr:nth-child(odd) { background: var(--bg-row); }
-  .sales-table tbody tr:nth-child(even) { background: var(--bg-row-alt); }
-  .sales-table tbody tr:hover { background: rgba(34, 197, 94, 0.06); transform: scale(1.002); }
-
-  /* top-3 row backgrounds for sales */
-  tr.sales-row-1 { background: linear-gradient(90deg, rgba(255,215,0,0.07), transparent 70%) !important; }
-  tr.sales-row-2 { background: linear-gradient(90deg, rgba(192,192,192,0.05), transparent 70%) !important; }
-  tr.sales-row-3 { background: linear-gradient(90deg, rgba(205,127,50,0.05), transparent 70%) !important; }
-
-  .pct-green {
-    color: var(--accent-green);
-    font-weight: 700;
-  }
-  .pct-red {
-    color: var(--accent-red);
-    font-weight: 700;
-  }
-
-  .bonus-cell {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 600;
-    color: var(--gold);
-    font-size: 14px;
-  }
-  .bonus-cell.zero {
-    color: var(--text-muted);
-    font-weight: 400;
-  }
-
-  .rank-icon { font-size: 20px; line-height: 1; }
-
-  .sales-legend {
-    display: flex;
-    gap: 20px;
-    justify-content: flex-end;
-    padding: 10px 8px 0;
-    font-size: 12px;
-    color: var(--text-muted);
-    letter-spacing: 0.3px;
-  }
-  .legend-dot {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    margin-right: 5px;
-    vertical-align: middle;
-  }
-  .legend-green { background: var(--accent-green); }
-  .legend-red { background: var(--accent-red); }
-
-  .sales-legend-block {
-    background: var(--bg-card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
-    animation: fadeUp 0.5s ease-out both;
-  }
-  .legend-formula-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--accent-cyan);
-    margin-bottom: 4px;
-  }
-  .legend-formula-desc {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-    letter-spacing: 0.3px;
-  }
-  .legend-formula-desc strong { color: var(--gold); }
-  .legend-tables {
-    display: flex;
-    gap: 28px;
-    flex-wrap: wrap;
-  }
-  .legend-table-wrap { flex: 1; min-width: 200px; }
-  .legend-table-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-    line-height: 1.5;
-  }
-  .legend-table-title span { text-transform: none; letter-spacing: 0; font-family: 'Nunito', sans-serif; font-size: 11px; opacity: 0.7; }
-  .legend-table { border-collapse: collapse; width: 100%; }
-  .legend-table tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .legend-table td { padding: 5px 10px; font-size: 13px; }
-  .legend-table td:first-child { font-weight: 700; }
-  .legend-table td:last-child { color: var(--text-muted); font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 1px; }
-
-  .sales-table thead th.sortable { cursor: pointer; }
-  .sales-table thead th:hover { color: var(--text-primary); }
   .sort-arrow { font-size: 11px; opacity: 0.8; }
 
   @media (max-width: 640px) {
     .header h1 { font-size: 26px; letter-spacing: 2px; }
     .header .subtitle { font-size: 11px; letter-spacing: 3px; }
-    .mode-btn { padding: 11px 18px; font-size: 12px; letter-spacing: 1px; }
     .tab { padding: 10px 16px; font-size: 12px; letter-spacing: 1px; }
     thead th, td { padding: 12px 10px; }
     .name { font-size: 14px; }
     td:nth-child(3) { font-size: 12px; }
     .prize-badge { font-size: 11px; padding: 4px 8px; }
     .section-header { font-size: 14px; padding: 14px 12px; }
-    .sales-table td { font-size: 12px; padding: 10px 8px; }
   }
 
   /* ─── CSAT Formula Block ─── */
@@ -754,14 +602,8 @@
     <div class="divider"></div>
   </div>
 
-  <!-- ─── Mode Switcher ─── -->
-  <div class="mode-switcher">
-    <div class="mode-btn active" onclick="switchMode('championship')">🏆 Чемпионат</div>
-    <div class="mode-btn" onclick="switchMode('sales')">💰 Рейтинг продаж</div>
-  </div>
-
   <!-- ==================== РЕЖИМ: ЧЕМПИОНАТ ==================== -->
-  <div id="mode-championship" class="mode-section active">
+  <div id="mode-championship">
 
     <!-- Формула чемпионского балла -->
     <div class="csat-formula-block">
@@ -784,11 +626,12 @@
     <div class="tabs">
       <div class="tab" onclick="switchTab('dec')">Декабрь 2025</div>
       <div class="tab" onclick="switchTab('jan')">Январь 2026</div>
-      <div class="tab active" onclick="switchTab('feb')">Февраль 2026</div>
+      <div class="tab" onclick="switchTab('feb')">Февраль 2026</div>
+      <div class="tab active" onclick="switchTab('mar')">Март 2026</div>
     </div>
 
     <!-- ==================== ФЕВРАЛЬ ==================== -->
-    <div id="tab-feb" class="tab-content active">
+    <div id="tab-feb" class="tab-content">
 
       <div class="section-header section-material">
         <span class="icon">💰</span>
@@ -1232,128 +1075,142 @@
 
     </div>
 
+    <!-- ==================== МАРТ ==================== -->
+    <div id="tab-mar" class="tab-content active">
+
+      <div class="section-header section-material">
+        <span class="icon">💰</span>
+        <span>Материальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-1">
+              <td><span class="medal">🥇</span></td>
+              <td><span class="name name-gold">Tom</span></td>
+              <td>1 374 761 905</td>
+              <td><span class="prize-badge prize-money">3 000 грн</span></td>
+            </tr>
+            <tr class="row-2">
+              <td><span class="medal">🥈</span></td>
+              <td><span class="name name-silver">Trinity</span></td>
+              <td>1 359 675 325</td>
+              <td><span class="prize-badge prize-money">2 000 грн</span></td>
+            </tr>
+            <tr class="row-3">
+              <td><span class="medal">🥉</span></td>
+              <td><span class="name name-bronze">Ashton</span></td>
+              <td>1 351 006 494</td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-nonmaterial">
+        <span class="icon">⭐</span>
+        <span>Нематериальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="place-other">4</span></td>
+              <td><span class="name">Rudy</span></td>
+              <td>1 324 115 260</td>
+              <td><span class="prize-badge prize-time">Уйти на 3 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">5</span></td>
+              <td><span class="name">Kenzo</span></td>
+              <td>1 297 716 450</td>
+              <td><span class="prize-badge prize-food">2 обеда по 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">6</span></td>
+              <td><span class="name">Robin</span></td>
+              <td>1 265 844 156</td>
+              <td><span class="prize-badge prize-time">Уйти на 2 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">7</span></td>
+              <td><span class="name">Caleb</span></td>
+              <td>1 264 940 476</td>
+              <td><span class="prize-badge prize-food">1 обед 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">8</span></td>
+              <td><span class="name">Skylar</span></td>
+              <td>1 263 257 576</td>
+              <td><span class="prize-badge prize-time">Уйти на 1 ч раньше</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-special">
+        <span class="icon">🌟</span>
+        <span>Вне конкурса — за особые заслуги</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table-special">
+          <thead>
+            <tr>
+              <th>Оператор</th>
+              <th>Приз</th>
+              <th>За что</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Tom</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>За показатели продаж</td>
+            </tr>
+            <tr>
+              <td><span class="name">Holly</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>За показатели продаж</td>
+            </tr>
+            <tr>
+              <td><span class="name">Scott</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>За показатели продаж</td>
+            </tr>
+            <tr>
+              <td><span class="name">Denzel</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>За показатели продаж</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
   </div><!-- /mode-championship -->
-
-  <!-- ==================== РЕЖИМ: РЕЙТИНГ ПРОДАЖ ==================== -->
-  <div id="mode-sales" class="mode-section">
-
-    <div class="tabs" id="sales-tabs">
-      <div class="tab active" onclick="switchSalesTab('jan')">Январь 2026</div>
-      <div class="tab" onclick="switchSalesTab('feb')">Февраль 2026</div>
-      <div class="tab" onclick="switchSalesTab('mar')">Март 2026</div>
-    </div>
-
-    <!-- Легенда / Формула -->
-    <div class="sales-legend-block">
-      <div class="legend-formula-title">💡 Как считается бонус</div>
-      <div class="legend-formula-desc">Бонус = Продажи × $5 × К₁ (предпрод) × К₂ (продажи)</div>
-      <div class="legend-tables">
-        <div class="legend-table-wrap">
-          <div class="legend-table-title">Конверсия в предпродажу (К₁)<br><span>% чатов, где был оффер</span></div>
-          <table class="legend-table">
-            <tr><td><span style="color:#EF4444">≤ 5%</span></td><td>× 0.0</td></tr>
-            <tr><td><span style="color:#F97316">5 – 10%</span></td><td>× 0.5</td></tr>
-            <tr><td><span style="color:#EAB308">10 – 18%</span></td><td>× 0.9</td></tr>
-            <tr><td><span style="color:#84CC16">18 – 24%</span></td><td>× 1.0</td></tr>
-            <tr><td><span style="color:#22C55E">≥ 25%</span></td><td>× 1.1</td></tr>
-          </table>
-        </div>
-        <div class="legend-table-wrap">
-          <div class="legend-table-title">Конверсия в продажу (К₂)<br><span>% продаж от всей базы чатов</span></div>
-          <table class="legend-table">
-            <tr><td><span style="color:#EF4444">≤ 1%</span></td><td>× 0.5</td></tr>
-            <tr><td><span style="color:#F97316">1 – 2.5%</span></td><td>× 0.8</td></tr>
-            <tr><td><span style="color:#EAB308">2.5 – 3.0%</span></td><td>× 1.0</td></tr>
-            <tr><td><span style="color:#84CC16">3.0 – 3.5%</span></td><td>× 1.1</td></tr>
-            <tr><td><span style="color:#84CC16">3.5 – 4.0%</span></td><td>× 1.2</td></tr>
-            <tr><td><span style="color:#22C55E">≥ 4%</span></td><td>× 1.3</td></tr>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== ПРОДАЖИ: ЯНВАРЬ ==================== -->
-    <div id="stab-jan" class="tab-content active">
-      <div class="section-header section-sales" style="margin-top: 16px;">
-        <span class="icon">📈</span>
-        <span>Рейтинг продаж — Январь 2026</span>
-        <span class="line"></span>
-      </div>
-      <div class="table-wrapper">
-        <table class="sales-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Оператор</th>
-              <th>Всего чатов</th>
-              <th>Предпродажи</th>
-              <th>Продажи</th>
-              <th title="Продажи / Предпродажи">Прод / Предпрод</th>
-              <th title="Предпродажи / Всего чатов">Предпрод / Тотал</th>
-              <th title="Продажи / Всего чатов">Прод / Тотал</th>
-              <th>Бонус ($)</th>
-            </tr>
-          </thead>
-          <tbody id="sales-jan-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ==================== ПРОДАЖИ: ФЕВРАЛЬ ==================== -->
-    <div id="stab-feb" class="tab-content">
-      <div class="section-header section-sales" style="margin-top: 16px;">
-        <span class="icon">📈</span>
-        <span>Рейтинг продаж — Февраль 2026</span>
-        <span class="line"></span>
-      </div>
-      <div class="table-wrapper">
-        <table class="sales-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Оператор</th>
-              <th>Всего чатов</th>
-              <th>Предпродажи</th>
-              <th>Продажи</th>
-              <th title="Продажи / Предпродажи">Прод / Предпрод</th>
-              <th title="Предпродажи / Всего чатов">Предпрод / Тотал</th>
-              <th title="Продажи / Всего чатов">Прод / Тотал</th>
-              <th>Бонус ($)</th>
-            </tr>
-          </thead>
-          <tbody id="sales-feb-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ==================== ПРОДАЖИ: МАРТ ==================== -->
-    <div id="stab-mar" class="tab-content">
-      <div class="section-header section-sales" style="margin-top: 16px;">
-        <span class="icon">📈</span>
-        <span>Рейтинг продаж — Март 2026</span>
-        <span class="line"></span>
-      </div>
-      <div class="table-wrapper">
-        <table class="sales-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Оператор</th>
-              <th>Всего чатов</th>
-              <th>Предпродажи</th>
-              <th>Продажи</th>
-              <th title="Продажи / Предпродажи">Прод / Предпрод</th>
-              <th title="Предпродажи / Всего чатов">Предпрод / Тотал</th>
-              <th title="Продажи / Всего чатов">Прод / Тотал</th>
-              <th>Бонус ($)</th>
-            </tr>
-          </thead>
-          <tbody id="sales-mar-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div><!-- /mode-sales -->
 
   <div class="footer">✦ Поздравляем всех победителей ✦</div>
 
@@ -1431,253 +1288,14 @@ function switchTab(month) {
   document.querySelectorAll('#mode-championship .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('#mode-championship .tab-content').forEach(c => c.classList.remove('active'));
   const tabs = document.querySelectorAll('#mode-championship .tab');
-  const map = { dec: 0, jan: 1, feb: 2 };
+  const map = { dec: 0, jan: 1, feb: 2, mar: 3 };
   tabs[map[month]].classList.add('active');
   document.getElementById('tab-' + month).classList.add('active');
 }
 
-// ─── Mode switcher ───
-function switchMode(mode) {
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
-  const idx = mode === 'championship' ? 0 : 1;
-  document.querySelectorAll('.mode-btn')[idx].classList.add('active');
-  document.getElementById('mode-' + mode).classList.add('active');
-}
-
-// ─── Sales tabs ───
-function switchSalesTab(month) {
-  document.querySelectorAll('#sales-tabs .tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('#mode-sales .tab-content').forEach(c => c.classList.remove('active'));
-  const tabs = document.querySelectorAll('#sales-tabs .tab');
-  const map = { jan: 0, feb: 1, mar: 2 };
-  tabs[map[month]].classList.add('active');
-  document.getElementById('stab-' + month).classList.add('active');
-}
-
-// ─── Color tiers ───
-function stColor(v) {
-  if (v <= 1)   return '#EF4444';
-  if (v <= 2.5) return '#F97316';
-  if (v <= 3.5) return '#EAB308';
-  if (v < 4)    return '#84CC16';
-  return '#22C55E';
-}
-
-function ptColor(v) {
-  if (v <= 5)   return '#EF4444';
-  if (v <= 10)  return '#F97316';
-  if (v <= 18)  return '#EAB308';
-  if (v < 25)   return '#84CC16';
-  return '#22C55E';
-}
-
-// ─── Sales data ───
-const salesData = {
-  jan: [
-    { name: 'Denzel',   total: 513,  presales: 170, sales: 8, p_sp: 4.71, p_pt: 33.14, p_st: 1.56, bonus: 35.20  },
-    { name: 'Tom',      total: 477,  presales: 90,  sales: 4, p_sp: 4.44, p_pt: 18.87, p_st: 0.84, bonus: 10.00  },
-    { name: 'Holly',    total: 485,  presales: 118, sales: 3, p_sp: 2.54, p_pt: 24.33, p_st: 0.62, bonus: 8.25   },
-    { name: 'Christine',total: 583,  presales: 100, sales: 3, p_sp: 3.00, p_pt: 17.15, p_st: 0.51, bonus: 6.75   },
-    { name: 'Casper',   total: 1165, presales: 107, sales: 5, p_sp: 4.67, p_pt: 9.18,  p_st: 0.43, bonus: 6.375  },
-    { name: 'Plover',   total: 360,  presales: 74,  sales: 2, p_sp: 2.70, p_pt: 20.56, p_st: 0.56, bonus: 5.00   },
-    { name: 'Felicia',  total: 862,  presales: 134, sales: 2, p_sp: 1.49, p_pt: 15.55, p_st: 0.23, bonus: 4.50   },
-    { name: 'Chadwick', total: 686,  presales: 35,  sales: 2, p_sp: 5.71, p_pt: 5.10,  p_st: 0.29, bonus: 2.55   },
-    { name: 'Scott',    total: 604,  presales: 53,  sales: 2, p_sp: 3.77, p_pt: 8.77,  p_st: 0.33, bonus: 2.55   },
-    { name: 'Ewan',     total: 745,  presales: 111, sales: 1, p_sp: 0.90, p_pt: 14.90, p_st: 0.13, bonus: 2.25   },
-    { name: 'River',    total: 613,  presales: 107, sales: 1, p_sp: 0.93, p_pt: 17.46, p_st: 0.16, bonus: 2.25   },
-    { name: 'Melvin',   total: 435,  presales: 38,  sales: 1, p_sp: 2.63, p_pt: 8.74,  p_st: 0.23, bonus: 1.275  },
-    { name: 'Alexia',   total: 665,  presales: 17,  sales: 1, p_sp: 5.88, p_pt: 2.56,  p_st: 0.15, bonus: 0      },
-    { name: 'Ashton',   total: 677,  presales: 31,  sales: 1, p_sp: 3.23, p_pt: 4.58,  p_st: 0.15, bonus: 0      },
-    { name: 'Bill',     total: 679,  presales: 16,  sales: 2, p_sp: 12.50,p_pt: 2.36,  p_st: 0.29, bonus: 0      },
-    { name: 'Bridget',  total: 1120, presales: 26,  sales: 1, p_sp: 3.85, p_pt: 2.32,  p_st: 0.09, bonus: 0      },
-    { name: 'Chandler', total: 968,  presales: 11,  sales: 1, p_sp: 9.09, p_pt: 1.14,  p_st: 0.10, bonus: 0      },
-    { name: 'Jay',      total: 1209, presales: 9,   sales: 1, p_sp: 11.11,p_pt: 0.74,  p_st: 0.08, bonus: 0      },
-    { name: 'Monica',   total: 1028, presales: 7,   sales: 1, p_sp: 14.29,p_pt: 0.68,  p_st: 0.10, bonus: 0      },
-    { name: 'Simon',    total: 448,  presales: 2,   sales: 1, p_sp: 50.00,p_pt: 0.45,  p_st: 0.22, bonus: 0      },
-    { name: 'Will',     total: 1229, presales: 27,  sales: 1, p_sp: 3.70, p_pt: 2.20,  p_st: 0.08, bonus: 0      },
-  ],
-  feb: [
-    { name: 'Denzel',   total: 663,  presales: 227, sales: 10, p_sp: 4.41,  p_pt: 34.24, p_st: 1.51, bonus: 44     },
-    { name: 'Holly',    total: 628,  presales: 156, sales: 5,  p_sp: 3.21,  p_pt: 24.84, p_st: 0.80, bonus: 13.75  },
-    { name: 'Plover',   total: 535,  presales: 101, sales: 5,  p_sp: 4.95,  p_pt: 18.88, p_st: 0.93, bonus: 12.5   },
-    { name: 'Tom',      total: 477,  presales: 90,  sales: 4,  p_sp: 4.44,  p_pt: 18.87, p_st: 0.84, bonus: 10     },
-    { name: 'Casper',   total: 1486, presales: 132, sales: 6,  p_sp: 4.55,  p_pt: 8.88,  p_st: 0.40, bonus: 7.65   },
-    { name: 'Christine',total: 762,  presales: 135, sales: 3,  p_sp: 2.22,  p_pt: 17.72, p_st: 0.39, bonus: 6.75   },
-    { name: 'Felicia',  total: 1066, presales: 163, sales: 2,  p_sp: 1.23,  p_pt: 15.29, p_st: 0.19, bonus: 4.5    },
-    { name: 'Warren',   total: 1284, presales: 79,  sales: 3,  p_sp: 3.80,  p_pt: 6.15,  p_st: 0.23, bonus: 3.825  },
-    { name: 'Scott',    total: 604,  presales: 53,  sales: 2,  p_sp: 3.77,  p_pt: 8.77,  p_st: 0.33, bonus: 2.55   },
-    { name: 'Ewan',     total: 976,  presales: 125, sales: 1,  p_sp: 0.80,  p_pt: 12.81, p_st: 0.10, bonus: 2.25   },
-    { name: 'River',    total: 898,  presales: 115, sales: 1,  p_sp: 0.87,  p_pt: 12.81, p_st: 0.11, bonus: 2.25   },
-    { name: 'Ashton',   total: 853,  presales: 43,  sales: 1,  p_sp: 2.33,  p_pt: 5.04,  p_st: 0.12, bonus: 1.275  },
-    { name: 'Melvin',   total: 435,  presales: 38,  sales: 1,  p_sp: 2.63,  p_pt: 8.74,  p_st: 0.23, bonus: 1.275  },
-    { name: '—',        total: null, presales: null,sales: 1,  p_sp: 0,     p_pt: null,  p_st: 0,    bonus: 0      },
-    { name: 'Alexia',   total: 762,  presales: 17,  sales: 1,  p_sp: 5.88,  p_pt: 2.23,  p_st: 0.13, bonus: 0      },
-    { name: 'Balfour',  total: 1356, presales: 42,  sales: 2,  p_sp: 4.76,  p_pt: 3.10,  p_st: 0.15, bonus: 0      },
-    { name: 'Bill',     total: 851,  presales: 24,  sales: 2,  p_sp: 8.33,  p_pt: 2.82,  p_st: 0.24, bonus: 0      },
-    { name: 'Bridget',  total: 1313, presales: 34,  sales: 1,  p_sp: 2.94,  p_pt: 2.59,  p_st: 0.08, bonus: 0      },
-    { name: 'Chadwick', total: 1020, presales: 35,  sales: 2,  p_sp: 5.71,  p_pt: 3.43,  p_st: 0.20, bonus: 0      },
-    { name: 'Chandler', total: 1071, presales: 18,  sales: 2,  p_sp: 11.11, p_pt: 1.68,  p_st: 0.19, bonus: 0      },
-    { name: 'Fletcher', total: 1173, presales: 5,   sales: 2,  p_sp: 40.00, p_pt: 0.43,  p_st: 0.17, bonus: 0      },
-    { name: 'Hardy',    total: 861,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.23,  p_st: 0.12, bonus: 0      },
-    { name: 'Jay',      total: 1407, presales: 9,   sales: 1,  p_sp: 11.11, p_pt: 0.64,  p_st: 0.07, bonus: 0      },
-    { name: 'Jonathan', total: 1513, presales: 4,   sales: 1,  p_sp: 25.00, p_pt: 0.26,  p_st: 0.07, bonus: 0      },
-    { name: 'Lex',      total: 1390, presales: 31,  sales: 1,  p_sp: 3.23,  p_pt: 2.23,  p_st: 0.07, bonus: 0      },
-    { name: 'Monica',   total: 1238, presales: 7,   sales: 1,  p_sp: 14.29, p_pt: 0.57,  p_st: 0.08, bonus: 0      },
-    { name: 'Murphy',   total: 1361, presales: 4,   sales: 1,  p_sp: 25.00, p_pt: 0.29,  p_st: 0.07, bonus: 0      },
-    { name: 'Reggie',   total: 372,  presales: 5,   sales: 1,  p_sp: 20.00, p_pt: 1.34,  p_st: 0.27, bonus: 0      },
-    { name: 'Silvia',   total: 587,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.34,  p_st: 0.17, bonus: 0      },
-    { name: 'Simon',    total: 472,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.42,  p_st: 0.21, bonus: 0      },
-    { name: 'Skylar',   total: 1186, presales: 9,   sales: 1,  p_sp: 11.11, p_pt: 0.76,  p_st: 0.08, bonus: 0      },
-    { name: 'Will',     total: 1644, presales: 30,  sales: 1,  p_sp: 3.33,  p_pt: 1.82,  p_st: 0.06, bonus: 0      },
-  ],
-  mar: [
-    { name: 'Scott',       total: 975,   presales: 154, sales: 23, p_sp: 14.94,  p_pt: 15.79,  p_st: 2.36, bonus: 82.8   },
-    { name: 'Tom',         total: 512,   presales: 140, sales: 13, p_sp: 9.29,   p_pt: 27.34,  p_st: 2.54, bonus: 71.5   },
-    { name: 'Holly',       total: 848,   presales: 294, sales: 14, p_sp: 4.76,   p_pt: 34.67,  p_st: 1.65, bonus: 61.6   },
-    { name: 'Felicia',     total: 1283,  presales: 165, sales: 9,  p_sp: 5.45,   p_pt: 12.86,  p_st: 0.7,  bonus: 20.25  },
-    { name: 'Casper',      total: 823,   presales: 150, sales: 7,  p_sp: 4.67,   p_pt: 18.23,  p_st: 0.85, bonus: 17.5   },
-    { name: 'Denzel',      total: 639,   presales: 162, sales: 6,  p_sp: 3.7,    p_pt: 25.35,  p_st: 0.94, bonus: 16.5   },
-    { name: 'Will',        total: 1584,  presales: 156, sales: 12, p_sp: 7.69,   p_pt: 9.85,   p_st: 0.76, bonus: 15.3   },
-    { name: 'Christine',   total: 675,   presales: 158, sales: 5,  p_sp: 3.16,   p_pt: 23.41,  p_st: 0.74, bonus: 12.5   },
-    { name: 'Plover',      total: 629,   presales: 115, sales: 5,  p_sp: 4.35,   p_pt: 18.28,  p_st: 0.79, bonus: 12.5   },
-    { name: 'Bridget',     total: 1212,  presales: 73,  sales: 9,  p_sp: 12.33,  p_pt: 6.02,   p_st: 0.74, bonus: 11.475 },
-    { name: 'Ashton',      total: 1118,  presales: 59,  sales: 7,  p_sp: 11.86,  p_pt: 5.28,   p_st: 0.63, bonus: 8.925  },
-    { name: 'Nolan',       total: 1075,  presales: 57,  sales: 3,  p_sp: 5.26,   p_pt: 5.3,    p_st: 0.28, bonus: 3.825  },
-    { name: 'Warren',      total: 1093,  presales: 75,  sales: 3,  p_sp: 4.0,    p_pt: 6.86,   p_st: 0.27, bonus: 3.825  },
-    { name: 'Balfour',     total: 1161,  presales: 49,  sales: 2,  p_sp: 4.08,   p_pt: 4.22,   p_st: 0.17, bonus: 0      },
-    { name: 'Bob',         total: 1481,  presales: 14,  sales: 2,  p_sp: 14.29,  p_pt: 0.95,   p_st: 0.14, bonus: 0      },
-    { name: 'Calvin',      total: 851,   presales: 16,  sales: 3,  p_sp: 18.75,  p_pt: 1.88,   p_st: 0.35, bonus: 0      },
-    { name: 'Colin',       total: 1775,  presales: 60,  sales: 8,  p_sp: 13.33,  p_pt: 3.38,   p_st: 0.45, bonus: 0      },
-    { name: 'Earl',        total: 1114,  presales: 37,  sales: 2,  p_sp: 5.41,   p_pt: 3.32,   p_st: 0.18, bonus: 0      },
-    { name: 'Elijah',      total: 905,   presales: 3,   sales: 1,  p_sp: 33.33,  p_pt: 0.33,   p_st: 0.11, bonus: 0      },
-    { name: 'Fletcher',    total: 963,   presales: 5,   sales: 2,  p_sp: 40.0,   p_pt: 0.52,   p_st: 0.21, bonus: 0      },
-    { name: 'Gross',       total: 1487,  presales: 12,  sales: 1,  p_sp: 8.33,   p_pt: 0.81,   p_st: 0.07, bonus: 0      },
-    { name: 'Hardy',       total: 658,   presales: 20,  sales: 3,  p_sp: 15.0,   p_pt: 3.04,   p_st: 0.46, bonus: 0      },
-    { name: 'Isaac',       total: 918,   presales: 24,  sales: 1,  p_sp: 4.17,   p_pt: 2.61,   p_st: 0.11, bonus: 0      },
-    { name: 'Jay',         total: 1462,  presales: 27,  sales: 2,  p_sp: 7.41,   p_pt: 1.85,   p_st: 0.14, bonus: 0      },
-    { name: 'Jonathan',    total: 1247,  presales: 23,  sales: 6,  p_sp: 26.09,  p_pt: 1.84,   p_st: 0.48, bonus: 0      },
-    { name: 'Kenzo',       total: 1706,  presales: 30,  sales: 2,  p_sp: 6.67,   p_pt: 1.76,   p_st: 0.12, bonus: 0      },
-    { name: 'Lex',         total: 1386,  presales: 65,  sales: 6,  p_sp: 9.23,   p_pt: 4.69,   p_st: 0.43, bonus: 0      },
-    { name: 'Maverick',    total: 1635,  presales: 16,  sales: 2,  p_sp: 12.5,   p_pt: 0.98,   p_st: 0.12, bonus: 0      },
-    { name: 'Monica',      total: 1140,  presales: 14,  sales: 1,  p_sp: 7.14,   p_pt: 1.23,   p_st: 0.09, bonus: 0      },
-    { name: 'Murphy',      total: 1562,  presales: 35,  sales: 6,  p_sp: 17.14,  p_pt: 2.24,   p_st: 0.38, bonus: 0      },
-    { name: 'Robert',      total: 1330,  presales: 60,  sales: 4,  p_sp: 6.67,   p_pt: 4.51,   p_st: 0.3,  bonus: 0      },
-    { name: 'Robin',       total: 1095,  presales: 38,  sales: 3,  p_sp: 7.89,   p_pt: 3.47,   p_st: 0.27, bonus: 0      },
-  ]
-};
-
-// ─── Sort state per month ───
-const sortState = { jan: { col: 'bonus', dir: -1 }, feb: { col: 'bonus', dir: -1 }, mar: { col: 'bonus', dir: -1 } };
-
-const COL_KEYS = ['rank', 'name', 'total', 'presales', 'sales', 'p_sp', 'p_pt', 'p_st', 'bonus'];
-
-function sortData(data, col, dir) {
-  return [...data].sort((a, b) => {
-    let va = a[col], vb = b[col];
-    if (col === 'name') return dir * va.localeCompare(vb);
-    return dir * (va - vb);
-  });
-}
-
-const TOP_ICONS = ['🥇', '🥈', '🥉'];
-
-function renderSalesTable(month) {
-  const data = salesData[month];
-  const tbody = document.getElementById('sales-' + month + '-body');
-  if (!tbody) return;
-  if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:60px 20px;color:var(--text-muted);font-family:\'Oswald\',sans-serif;letter-spacing:2px;font-size:14px;">ДАННЫЕ ЕЩЁ НЕ ДОБАВЛЕНЫ</td></tr>';
-    updateSortHeaders(month);
-    return;
-  }
-
-  const { col, dir } = sortState[month];
-  const filtered = data.filter(r => r.name && r.name !== '—' && r.name.trim() !== '');
-  const byBonus = [...filtered].sort((a, b) => b.bonus - a.bonus || b.sales - a.sales);
-  const rankMap = {};
-  byBonus.forEach((r, i) => { rankMap[r.name] = i + 1; });
-
-  const displayData = (col === 'rank' && dir === -1) ? byBonus : sortData(filtered, col, dir);
-
-  let html = '';
-  displayData.forEach((row) => {
-    const rank = rankMap[row.name];
-    const rowClass = rank <= 3 ? ` class="sales-row-${rank}"` : '';
-    const rankCell = rank <= 3
-      ? `<span class="rank-icon">${TOP_ICONS[rank-1]}</span>`
-      : `<span style="color:var(--text-muted);font-family:'Oswald',sans-serif;font-size:15px;">${rank}</span>`;
-
-    const bonusStr = row.bonus > 0
-      ? `<span class="bonus-cell">$${Math.round(row.bonus)}</span>`
-      : `<span class="bonus-cell zero">-</span>`;
-
-    html += `<tr${rowClass}>
-      <td>${rankCell}</td>
-      <td><span class="name">${row.name}</span></td>
-      <td>${row.total != null ? row.total.toLocaleString('ru') : '—'}</td>
-      <td>${row.presales != null ? row.presales : '—'}</td>
-      <td>${row.sales}</td>
-      <td style="color:var(--text-muted)">${row.p_sp != null ? row.p_sp.toFixed(2) + '%' : '—'}</td>
-      <td>${row.p_pt != null ? `<span style="color:${ptColor(row.p_pt)};font-weight:700;">${row.p_pt.toFixed(2)}%</span>` : '—'}</td>
-      <td>${row.p_st != null ? `<span style="color:${stColor(row.p_st)};font-weight:700;">${row.p_st.toFixed(2)}%</span>` : '—'}</td>
-      <td>${bonusStr}</td>
-    </tr>`;
-  });
-  tbody.innerHTML = html;
-  updateSortHeaders(month);
-}
-
-function updateSortHeaders(month) {
-  const { col, dir } = sortState[month];
-  const table = document.querySelector(`#stab-${month} table`);
-  if (!table) return;
-  table.querySelectorAll('thead th').forEach((th, i) => {
-    const key = COL_KEYS[i];
-    th.classList.remove('sort-asc', 'sort-desc');
-    const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.remove();
-    const a = document.createElement('span');
-    a.className = 'sort-arrow';
-    if (key === col) {
-      a.textContent = dir === -1 ? ' ↓' : ' ↑';
-      a.style.color = 'var(--gold)';
-    } else {
-      a.textContent = ' ⇅';
-      a.style.color = 'rgba(138,143,168,0.4)';
-      a.style.fontSize = '10px';
-    }
-    th.appendChild(a);
-  });
-}
-
-function initSortHeaders(month) {
-  const table = document.querySelector(`#stab-${month} table`);
-  if (!table) return;
-  table.querySelectorAll('thead th').forEach((th, i) => {
-    const key = COL_KEYS[i];
-    if (key === 'rank') { th.style.cursor = 'default'; return; }
-    th.style.cursor = 'pointer';
-    th.style.userSelect = 'none';
-    th.addEventListener('click', () => {
-      const s = sortState[month];
-      if (s.col === key) {
-        s.dir *= -1;
-      } else {
-        s.col = key;
-        s.dir = -1;
-      }
-      renderSalesTable(month);
-    });
-  });
-  updateSortHeaders(month);
-}
 
 // ─── Init ───
-['jan', 'feb', 'mar'].forEach(m => {
-  renderSalesTable(m);
-  initSortHeaders(m);
-});
+// (Sales rating removed — now lives on a separate site)
 </script>
 
 </div>

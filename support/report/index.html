@@ -366,12 +366,26 @@
     <!-- ДОПОЛНИТЕЛЬНО убрано -->
 
     <!-- ОТПРАВКА В TEAMS -->
-    <div class="section" id="teamsSection">
-      <div class="section-label">Отправка в Teams <span class="req" id="teamsReq">*</span></div>
-      <div id="teamsContent">
-        <!-- Динамически обновляется при выборе трудности -->
-        <div style="font-size:13px;color:var(--text-muted);font-family:var(--font-mono);">
-          Сначала выбери трудность ↑
+    <div class="section">
+      <div class="section-label">Отправка в Teams</div>
+
+      <!-- Чекбокс -->
+      <label class="checkbox-item" style="margin-bottom:12px;" id="teamsCheckboxLabel">
+        <input type="checkbox" id="sendToTeams" onchange="toggleTeamsSelector()">
+        Отправить в Teams
+      </label>
+
+      <!-- Выбор PM / FinTech — скрыт по умолчанию -->
+      <div id="teamsSelector" style="display:none;margin-top:4px;">
+        <div class="webhook-selector">
+          <div class="webhook-option">
+            <input type="radio" name="webhook" id="webhookPM" value="PM">
+            <label for="webhookPM"><span class="webhook-dot" style="color:#3d86f5"></span> PM</label>
+          </div>
+          <div class="webhook-option">
+            <input type="radio" name="webhook" id="webhookFinTech" value="FinTech">
+            <label for="webhookFinTech"><span class="webhook-dot" style="color:#f5a623"></span> FinTech</label>
+          </div>
         </div>
       </div>
     </div>
@@ -397,53 +411,19 @@
 
   let sendCount = 0;
 
-  // Логика отображения кнопок Teams в зависимости от трудности
-  // Сайт/слоты/картинки → только PM
-  // Депозит/вывод → только FinTech
-  // Чат → ничего
-  // Другое → оба
-  const DIFFICULTY_WEBHOOK = {
-    "Не работает сайт":           "PM",
-    "Не работают слоты":          "PM",
-    "Не грузятся картинки":       "PM",
-    "Не может сделать депозит":   "FinTech",
-    "Не может сделать вывод":     "FinTech",
-    "Не работает чат":            "none",
-    "Другое":                     "both",
-  };
-
-  function updateTeamsSection() {
-    const difficulty = document.getElementById("difficulty").value;
-    const mode = DIFFICULTY_WEBHOOK[difficulty] || "both";
-    const content = document.getElementById("teamsContent");
-    const req = document.getElementById("teamsReq");
-
-    if (mode === "none") {
-      req.style.display = "none";
-      content.innerHTML = `<div style="font-size:13px;color:var(--text-muted);font-family:var(--font-mono);padding:12px 0;">
-        ℹ️ Для трудности с чатом отправка в Teams не требуется
-      </div>`;
-    } else {
-      req.style.display = "inline";
-      let html = '<div class="webhook-selector">';
-      if (mode === "PM" || mode === "both") {
-        html += `<div class="webhook-option">
-          <input type="radio" name="webhook" id="webhookPM" value="PM" ${mode === "PM" ? "checked" : ""}>
-          <label for="webhookPM"><span class="webhook-dot" style="color:#3d86f5"></span> PM</label>
-        </div>`;
-      }
-      if (mode === "FinTech" || mode === "both") {
-        html += `<div class="webhook-option">
-          <input type="radio" name="webhook" id="webhookFinTech" value="FinTech" ${mode === "FinTech" ? "checked" : ""}>
-          <label for="webhookFinTech"><span class="webhook-dot" style="color:#f5a623"></span> FinTech</label>
-        </div>`;
-      }
-      html += '</div>';
-      content.innerHTML = html;
+  function toggleTeamsSelector() {
+    const checked = document.getElementById("sendToTeams").checked;
+    document.getElementById("teamsSelector").style.display = checked ? "block" : "none";
+    if (!checked) {
+      document.querySelectorAll('input[name="webhook"]').forEach(r => r.checked = false);
     }
   }
 
-  document.getElementById("difficulty").addEventListener("change", updateTeamsSection);
+  function updateTeamsSection() {
+    document.getElementById("sendToTeams").checked = false;
+    document.getElementById("teamsSelector").style.display = "none";
+    document.querySelectorAll('input[name="webhook"]').forEach(r => r.checked = false);
+  }
 
   // Живые часы
   function updateTime() {
@@ -493,15 +473,13 @@
   document.getElementById("supportForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const difficulty = document.getElementById("difficulty").value;
-    const mode = DIFFICULTY_WEBHOOK[difficulty] || "both";
-    const webhookVal = mode === "none"
-      ? null
-      : document.querySelector('input[name="webhook"]:checked')?.value;
+    const sendTeams = document.getElementById("sendToTeams").checked;
+    const webhookVal = sendTeams
+      ? document.querySelector('input[name="webhook"]:checked')?.value
+      : "";
 
-    // Если нужна отправка в Teams но не выбрана кнопка
-    if (mode !== "none" && !webhookVal) {
-      showToast("error", "Выбери куда отправить в Teams");
+    if (sendTeams && !webhookVal) {
+      showToast("error", "Выбери куда отправить: PM или FinTech");
       return;
     }
 

@@ -215,13 +215,59 @@
           </select>
         </div>
         <div class="field">
-          <label>Описание трудности</label>
+          <label>Ссылка на чат или тикет <span class="req">*</span></label>
+          <input type="text" id="chatLink" placeholder="https://..." required>
+        </div>
+        <div class="field span-2">
+          <label>Почта клиента <span class="req">*</span></label>
+          <input type="email" id="clientEmail" placeholder="client@mail.com" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- СКРИНШОТ -->
+    <div class="section">
+      <div class="section-label">Скриншот трудности</div>
+      <div class="field">
+        <input type="text" id="screenshot" placeholder="https://... ссылка на скриншот">
+      </div>
+    </div>
+
+    <!-- ОПИСАНИЕ -->
+    <div class="section">
+      <div class="section-label">Описание</div>
+      <div class="grid-1" style="display:flex;flex-direction:column;gap:12px;">
+        <div class="field">
+          <label>Краткое описание трудности</label>
           <input type="text" id="difficultyDesc" placeholder="Краткое описание..." list="difficultyList">
           <datalist id="difficultyList"></datalist>
         </div>
-        <div class="field span-2">
+        <div class="field">
           <label>Подробное описание</label>
           <textarea id="description" placeholder="Дополнительные детали..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- КЛИЕНТ -->
+    <div class="section">
+      <div class="section-label">Клиент</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>IP клиента</label>
+          <input type="text" id="clientIp" placeholder="напр. 192.168.1.1">
+        </div>
+        <div class="field">
+          <label>Регион</label>
+          <input type="text" id="region" placeholder="Город или область">
+        </div>
+        <div class="field">
+          <label>GMT</label>
+          <input type="text" id="gmt" placeholder="напр. GMT+3">
+        </div>
+        <div class="field">
+          <label>Интернет провайдер</label>
+          <input type="text" id="isp" placeholder="Интернет провайдер">
         </div>
       </div>
     </div>
@@ -314,45 +360,6 @@
             <option>Wazdan</option><option>Yggdrasil</option>
           </select>
         </div>
-      </div>
-    </div>
-
-    <!-- КЛИЕНТ -->
-    <div class="section">
-      <div class="section-label">Клиент</div>
-      <div class="grid-3">
-        <div class="field">
-          <label>Ссылка на чат <span class="req">*</span></label>
-          <input type="text" id="chatLink" placeholder="https://..." required>
-        </div>
-        <div class="field">
-          <label>IP клиента</label>
-          <input type="text" id="clientIp" placeholder="напр. 192.168.1.1">
-        </div>
-        <div class="field">
-          <label>Почта клиента <span class="req">*</span></label>
-          <input type="email" id="clientEmail" placeholder="client@mail.com" required>
-        </div>
-        <div class="field">
-          <label>Регион</label>
-          <input type="text" id="region" placeholder="напр. UA, PL, RU">
-        </div>
-        <div class="field">
-          <label>GMT</label>
-          <input type="text" id="gmt" placeholder="напр. GMT+3">
-        </div>
-        <div class="field">
-          <label>Интернет провайдер</label>
-          <input type="text" id="isp" placeholder="напр. Kyivstar">
-        </div>
-      </div>
-    </div>
-
-    <!-- МЕДИА -->
-    <div class="section">
-      <div class="section-label">Скриншот трудности</div>
-      <div class="field">
-        <input type="text" id="screenshot" placeholder="https://... ссылка на скриншот">
       </div>
     </div>
 

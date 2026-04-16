@@ -261,6 +261,25 @@
           <label>Интернет провайдер</label>
           <input type="text" id="isp" placeholder="Интернет провайдер">
         </div>
+        <div class="field">
+          <label>Зеркало</label>
+          <input type="text" id="mirror" placeholder="Зеркало клиента">
+        </div>
+      </div>
+    </div>
+
+    <!-- СОВЕТЫ -->
+    <div class="section">
+      <div class="section-label">Советы</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <label class="checkbox-item">
+          <input type="checkbox" id="advAdblock">
+          Совет выключить AdBlock
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="advAptechka">
+          Совет использовать аптечку
+        </label>
       </div>
     </div>
 
@@ -380,6 +399,16 @@
             <input type="radio" name="webhook" id="wh_atom_psp" value="ATOM_PSP">
             <label for="wh_atom_psp"><span class="webhook-dot" style="color:#34d399"></span> Атом — PSP</label>
           </div>
+          <div class="webhook-option">
+            <input type="radio" name="webhook" id="wh_other" value="OTHER" onchange="toggleTransferField()">
+            <label for="wh_other"><span class="webhook-dot" style="color:#6b7280"></span> Другое</label>
+          </div>
+        </div>
+        <div id="transferField" style="display:none;margin-top:10px;">
+          <div class="field">
+            <label>Куда передали</label>
+            <input type="text" id="transferNote" placeholder="Укажи куда передали обращение">
+          </div>
         </div>
       </div>
     </div>
@@ -418,13 +447,22 @@
   function toggleTeamsSelector() {
     const checked = document.getElementById("sendToTeams").checked;
     document.getElementById("teamsSelector").style.display = checked ? "block" : "none";
-    if (!checked) document.querySelectorAll('input[name="webhook"]').forEach(r => r.checked = false);
+    if (!checked) {
+      document.querySelectorAll('input[name="webhook"]').forEach(r => r.checked = false);
+      document.getElementById("transferField").style.display = "none";
+    }
+  }
+
+  function toggleTransferField() {
+    const isOther = document.getElementById("wh_other").checked;
+    document.getElementById("transferField").style.display = isOther ? "block" : "none";
   }
 
   function resetForm() {
     document.getElementById("supportForm").reset();
     document.getElementById("screenshot").value = "";
     document.getElementById("teamsSelector").style.display = "none";
+    document.getElementById("transferField").style.display = "none";
   }
 
   // Живые часы
@@ -473,6 +511,9 @@
       { name:"GMT",                value: data.gmt            || "—" },
       { name:"Интернет провайдер", value: data.isp            || "—" },
       { name:"Скриншот",           value: data.screenshot     || "—" },
+      { name:"Зеркало",            value: data.mirror         || "—" },
+      { name:"AdBlock выключен",   value: data.advAdblock     || "—" },
+      { name:"Аптечка",            value: data.advAptechka    || "—" },
       { name:"Провайдеры",         value: providers },
     ];
     const res = await fetch(webhookUrl, {
@@ -527,11 +568,15 @@
       region:        document.getElementById("region").value.trim(),
       gmt:           document.getElementById("gmt").value.trim(),
       isp:           document.getElementById("isp").value.trim(),
+      mirror:        document.getElementById("mirror").value.trim(),
       screenshot:    document.getElementById("screenshot").value.trim(),
+      advAdblock:    document.getElementById("advAdblock").checked ? "Да" : "",
+      advAptechka:   document.getElementById("advAptechka").checked ? "Да" : "",
       provider1:     document.getElementById("provider1").value,
       provider2:     document.getElementById("provider2").value,
       provider3:     document.getElementById("provider3").value,
       webhook:       webhookVal || "",
+      transferNote:  webhookVal === "OTHER" ? document.getElementById("transferNote").value.trim() : "",
     };
 
     const btn = document.getElementById("submitBtn");
@@ -540,13 +585,15 @@
 
     try {
       const promises = [sendToExcel(data)];
-      if (sendTeams && webhookVal) {
+      if (sendTeams && webhookVal && webhookVal !== "OTHER") {
         promises.push(sendToTeams(data, WEBHOOKS[webhookVal]));
       }
       await Promise.all(promises);
       sendCount++;
       document.getElementById("sendCount").textContent = sendCount;
-      showToast("success", webhookVal ? `Отправлено (${webhookVal.replace("_", " — ")}) ✓` : "Сохранено в Excel ✓");
+      const label = webhookVal === "OTHER" ? `Передано (${data.transferNote || "другое"})` :
+                    webhookVal ? `Отправлено (${webhookVal.replace("_", " — ")})` : "Сохранено в Excel";
+      showToast("success", label + " ✓");
       resetForm();
     } catch(err) {
       console.error(err);

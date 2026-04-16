@@ -431,13 +431,6 @@
 
 <script>
   // ─── НАСТРОЙКИ ───────────────────────────────────────────────
-  const WEBHOOKS = {
-    "MOTOR_PM":  "https://catcasino0.webhook.office.com/webhookb2/2938f2c3-101f-4091-a831-d9979e8dc31f@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/f6188439818844fc8b55122dcdea4d15/d1951c24-dac8-4cc2-9c1e-ef3f53c62c5b/V2BJR5VrDcOBnuEETOyo3sJikIBij9JD4h9BEqIZTCs4M1",
-    "MOTOR_PSP": "https://catcasino0.webhook.office.com/webhookb2/2938f2c3-101f-4091-a831-d9979e8dc31f@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/7799a7d771794d119984ec29d146cfe8/d1951c24-dac8-4cc2-9c1e-ef3f53c62c5b/V2AbOPTKqy3GlD90E6_fEaxPEnr6lhpvi910LV848R7gs1",
-    "ATOM_PM":   "https://catcasino0.webhook.office.com/webhookb2/2938f2c3-101f-4091-a831-d9979e8dc31f@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/ae7a0b9b528d4be2808c3f2e6f79d720/d1951c24-dac8-4cc2-9c1e-ef3f53c62c5b/V2k-h3M7XSbpqqunYeD3oOdpiWCTnHNFZlPrqIR-sWVp81",
-    "ATOM_PSP":  "https://catcasino0.webhook.office.com/webhookb2/2938f2c3-101f-4091-a831-d9979e8dc31f@e2f944de-9f4f-4231-833c-439e8d8d9b8f/IncomingWebhook/21b75bf8f27244999d51d908477f3005/d1951c24-dac8-4cc2-9c1e-ef3f53c62c5b/V2trDuYKK49b0ptS_KQ0XHvqnouK1jEAGIUknBYOyGrhA1",
-  };
-
   // ⬇️ Вставь URL из Power Automate flow для НК Excel файла
   const POWER_AUTOMATE_URL = "https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4b42a25db10b42539036775887232fe4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Pj4VM8rAJY8uilnObkX40O0PtT1lI8DN4-B8RznRMGo";
   // ─────────────────────────────────────────────────────────────
@@ -494,43 +487,6 @@
     if (type !== "loading") toastTimer = setTimeout(() => toast.classList.remove("show"), 4000);
   }
 
-  async function sendToTeams(data, webhookUrl) {
-    const providers = [data.provider1, data.provider2, data.provider3].filter(Boolean).join(", ") || "—";
-    const facts = [
-      { name:"Айди аккаунта",      value: data.accountId     || "—" },
-      { name:"Время",              value: data.time           || "—" },
-      { name:"Дата",               value: data.date           || "—" },
-      { name:"Проект",             value: data.project        || "—" },
-      { name:"Трудность",          value: data.difficulty     || "—" },
-      { name:"Описание трудности", value: data.difficultyDesc || "—" },
-      { name:"Подробное описание", value: data.description    || "—" },
-      { name:"Ссылка на чат",      value: data.chatLink       || "—" },
-      { name:"IP клиента",         value: data.clientIp       || "—" },
-      { name:"Почта клиента",      value: data.clientEmail    || "—" },
-      { name:"Регион",             value: data.region         || "—" },
-      { name:"GMT",                value: data.gmt            || "—" },
-      { name:"Интернет провайдер", value: data.isp            || "—" },
-      { name:"Скриншот",           value: data.screenshot     || "—" },
-      { name:"Зеркало",            value: data.mirror         || "—" },
-      { name:"AdBlock выключен",   value: data.advAdblock     || "—" },
-      { name:"Аптечка",            value: data.advAptechka    || "—" },
-      { name:"Провайдеры",         value: providers },
-    ];
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        "@@type": "MessageCard",
-        "@@context": "http://schema.org/extensions",
-        summary: "Новая запись активирована",
-        themeColor: "0076D7",
-        title: "🎯 Новая запись активирована",
-        sections: [{ facts, markdown: true }]
-      })
-    });
-    if (!res.ok) throw new Error(`Teams error: ${res.status}`);
-  }
-
   async function sendToExcel(data) {
     if (POWER_AUTOMATE_URL === "ВСТАВЬ_СЮДА_URL_POWER_AUTOMATE_NK") return;
     const res = await fetch(POWER_AUTOMATE_URL, {
@@ -584,11 +540,7 @@
     showToast("loading", "Отправляем данные...");
 
     try {
-      const promises = [sendToExcel(data)];
-      if (sendTeams && webhookVal && webhookVal !== "OTHER") {
-        promises.push(sendToTeams(data, WEBHOOKS[webhookVal]));
-      }
-      await Promise.all(promises);
+      await sendToExcel(data);
       sendCount++;
       document.getElementById("sendCount").textContent = sendCount;
       const label = webhookVal === "OTHER" ? `Передано (${data.transferNote || "другое"})` :

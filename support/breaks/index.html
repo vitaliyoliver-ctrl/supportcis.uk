@@ -447,7 +447,17 @@ const ADMINS = new Set([
   'vladimir.lucas@velvix.org',
 ]);
 
-function isAdmin() { return ADMINS.has(userEmail.toLowerCase()); }
+function isAdmin() {
+  // Admin mode only when NO operator is selected
+  // If operator selected — admin acts as that operator (regular rules apply)
+  if (currentOp) return false;
+  return ADMINS.has(userEmail.toLowerCase());
+}
+
+function isAdminUser() {
+  // True regardless of operator selection — for UI elements
+  return ADMINS.has(userEmail.toLowerCase());
+}
 let currentSection = 'sg'; // 'sg' | 'nc'
 let currentDept = 'regular'; // 'regular' | 'vip' (only for sg)
 let shiftType = 'day';
@@ -699,7 +709,8 @@ function showConflict(slot, who) {
   setTimeout(() => toast.remove(), 4000);
 }
 
-function logAction(action, slot) {
+function logAction(action, slot, overrideOp) {
+  const logOperator = overrideOp || currentOp || '(admin)';
   // Get Kyiv time
   const kyivTime = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit' });
   const kyivNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
@@ -718,7 +729,7 @@ function logAction(action, slot) {
       section: currentSection,
       dept: currentDept,
       shift: currentShift,
-      operator: currentOp,
+      operator: logOperator,
       user_email: userEmail,
       action,
       slot,
@@ -768,7 +779,6 @@ function loadLog() {
     dateFilter = 'shift_date=in.(' + prevDay.toISOString().slice(0,10) + ',' + targetDate + ')';
   }
   sbFetch('/rest/v1/logs?' + dateFilter + '&order=id.desc&limit=200')
-    .then(r => r.json())
     .then(r => r.json())
     .then(entries => {
       if (!Array.isArray(entries) || !entries.length) {
@@ -979,7 +989,7 @@ function cancelBreak(time) {
 function adminCancelBreak(fullKey) {
   const who = bookings[fullKey];
   if (!who) return;
-  logAction('cancel_break', (fullKey.split('|b|')[1] || fullKey) + ' [admin: ' + who + ']');
+  logAction('cancel_break', fullKey.split('|b|')[1] || fullKey, who);
   atomicCancel(fullKey, who, fullKey.split('|b|')[1] || fullKey, true);
 }
 
@@ -1029,7 +1039,7 @@ function adminCancelLunch(fullKey) {
   const who = bookings[fullKey];
   if (!who) return;
   const slot = (fullKey.split('|l|')[1] || fullKey) + ' обед';
-  logAction('cancel_lunch', slot + ' [admin: ' + who + ']');
+  logAction('cancel_lunch', slot, who);
   atomicCancel(fullKey, who, slot, true);
 }
 
@@ -1271,12 +1281,8 @@ function adminBook(type, time) {
   const doBook = (name) => {
     const baseKey = type === 'break' ? bKey(currentShift, time) : lKey(currentShift, time);
     const slotLabel = time + (type === 'lunch' ? ' обед' : '');
-    logAction(type === 'break' ? 'book_break' : 'book_lunch', slotLabel + ' [admin: ' + name + ']');
-    // Use currentOp temporarily for the booking
-    const savedOp = currentOp;
-    currentOp = name;
+    logAction(type === 'break' ? 'book_break' : 'book_lunch', slotLabel, name);
     atomicBook(baseKey, name, slotLabel, true);
-    currentOp = savedOp;
   };
 
   if (currentOp) {
@@ -1661,6 +1667,11 @@ fetch('/api/check', { credentials: 'include' })
         badge.style.cssText = 'font-size:10px;font-family:var(--mono);background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 7px;margin-left:4px';
         document.getElementById('op-badge').after(badge);
         document.getElementById('admin-btn').style.display = 'block';
+        // Show/hide admin mode based on operator selection
+        document.getElementById('opsel').addEventListener('change', () => {
+          const adminBadge = document.querySelector('[data-admin-badge]');
+          if (adminBadge) adminBadge.style.opacity = currentOp ? '0.4' : '1';
+        });
       }
     }
   })

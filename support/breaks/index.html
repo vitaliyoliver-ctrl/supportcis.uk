@@ -500,14 +500,14 @@ function setSyncStatus(state) {
   txt.textContent = label;
 }
 
-function initWorker() {
+async function initWorker() {
   setSyncStatus('connecting');
   sbFetch('/rest/v1/bookings?select=key,value')
     .then(r => r.json())
-    .then(rows => {
+    .then(async rows => {
       bookings = {};
       (rows || []).forEach(r => { bookings[r.key] = r.value; });
-      loadTransfers();
+      await loadTransfers();
       loadRoster();
       setSyncStatus('online');
       render();
@@ -839,9 +839,7 @@ const sel = document.getElementById('opsel');
 
 function populateOperators() {
   sel.innerHTML = '<option value="">— оператор —</option>';
-  const opList = currentSection === 'nc'
-    ? OPERATORS.nc.regular
-    : OPERATORS.sg[currentDept];
+  const opList = getEffectiveOperators(currentSection, currentDept);
   opList.forEach(n => {
     const o = document.createElement('option');
     o.value = n; o.textContent = n; sel.appendChild(o);
@@ -1418,96 +1416,161 @@ function checkUpcomingBookings() {
 // Stored in bookings KV as: sg|transfers = { "OperatorName": "vip" | "regular" }
 let transfers = {}; // { name: targetDept } — loaded from bookings
 
-function getTransferKey() { return 'sg|transfers'; }
+// ── TRANSFERS (Supabase) ────────────────────────────────────────
+// expires_at: day shifts → midnight (00:00 Kyiv), night → 09:00 Kyiv
 
-function loadTransfers() {
-  let t = bookings[getTransferKey()];
-  if (typeof t === 'string') { try { t = JSON.parse(t); } catch(e) { t = {}; } }
-  transfers = t || {};
+function getTransferExpiresAt(forShift) {
+  // Build expiry timestamp in Kyiv time, return as UTC ISO string
+  // Kyiv is UTC+2 (winter) or UTC+3 (summer) — detect via Intl
+  const now = new Date();
+  const kyivNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const kyivH = kyivNow.getHours();
+
+  // Build target Kyiv datetime
+  const kyivExpire = new Date(kyivNow);
+  if (forShift === 'night') {
+    // Expires at 09:00 Kyiv next calendar day
+    kyivExpire.setDate(kyivExpire.getDate() + 1);
+    kyivExpire.setHours(9, 0, 0, 0);
+  } else {
+    // Expires at 00:00 Kyiv next calendar day (midnight)
+    kyivExpire.setDate(kyivExpire.getDate() + 1);
+    kyivExpire.setHours(0, 0, 0, 0);
+  }
+
+  // Calculate the UTC offset for Kyiv at this moment
+  // kyivNow was built from now via toLocaleString → difference = Kyiv offset
+  const offsetMs = kyivNow.getTime() - now.getTime();
+  // Convert kyivExpire back to UTC: subtract the offset
+  const utcExpire = new Date(kyivExpire.getTime() - offsetMs);
+  return utcExpire.toISOString();
 }
 
-function saveTransfers() {
-  bookings[getTransferKey()] = transfers;
-  const key = getTransferKey();
-  const value = JSON.stringify(transfers);
-  sbFetch('/rest/v1/bookings', {
-    method: 'POST',
-    prefer: 'return=minimal,resolution=merge-duplicates',
-    body: JSON.stringify({ key, value }),
-  }).then(() => setSyncStatus('online')).catch(() => setSyncStatus('offline'));
-}
+let transfersList = []; // array of active transfer objects from Supabase
 
-// Returns effective dept for an operator (considering transfers)
-function effectiveDept(name, baseDept) {
-  return transfers[name] || baseDept;
-}
-
-// Reset transfers at shift boundary (called after bookings loaded)
-function resetTransfersIfNeeded() {
-  // Transfers reset when Worker resets bookings — they're stored inside bookings object
-  loadTransfers();
-}
-
-// ── ROSTER (permanent operator lists, stored in KV) ──
-let customRoster = null; // null = use hardcoded OPERATORS
-
-function getRosterKey() { return '__roster__'; } // double-underscore prefix is never wiped by shift reset
-
-async function loadRoster() {
-  let r = bookings[getRosterKey()];
-  if (typeof r === 'string') { try { r = JSON.parse(r); } catch(e) { r = null; } }
-  if (r) {
-    customRoster = r;
-    OPERATORS.sg.regular = r.sg_regular || OPERATORS.sg.regular;
-    OPERATORS.sg.vip     = r.sg_vip     || OPERATORS.sg.vip;
-    OPERATORS.nc.regular = r.nc_regular  || OPERATORS.nc.regular;
-    populateOperators();
+async function loadTransfers() {
+  try {
+    const r = await sbFetch('/rest/v1/transfers?select=*&expires_at=gt.' + new Date().toISOString() + '&order=id.asc');
+    const rows = await r.json();
+    transfersList = Array.isArray(rows) ? rows : [];
+    // Apply transfers to operator lists
+    applyTransfers();
+  } catch(e) {
+    transfersList = [];
   }
 }
 
-function saveRoster() {
-  const roster = {
-    sg_regular: [...OPERATORS.sg.regular],
-    sg_vip:     [...OPERATORS.sg.vip],
-    nc_regular: [...OPERATORS.nc.regular],
-  };
-  bookings[getRosterKey()] = roster;
-  sbFetch('/rest/v1/bookings', {
-    method: 'POST',
-    prefer: 'return=minimal,resolution=merge-duplicates',
-    body: JSON.stringify({ key: getRosterKey(), value: JSON.stringify(roster) }),
-  }).then(() => setSyncStatus('online')).catch(() => setSyncStatus('offline'));
+function applyTransfers() {
+  // Reset to base operators first (reload from roster or defaults)
+  // Don't mutate OPERATORS directly — use transfersList when populating selects
+  // populateOperators() reads transfersList via getEffectiveOperators()
 }
 
-// ── OP PICK MODAL (admin books without selecting operator first) ──
-let opPickCallback = null; // function(operatorName) to call after pick
+function getEffectiveOperators(section, dept) {
+  // Returns base list + transferred-in operators - transferred-out operators
+  let base;
+  if (section === 'nc') base = [...OPERATORS.nc.regular];
+  else base = [...OPERATORS.sg[dept]];
 
-function openOpPick(callback) {
-  opPickCallback = callback;
-  const sel = document.getElementById('opPickSel');
-  sel.innerHTML = '';
-  const opList = currentSection === 'nc' ? OPERATORS.nc.regular : OPERATORS.sg[currentDept];
-  opList.forEach(n => {
-    const o = document.createElement('option');
-    o.value = n; o.textContent = n; sel.appendChild(o);
+  // Add operators transferred INTO this section|dept
+  transfersList.forEach(t => {
+    if (t.to_section === section && t.to_dept === dept && !base.includes(t.operator)) {
+      base.push(t.operator);
+    }
   });
-  const el = document.getElementById('opPickOverlay');
-  el.style.display = 'flex';
+  // Remove operators transferred OUT of this section|dept
+  transfersList.forEach(t => {
+    if (t.from_section === section && t.from_dept === dept) {
+      base = base.filter(n => n !== t.operator);
+    }
+  });
+  return base.sort();
 }
 
-function closeOpPick() {
-  document.getElementById('opPickOverlay').style.display = 'none';
-  opPickCallback = null;
+function saveTransfers() {
+  // No-op — transfers are saved individually via doTransfer2/revertTransfer2
 }
 
-function confirmOpPick() {
-  const name = document.getElementById('opPickSel').value;
-  const cb = opPickCallback; // save before closeOpPick nulls it
-  closeOpPick();
-  if (name && cb) cb(name);
+async function doTransfer2(key, targetVal, name, toSection, toDept) {
+  // key = "fromSection|fromDept|name", targetVal = "toSection|toDept"
+  const parts = key.split('|');
+  const fromSection = parts[0];
+  const fromDept = parts[1];
+
+  // Determine which shift is currently active (for expiry)
+  const kyivH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' })).getHours();
+  const activeShift = (kyivH >= 21 || kyivH < 9) ? 'night' : 'day';
+  const expiresAt = getTransferExpiresAt(activeShift);
+
+  const body = {
+    operator: name,
+    from_section: fromSection,
+    from_dept: fromDept,
+    to_section: toSection,
+    to_dept: toDept,
+    expires_at: expiresAt,
+  };
+
+  try {
+    await sbFetch('/rest/v1/transfers', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify(body),
+    });
+    await loadTransfers();
+    populateOperators();
+    renderTransferTab(document.getElementById('adminBody'));
+  } catch(e) {
+    alert('Ошибка сохранения трансфера');
+  }
 }
 
-// ── ADMIN PANEL ──
+async function revertTransfer2(key) {
+  // key = "fromSection|fromDept|name"
+  const parts = key.split('|');
+  const fromSection = parts[0];
+  const fromDept = parts[1];
+  const name = parts.slice(2).join('|');
+
+  try {
+    await sbFetch(
+      '/rest/v1/transfers?operator=eq.' + encodeURIComponent(name) +
+      '&from_section=eq.' + fromSection +
+      '&from_dept=eq.' + fromDept,
+      { method: 'DELETE', prefer: 'return=minimal' }
+    );
+    await loadTransfers();
+    populateOperators();
+    renderTransferTab(document.getElementById('adminBody'));
+  } catch(e) {
+    alert('Ошибка отмены трансфера');
+  }
+}
+
+
+function doTransfer(name, toDept) {
+  loadTransfers();
+  transfers[name] = toDept;
+  saveTransfers();
+  // Add to target dept list temporarily
+  if (toDept === 'vip' && !OPERATORS.sg.vip.includes(name)) OPERATORS.sg.vip.push(name);
+  if (toDept === 'regular' && !OPERATORS.sg.regular.includes(name)) OPERATORS.sg.regular.push(name);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
+function revertTransfer(name) {
+  loadTransfers();
+  const toDept = transfers[name];
+  delete transfers[name];
+  saveTransfers();
+  // Remove from target list
+  if (toDept === 'vip') OPERATORS.sg.vip = OPERATORS.sg.vip.filter(n => n !== name || OPERATORS.sg.vip.filter(x=>x===name).length > 1);
+  if (toDept === 'regular') OPERATORS.sg.regular = OPERATORS.sg.regular.filter(n => n !== name || OPERATORS.sg.regular.filter(x=>x===name).length > 1);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
 let adminTab = 'transfer';
 
 function openAdminPanel() {
@@ -1538,16 +1601,32 @@ function renderAdminTab(tab) {
 }
 
 function renderTransferTab(body) {
-  loadTransfers();
   const sgRegular = OPERATORS.sg.regular;
-  const sgVip     = OPERATORS.sg.vip;
+  const sgVip = OPERATORS.sg.vip;
   const ncRegular = OPERATORS.nc.regular;
 
-  function transferRow(name, fromSection, fromDept, toSection, toDept, toLabel, badgeStyle) {
+  // Get active transfers from transfersList
+  function isTransferred(name, fromSection, fromDept) {
+    return transfersList.some(t => t.operator === name && t.from_section === fromSection && t.from_dept === fromDept);
+  }
+  function getTransferTarget(name, fromSection, fromDept) {
+    const t = transfersList.find(t => t.operator === name && t.from_section === fromSection && t.from_dept === fromDept);
+    return t ? { toSection: t.to_section, toDept: t.to_dept } : null;
+  }
+  function expiryLabel(name, fromSection, fromDept) {
+    const t = transfersList.find(t => t.operator === name && t.from_section === fromSection && t.from_dept === fromDept);
+    if (!t) return '';
+    const d = new Date(t.expires_at);
+    const kyivTime = d.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit' });
+    return ' до ' + kyivTime;
+  }
+
+  function row(name, fromSection, fromDept, toSection, toDept, toLabel, badgeStyle) {
+    const moved = isTransferred(name, fromSection, fromDept);
     const key = fromSection + '|' + fromDept + '|' + name;
-    const moved = transfers[key] === (toSection + '|' + toDept);
+    const exp = moved ? expiryLabel(name, fromSection, fromDept) : '';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px;margin-bottom:6px">' +
-      '<span>' + name + (moved ? '<span style="font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;margin-left:6px;' + badgeStyle + '">перешёл → ' + toLabel + '</span>' : '') + '</span>' +
+      '<span>' + name + (moved ? '<span style="font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;margin-left:6px;' + badgeStyle + '">→ ' + toLabel + exp + '</span>' : '') + '</span>' +
       (moved
         ? '<button onclick="revertTransfer2(\'' + key + '\')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">↩ вернуть</button>'
         : '<button onclick="doTransfer2(\'' + key + '\',\'' + toSection + '|' + toDept + '\',\'' + name + '\',\'' + toSection + '\',\'' + toDept + '\')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">→ ' + toLabel + '</button>'
@@ -1555,77 +1634,21 @@ function renderTransferTab(body) {
       '</div>';
   }
 
-  const note = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px">Трансфер сбрасывается автоматически в 21:00 / 09:00</div>';
-  const sec = (title) => '<div style="font-size:12px;font-weight:500;color:var(--text);margin:16px 0 8px">' + title + '</div>';
+  const note = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px">Сбрасывается: дневные в 00:00 · ночные в 09:00 (по Киеву)</div>';
+  const sec = (t) => '<div style="font-size:12px;font-weight:500;color:var(--text);margin:16px 0 8px">' + t + '</div>';
 
   let html = note;
   html += sec('SG Regular → VIP');
-  sgRegular.forEach(n => { html += transferRow(n,'sg','regular','sg','vip','VIP','background:rgba(251,191,36,0.12);color:var(--warn)'); });
+  sgRegular.forEach(n => { html += row(n,'sg','regular','sg','vip','VIP','background:rgba(251,191,36,0.12);color:var(--warn)'); });
   html += sec('SG VIP → Regular');
-  sgVip.forEach(n => { html += transferRow(n,'sg','vip','sg','regular','Regular','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
+  sgVip.forEach(n => { html += row(n,'sg','vip','sg','regular','Regular','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
   html += sec('SG Regular → NC');
-  sgRegular.forEach(n => { html += transferRow(n,'sg','regular','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
+  sgRegular.forEach(n => { html += row(n,'sg','regular','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
   html += sec('NC → SG Regular');
-  ncRegular.forEach(n => { html += transferRow(n,'nc','regular','sg','regular','SG','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
+  ncRegular.forEach(n => { html += row(n,'nc','regular','sg','regular','SG','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
   html += sec('SG VIP → NC');
-  sgVip.forEach(n => { html += transferRow(n,'sg','vip','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
+  sgVip.forEach(n => { html += row(n,'sg','vip','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
   body.innerHTML = html;
-}
-
-function doTransfer2(key, targetVal, name, toSection, toDept) {
-  loadTransfers();
-  transfers[key] = targetVal;
-  saveTransfers();
-  // Add to target list temporarily if not there
-  if (toSection === 'sg' && toDept === 'vip' && !OPERATORS.sg.vip.includes(name)) OPERATORS.sg.vip.push(name);
-  if (toSection === 'sg' && toDept === 'regular' && !OPERATORS.sg.regular.includes(name)) OPERATORS.sg.regular.push(name);
-  if (toSection === 'nc' && toDept === 'regular' && !OPERATORS.nc.regular.includes(name)) OPERATORS.nc.regular.push(name);
-  populateOperators();
-  renderTransferTab(document.getElementById('adminBody'));
-}
-
-function revertTransfer2(key) {
-  loadTransfers();
-  const targetVal = transfers[key];
-  delete transfers[key];
-  saveTransfers();
-  // Remove from target list to avoid duplicates
-  if (targetVal) {
-    const [toSection, toDept] = targetVal.split('|');
-    // Get the name from the key: section|dept|name
-    const name = key.split('|').slice(2).join('|');
-    if (toSection === 'sg' && toDept === 'vip')
-      OPERATORS.sg.vip = OPERATORS.sg.vip.filter(n => n !== name || OPERATORS.sg.vip.indexOf(n) !== OPERATORS.sg.vip.lastIndexOf(n));
-    if (toSection === 'sg' && toDept === 'regular')
-      OPERATORS.sg.regular = OPERATORS.sg.regular.filter(n => n !== name || OPERATORS.sg.regular.indexOf(n) !== OPERATORS.sg.regular.lastIndexOf(n));
-    if (toSection === 'nc' && toDept === 'regular')
-      OPERATORS.nc.regular = OPERATORS.nc.regular.filter(n => n !== name || OPERATORS.nc.regular.indexOf(n) !== OPERATORS.nc.regular.lastIndexOf(n));
-  }
-  populateOperators();
-  renderTransferTab(document.getElementById('adminBody'));
-}
-
-function doTransfer(name, toDept) {
-  loadTransfers();
-  transfers[name] = toDept;
-  saveTransfers();
-  // Add to target dept list temporarily
-  if (toDept === 'vip' && !OPERATORS.sg.vip.includes(name)) OPERATORS.sg.vip.push(name);
-  if (toDept === 'regular' && !OPERATORS.sg.regular.includes(name)) OPERATORS.sg.regular.push(name);
-  populateOperators();
-  renderTransferTab(document.getElementById('adminBody'));
-}
-
-function revertTransfer(name) {
-  loadTransfers();
-  const toDept = transfers[name];
-  delete transfers[name];
-  saveTransfers();
-  // Remove from target list
-  if (toDept === 'vip') OPERATORS.sg.vip = OPERATORS.sg.vip.filter(n => n !== name || OPERATORS.sg.vip.filter(x=>x===name).length > 1);
-  if (toDept === 'regular') OPERATORS.sg.regular = OPERATORS.sg.regular.filter(n => n !== name || OPERATORS.sg.regular.filter(x=>x===name).length > 1);
-  populateOperators();
-  renderTransferTab(document.getElementById('adminBody'));
 }
 
 function renderRosterTab(body) {

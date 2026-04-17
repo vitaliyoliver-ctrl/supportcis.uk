@@ -615,42 +615,65 @@ function startRealtime() {
 // saveBookings removed — use atomicBook() and atomicCancel()
 
 function atomicBook(key, value, slotLabel, adminForce) {
-  // Optimistically update local state
+  setSyncStatus('saving');
+
+  if (adminForce) {
+    // Admin: find next free indexed key (key, key|1, key|2...)
+    // Base key is without |N suffix
+    const baseKey = key.replace(/\|\d+$/, '');
+    let writeKey = baseKey;
+    let idx = 1;
+    // Find first free slot locally
+    while (bookings[writeKey] && bookings[writeKey] !== value) {
+      writeKey = baseKey + '|' + idx;
+      idx++;
+      if (idx > 10) break;
+    }
+    // Optimistically update
+    bookings[writeKey] = value;
+    render();
+    // Write to Supabase with merge-duplicates (upsert)
+    sbFetch('/rest/v1/bookings', {
+      method: 'POST',
+      prefer: 'return=minimal,resolution=merge-duplicates',
+      body: JSON.stringify({ key: writeKey, value }),
+    })
+      .then(r => {
+        if (r.ok) setSyncStatus('online');
+        else { delete bookings[writeKey]; setSyncStatus('offline'); render(); }
+      })
+      .catch(() => {
+        delete bookings[writeKey];
+        setSyncStatus('offline');
+        render();
+      });
+    return;
+  }
+
+  // Regular user — optimistic update, conflict check on server
   const prev = bookings[key];
   bookings[key] = value;
   render();
-  setSyncStatus('saving');
-
-  // Supabase upsert with ON CONFLICT DO NOTHING via Prefer header
-  // For admin force — just upsert regardless
-  // For regular — insert only if key doesn't exist
-  const prefer = adminForce
-    ? 'return=representation,resolution=merge-duplicates'
-    : 'return=representation,resolution=ignore-duplicates';
 
   sbFetch('/rest/v1/bookings', {
     method: 'POST',
-    prefer,
+    prefer: 'return=representation,resolution=ignore-duplicates',
     body: JSON.stringify({ key, value }),
   })
     .then(r => r.json())
     .then(rows => {
-      if (adminForce || (Array.isArray(rows) && rows.length > 0)) {
-        // Booked successfully
+      if (Array.isArray(rows) && rows.length > 0) {
         setSyncStatus('online');
-        // Realtime will update others; render locally already done
       } else {
-        // Conflict — slot was taken (empty array returned)
+        // Conflict — rollback and show who took it
         if (prev !== undefined) bookings[key] = prev;
         else delete bookings[key];
+        render();
         setSyncStatus('online');
-        // Fetch who took it
         sbFetch('/rest/v1/bookings?key=eq.' + encodeURIComponent(key) + '&select=value')
           .then(r => r.json())
           .then(r => {
             const who = (r[0] && r[0].value) || 'другой оператор';
-            if (prev !== undefined) bookings[key] = prev;
-            else delete bookings[key];
             refreshBookings();
             showConflict(slotLabel, who);
           });

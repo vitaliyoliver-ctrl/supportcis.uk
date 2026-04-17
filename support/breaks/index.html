@@ -456,10 +456,22 @@ let currentOp = '';
 // bookings key: shiftId|type|time  (type = b / l)
 let bookings = {};
 
-// ── CLOUDFLARE WORKER CONFIG ───────────────────────────────────
-// 1. Задеплойте worker.js в Cloudflare Workers
-// 2. Вставьте URL вашего Worker ниже:
-const WORKER_URL = 'https://scheduler-data.vitaliy-barkhanskiy.workers.dev';
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+const SUPABASE_URL = 'https://rteemqmqwhcgjuvqtlhz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fvme3q6CpvhlRiTMHKkapg_y8_EL17v';
+
+function sbFetch(path, opts = {}) {
+  return fetch(SUPABASE_URL + path, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || '',
+      ...(opts.headers || {}),
+    },
+  });
+}
 
 let syncTimer = null;
 
@@ -480,14 +492,17 @@ function setSyncStatus(state) {
 
 function initWorker() {
   setSyncStatus('connecting');
-  fetch(WORKER_URL + '/bookings')
+  sbFetch('/rest/v1/bookings?select=key,value')
     .then(r => r.json())
-    .then(data => {
-      bookings = data || {};
+    .then(rows => {
+      bookings = {};
+      (rows || []).forEach(r => { bookings[r.key] = r.value; });
       loadTransfers();
       loadRoster();
       setSyncStatus('online');
       render();
+      startSyncPoll();
+      startRealtime();
     })
     .catch(() => {
       setSyncStatus('offline');
@@ -496,12 +511,11 @@ function initWorker() {
 }
 
 function refreshBookings() {
-  // Called after conflict or manual refresh
-  setSyncStatus('connecting');
-  fetch(WORKER_URL + '/bookings')
+  sbFetch('/rest/v1/bookings?select=key,value')
     .then(r => r.json())
-    .then(data => {
-      bookings = data || {};
+    .then(rows => {
+      bookings = {};
+      (rows || []).forEach(r => { bookings[r.key] = r.value; });
       loadTransfers();
       setSyncStatus('online');
       render();
@@ -509,52 +523,130 @@ function refreshBookings() {
     .catch(() => setSyncStatus('offline'));
 }
 
+function startSyncPoll() {
+  // Fallback poll every 30s if realtime is not connected
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (realtimeConnected) return; // realtime handles it
+    sbFetch('/rest/v1/bookings?select=key,value')
+      .then(r => r.json())
+      .then(rows => {
+        bookings = {};
+        (rows || []).forEach(r => { bookings[r.key] = r.value; });
+        loadTransfers();
+        render();
+      })
+      .catch(() => {});
+  }, 30000);
+}
+
+let realtimeConnected = false;
+
+function startRealtime() {
+  // Supabase Realtime — subscribe to bookings table changes
+  const wsUrl = SUPABASE_URL.replace('https://', 'wss://') +
+    '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
+
+  let ws;
+  let heartbeat;
+
+  function connect() {
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      realtimeConnected = true;
+      // Join channel
+      ws.send(JSON.stringify({
+        topic: 'realtime:public:bookings',
+        event: 'phx_join',
+        payload: { config: { broadcast: { self: false }, presence: { key: '' } } },
+        ref: '1'
+      }));
+      // Heartbeat every 20s
+      heartbeat = setInterval(() => {
+        ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: '0' }));
+      }, 20000);
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'DELETE') {
+        const row = msg.payload?.record || msg.payload?.old_record;
+        if (!row) return;
+        if (msg.event === 'DELETE') {
+          delete bookings[row.key];
+        } else {
+          bookings[row.key] = row.value;
+        }
+        loadTransfers();
+        render();
+      }
+    };
+
+    ws.onclose = () => {
+      realtimeConnected = false;
+      clearInterval(heartbeat);
+      // Reconnect after 3s
+      setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => {
+      realtimeConnected = false;
+      ws.close();
+    };
+  }
+
+  connect();
+}
+
 
 // pollBookings removed
 
 // saveBookings removed — use atomicBook() and atomicCancel()
 
-function atomicBook(key, value, slotLabel, isAdmin) {
+function atomicBook(key, value, slotLabel, adminForce) {
   // Optimistically update local state
   const prev = bookings[key];
   bookings[key] = value;
   render();
-
-  const body = {
-    key, value,
-    section: currentSection, dept: currentDept, shift: currentShift,
-    operator: value, userEmail, slot: slotLabel,
-    adminForce: isAdmin || false,
-  };
-
   setSyncStatus('saving');
-  fetch(WORKER_URL + '/book', {
+
+  // Supabase upsert with ON CONFLICT DO NOTHING via Prefer header
+  // For admin force — just upsert regardless
+  // For regular — insert only if key doesn't exist
+  const prefer = adminForce
+    ? 'return=representation,resolution=merge-duplicates'
+    : 'return=representation,resolution=ignore-duplicates';
+
+  sbFetch('/rest/v1/bookings', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    prefer,
+    body: JSON.stringify({ key, value }),
   })
     .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        // Server confirmed — update key if server assigned different index
-        if (data.key && data.key !== key) {
-          delete bookings[key];
-          bookings[data.key] = value;
-        }
+    .then(rows => {
+      if (adminForce || (Array.isArray(rows) && rows.length > 0)) {
+        // Booked successfully
         setSyncStatus('online');
-        render();
+        // Realtime will update others; render locally already done
       } else {
-        // Conflict — rollback and refresh
+        // Conflict — slot was taken (empty array returned)
         if (prev !== undefined) bookings[key] = prev;
         else delete bookings[key];
         setSyncStatus('online');
-        refreshBookings();
-        const who = data.conflict || 'другой оператор';
-        showConflict(slotLabel, who);
+        // Fetch who took it
+        sbFetch('/rest/v1/bookings?key=eq.' + encodeURIComponent(key) + '&select=value')
+          .then(r => r.json())
+          .then(r => {
+            const who = (r[0] && r[0].value) || 'другой оператор';
+            if (prev !== undefined) bookings[key] = prev;
+            else delete bookings[key];
+            refreshBookings();
+            showConflict(slotLabel, who);
+          });
       }
     })
     .catch(() => {
-      // Network error — rollback
       if (prev !== undefined) bookings[key] = prev;
       else delete bookings[key];
       setSyncStatus('offline');
@@ -563,35 +655,29 @@ function atomicBook(key, value, slotLabel, isAdmin) {
     });
 }
 
-function atomicCancel(key, value, slotLabel, isAdmin) {
-  // Optimistically remove
+function atomicCancel(key, value, slotLabel, adminForce) {
   const prev = bookings[key];
   delete bookings[key];
+  // Compact indexed keys locally
+  const baseKey = key.replace(/\|\d+$/, '');
+  compactSlotKeys(baseKey);
   render();
-
-  const body = {
-    key, value,
-    section: currentSection, dept: currentDept, shift: currentShift,
-    operator: value, userEmail, slot: slotLabel,
-    adminForce: isAdmin || false,
-    action: slotLabel.includes('обед') ? 'cancel_lunch' : 'cancel_break',
-  };
-
   setSyncStatus('saving');
-  fetch(WORKER_URL + '/cancel', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
+
+  // Delete from Supabase — admin can delete any, user only their own
+  const filter = adminForce
+    ? '?key=eq.' + encodeURIComponent(key)
+    : '?key=eq.' + encodeURIComponent(key) + '&value=eq.' + encodeURIComponent(value);
+
+  sbFetch('/rest/v1/bookings' + filter, { method: 'DELETE', prefer: 'return=minimal' })
+    .then(r => {
+      if (r.ok) {
         setSyncStatus('online');
-        refreshBookings(); // refresh to get compacted keys
+        // Also compact indexed keys on server by refreshing
+        refreshBookings();
       } else {
-        // Rollback
         if (prev !== undefined) bookings[key] = prev;
-        setSyncStatus('online');
+        setSyncStatus('offline');
         render();
       }
     })
@@ -614,16 +700,26 @@ function showConflict(slot, who) {
 }
 
 function logAction(action, slot) {
-  if (!currentOp) return;
-  fetch(WORKER_URL + '/log', {
+  // Get Kyiv time
+  const kyivTime = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit' });
+  const kyivNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const kyivH = kyivNow.getHours();
+  // Night shift 0-9am belongs to previous day's log date
+  const logDate = new Date(kyivNow);
+  if (currentShift === 'night' && kyivH < 9) logDate.setDate(logDate.getDate() - 1);
+  const shiftDate = logDate.toISOString().slice(0, 10);
+
+  sbFetch('/rest/v1/logs', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    prefer: 'return=minimal',
     body: JSON.stringify({
+      shift_date: shiftDate,
+      time_kyiv: kyivTime,
       section: currentSection,
       dept: currentDept,
       shift: currentShift,
       operator: currentOp,
-      userEmail: userEmail,
+      user_email: userEmail,
       action,
       slot,
     }),
@@ -659,10 +755,23 @@ function loadLog() {
   const body = document.getElementById('logBody');
   body.innerHTML = '<div class="log-empty">загрузка...</div>';
   const offset = (typeof logDayOffset !== 'undefined') ? logDayOffset : 0;
-  fetch(WORKER_URL + '/log?offset=' + offset)
+  const kyivNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const targetDay = new Date(kyivNow);
+  targetDay.setDate(targetDay.getDate() + offset);
+  const targetDate = targetDay.toISOString().slice(0, 10);
+  // Also include prev day for night shift (0-9am)
+  const kyivH = kyivNow.getHours();
+  let dateFilter = 'shift_date=eq.' + targetDate;
+  if (offset === 0 && kyivH < 9) {
+    const prevDay = new Date(kyivNow);
+    prevDay.setDate(prevDay.getDate() - 1);
+    dateFilter = 'shift_date=in.(' + prevDay.toISOString().slice(0,10) + ',' + targetDate + ')';
+  }
+  sbFetch('/rest/v1/logs?' + dateFilter + '&order=id.desc&limit=200')
+    .then(r => r.json())
     .then(r => r.json())
     .then(entries => {
-      if (!entries.length) {
+      if (!Array.isArray(entries) || !entries.length) {
         body.innerHTML = '<div class="log-empty">пока нет действий за сегодня</div>';
         return;
       }
@@ -677,10 +786,11 @@ function loadLog() {
         const al = actionLabels[e.action] || { text: e.action, cls: '' };
         const sectCls = e.section === 'nc' ? 'log-badge-nc' : (e.dept === 'vip' ? 'log-badge-vip' : 'log-badge-sg');
         const sectLabel = e.section === 'nc' ? 'NC' : (e.dept === 'vip' ? 'VIP' : 'SG');
+        const userEmail_ = e.user_email || e.userEmail || '';
         return `<div class="log-entry">
-          <div class="log-time">${e.time}</div>
+          <div class="log-time">${e.time_kyiv || e.time}</div>
           <div class="log-info">
-            <div class="log-op">${e.operator} <span class="log-badge ${sectCls}">${sectLabel}</span>${e.userEmail ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">(${e.userEmail})</span>` : ''}</div>
+            <div class="log-op">${e.operator} <span class="log-badge ${sectCls}">${sectLabel}</span>${userEmail_ ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">(${userEmail_})</span>` : ''}</div>
             <div class="log-detail"><span class="${al.cls}">${al.text}</span> · ${e.slot} · ${shiftLabels[e.shift] || e.shift}</div>
           </div>
         </div>`;
@@ -1282,16 +1392,19 @@ let transfers = {}; // { name: targetDept } — loaded from bookings
 function getTransferKey() { return 'sg|transfers'; }
 
 function loadTransfers() {
-  transfers = bookings[getTransferKey()] || {};
+  let t = bookings[getTransferKey()];
+  if (typeof t === 'string') { try { t = JSON.parse(t); } catch(e) { t = {}; } }
+  transfers = t || {};
 }
 
 function saveTransfers() {
   bookings[getTransferKey()] = transfers;
-  // Save protected keys directly
-  fetch(WORKER_URL + '/bookings', {
+  const key = getTransferKey();
+  const value = JSON.stringify(transfers);
+  sbFetch('/rest/v1/bookings', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bookings),
+    prefer: 'return=minimal,resolution=merge-duplicates',
+    body: JSON.stringify({ key, value }),
   }).then(() => setSyncStatus('online')).catch(() => setSyncStatus('offline'));
 }
 
@@ -1312,11 +1425,10 @@ let customRoster = null; // null = use hardcoded OPERATORS
 function getRosterKey() { return '__roster__'; } // double-underscore prefix is never wiped by shift reset
 
 async function loadRoster() {
-  // roster stored as plain key in bookings object
-  const r = bookings[getRosterKey()];
+  let r = bookings[getRosterKey()];
+  if (typeof r === 'string') { try { r = JSON.parse(r); } catch(e) { r = null; } }
   if (r) {
     customRoster = r;
-    // Override OPERATORS with custom roster
     OPERATORS.sg.regular = r.sg_regular || OPERATORS.sg.regular;
     OPERATORS.sg.vip     = r.sg_vip     || OPERATORS.sg.vip;
     OPERATORS.nc.regular = r.nc_regular  || OPERATORS.nc.regular;
@@ -1325,15 +1437,16 @@ async function loadRoster() {
 }
 
 function saveRoster() {
-  bookings[getRosterKey()] = {
+  const roster = {
     sg_regular: [...OPERATORS.sg.regular],
     sg_vip:     [...OPERATORS.sg.vip],
     nc_regular: [...OPERATORS.nc.regular],
   };
-  fetch(WORKER_URL + '/bookings', {
+  bookings[getRosterKey()] = roster;
+  sbFetch('/rest/v1/bookings', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bookings),
+    prefer: 'return=minimal,resolution=merge-duplicates',
+    body: JSON.stringify({ key: getRosterKey(), value: JSON.stringify(roster) }),
   }).then(() => setSyncStatus('online')).catch(() => setSyncStatus('offline'));
 }
 

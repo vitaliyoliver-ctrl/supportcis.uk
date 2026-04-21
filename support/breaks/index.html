@@ -565,6 +565,7 @@ function startRealtime() {
 
     ws.onopen = () => {
       realtimeConnected = true;
+      setSyncStatus('online');
       // Join channel
       ws.send(JSON.stringify({
         topic: 'realtime:public:bookings',
@@ -595,9 +596,10 @@ function startRealtime() {
 
     ws.onclose = () => {
       realtimeConnected = false;
+      setSyncStatus('offline');
       clearInterval(heartbeat);
       // Reconnect after 3s
-      setTimeout(connect, 3000);
+      setTimeout(() => { setSyncStatus('connecting'); connect(); }, 3000);
     };
 
     ws.onerror = () => {
@@ -1724,6 +1726,32 @@ fetch('/api/check', { credentials: 'include' })
   .catch(() => {})
   .finally(() => initWorker());
 
+  // OPERATOR PICK MODAL
+  let _opPickCb = null;
+  function openOpPick(cb) {
+    _opPickCb = cb;
+    const sel = document.getElementById('opPickSel');
+    sel.innerHTML = '';
+    const ops = getEffectiveOperators(currentSection, currentDept);
+    ops.forEach(op => {
+      const o = document.createElement('option');
+      o.value = op; o.textContent = op;
+      sel.appendChild(o);
+    });
+    const overlay = document.getElementById('opPickOverlay');
+    overlay.style.display = 'flex';
+  }
+  function closeOpPick() {
+    document.getElementById('opPickOverlay').style.display = 'none';
+    _opPickCb = null;
+  }
+  function confirmOpPick() {
+    const sel = document.getElementById('opPickSel');
+    const name = sel.value;
+    document.getElementById('opPickOverlay').style.display = 'none';
+    if (_opPickCb && name) _opPickCb(name);
+    _opPickCb = null;
+  }
 
 </script>
 <!-- OPERATOR PICK MODAL -->

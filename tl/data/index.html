@@ -789,8 +789,8 @@ function computeDayResult(dayStr) {
   const botPrivipChats2  = rows.filter(r => isBotOnly(r) && isPrivip(r)).length;
   const tgChats2         = rows.filter(isTG).length;
   // Прошли через бота = Regular + Privip
-  const passedBot2               = rows.filter(r => hasBot(r) && (isRegular(r) || isPrivip(r))).length;
-  const passedBotTG2             = rows.filter(r => hasBot(r) && isTG(r)).length;
+  const passedBot2               = rows.filter(r => isRegular(r) || isPrivip(r)).length;
+  const passedBotTG2             = rows.filter(r => isTG(r)).length;
   // Процент закрытия = закрыто ботом / ВСЕ Regular + Privip чаты
   const allRegPrivip2 = rows.filter(r => isRegular(r) || isPrivip(r)).length;
   const botClosurePercent2   = allRegPrivip2 > 0 ? (botChats2 / allRegPrivip2 * 100) : 0;
@@ -798,8 +798,8 @@ function computeDayResult(dayStr) {
   const regularChats2            = rows.filter(isRegular).length;
   const vipChats2                = rows.filter(isVIP).length;
   const privipChats2             = rows.filter(isPrivip).length;
-  const passedThroughBotRegular2   = rows.filter(r => hasBot(r) && isRegular(r)).length;
-  const passedThroughBotTGRegular2 = rows.filter(r => hasBot(r) && isTG(r)).length;
+  const passedThroughBotRegular2   = rows.filter(r => isRegular(r)).length;
+  const passedThroughBotTGRegular2 = rows.filter(r => isTG(r)).length;
   const closedByBotRegular2        = rows.filter(r => isBotOnly(r) && isRegular(r)).length;
   const closedByBotTGRegular2      = rows.filter(r => isBotOnly(r) && isTG(r)).length;
   const handledByHumanRegular2     = rows.filter(r => hasHumanOp(r) && isRegular(r)).length;
@@ -1041,18 +1041,17 @@ function analyze() {
   const tgChats = rows.filter(isTG).length;
 
   // Прошли через бота = regular + privip (маркер 'bot' в категориях)
-  const passedThroughBot = rows.filter(r => hasBot(r) && (isRegular(r) || isPrivip(r))).length;
-  const passedThroughBotTG = rows.filter(r => hasBot(r) && isTG(r)).length;
+  const passedThroughBot = rows.filter(r => isRegular(r) || isPrivip(r)).length;
+  const passedThroughBotTG = rows.filter(r => isTG(r)).length;
 
-  // Процент закрытия ботом:
-  // знаменатель = ВСЕ Regular + Privip чаты (не только те где был маркер bot)
+  // Процент закрытия ботом = закрыто ботом / все не-VIP чаты
   const allRegPrivip = rows.filter(r => isRegular(r) || isPrivip(r)).length;
-  const allTGChatsBot = tgChats; // все ТГ чаты как знаменатель для ТГ-процента
+  const allTGChatsBot = tgChats;
   const botClosurePercent   = allRegPrivip > 0 ? (botChats / allRegPrivip * 100) : 0;
   const botTGClosurePercent = allTGChatsBot > 0 ? (botTGChats / allTGChatsBot * 100) : 0;
 
-  const passedThroughBotRegular   = rows.filter(r => hasBot(r) && isRegular(r)).length;
-  const passedThroughBotTGRegular = rows.filter(r => hasBot(r) && isTG(r)).length;
+  const passedThroughBotRegular   = rows.filter(r => isRegular(r)).length;
+  const passedThroughBotTGRegular = rows.filter(r => isTG(r)).length;
   const closedByBotRegular        = rows.filter(r => isBotOnly(r) && isRegular(r)).length;
   const closedByBotTGRegular      = rows.filter(r => isBotOnly(r) && isTG(r)).length;
   const handledByHumanRegular     = rows.filter(r => hasHumanOp(r) && isRegular(r)).length;

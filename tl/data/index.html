@@ -301,6 +301,7 @@ function buildColMap(header) {
     else if (name === 'Общее время длительности чата агентов') COL.agentDur = i;
     else if (name === 'Оценка чата (CSAT)')                    COL.csat = i;
     else if (name === 'Комментарий к оценке')                  COL.csatComment = i;
+    else if (name === 'Чат попал в очередь')                   COL.queueTime = i;
     else if (name === 'Имя клиента')                           COL.clientName = i;
     else if (name === 'Кастом инфо о контакте: _email' || name === 'Кастом инфо о контакте: user_email') COL.customEmail = i;
     else if (name === 'Кастом инфо о контакте: phone' || name === 'Кастом инфо о контакте: user_phone')  COL.phone = i;
@@ -434,8 +435,12 @@ function isRegular(row) {
   return isRegularSource(row);
 }
 
-// Чат в очереди = в категориях есть 'очередь'
+// Чат в очереди — новый формат: колонка 'Чат попал в очередь' (непустая = был в очереди)
+// Старый формат (fallback): категория 'очередь'
 function inQueue(row) {
+  if (COL.queueTime !== undefined) {
+    return !!(row[COL.queueTime]);
+  }
   return getCats(row).some(c => c.toLowerCase() === 'очередь');
 }
 
@@ -962,8 +967,8 @@ function computeDayResult(dayStr) {
     _pf2[`proj_${p}_regular`] = s.regular;
     _pf2[`proj_${p}_vip`]     = s.vip;
     _pf2[`proj_${p}_total`]   = s.total;
-    _pf2[`proj_${p}_csat`]    = csatP !== null ? fmt(csatP,2) : null;
-    _pf2[`proj_${p}_fcr`]     = s.fcrTotal>0 ? fmt(s.fcrCount/s.fcrTotal*100,2) : null;
+    _pf2[`proj_${p}_csat`]    = csatP !== null ? fmt(csatP,2) : "";
+    _pf2[`proj_${p}_fcr`]     = s.fcrTotal>0 ? fmt(s.fcrCount/s.fcrTotal*100,2) : "";
   });
 
   const _of2 = {};
@@ -992,11 +997,11 @@ function computeDayResult(dayStr) {
     closed_by_bot_tg_regular: closedByBotTGRegular2,
     handled_by_human_regular: handledByHumanRegular2,
     queue_count: queueCount2,
-    csat_all: csatAll2 !== null ? fmt(csatAll2,2) : null,
-    csat_no_bot: csatNoBot2 !== null ? fmt(csatNoBot2,2) : null,
-    csat_bot: csatBot2 !== null ? fmt(csatBot2,2) : null,
-    csat_vip: csatVip2 !== null ? fmt(csatVip2,2) : null,
-    csat_regular: csatReg2 !== null ? fmt(csatReg2,2) : null,
+    csat_all: csatAll2 !== null ? fmt(csatAll2,2) : "",
+    csat_no_bot: csatNoBot2 !== null ? fmt(csatNoBot2,2) : "",
+    csat_bot: csatBot2 !== null ? fmt(csatBot2,2) : "",
+    csat_vip: csatVip2 !== null ? fmt(csatVip2,2) : "",
+    csat_regular: csatReg2 !== null ? fmt(csatReg2,2) : "",
     avg_frt_sec: fmt(avg(frtV2),1), avg_art_sec: fmt(avg(artV2),1),
     avg_duration_sec: fmt(avgDur2,0), avg_duration_min: fmt(avgDur2/60,1),
     fcr_total: fcrTotal2>0?fmt(fcrCount2/fcrTotal2*100,2):'0',
@@ -1438,8 +1443,8 @@ function analyze() {
     _projFlat[`proj_${p}_regular`] = s.regular;
     _projFlat[`proj_${p}_vip`]     = s.vip;
     _projFlat[`proj_${p}_total`]   = s.total;
-    _projFlat[`proj_${p}_csat`]    = csatP !== null ? fmt(csatP, 2) : null;
-    _projFlat[`proj_${p}_fcr`]     = fcrP;
+    _projFlat[`proj_${p}_csat`]    = csatP !== null ? fmt(csatP, 2) : "";
+    _projFlat[`proj_${p}_fcr`]     = fcrP ?? "";
   });
 
   const _opFlat = {};
@@ -1469,11 +1474,11 @@ function analyze() {
     closed_by_bot_tg_regular: closedByBotTGRegular,
     handled_by_human_regular: handledByHumanRegular,
     queue_count: totalQueue,
-    csat_all: csatAll !== null ? fmt(csatAll, 2) : null,
-    csat_no_bot: csatNoBot !== null ? fmt(csatNoBot, 2) : null,
-    csat_bot: csatBot !== null ? fmt(csatBot, 2) : null,
-    csat_vip: csatVip !== null ? fmt(csatVip, 2) : null,
-    csat_regular: csatReg !== null ? fmt(csatReg, 2) : null,
+    csat_all: csatAll !== null ? fmt(csatAll, 2) : "",
+    csat_no_bot: csatNoBot !== null ? fmt(csatNoBot, 2) : "",
+    csat_bot: csatBot !== null ? fmt(csatBot, 2) : "",
+    csat_vip: csatVip !== null ? fmt(csatVip, 2) : "",
+    csat_regular: csatReg !== null ? fmt(csatReg, 2) : "",
     avg_frt_sec: fmt(avgFRT, 1), avg_art_sec: fmt(avgART, 1),
     avg_duration_sec: fmt(avgDurSec, 0), avg_duration_min: fmt(avgDurMin, 1),
     fcr_total: fmt(fcr, 2), fcr_resolved: fcrCount, fcr_chats: fcrTotal,

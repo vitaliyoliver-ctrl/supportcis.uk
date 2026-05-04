@@ -470,17 +470,28 @@ function getTopicTags(row) {
 // после предыдущего — он не учитывается.
 function isRated(row) {
   const v = row[COL.csat];
-  return v !== null && v !== undefined && v !== '' && !isNaN(parseInt(v));
+  if (v === null || v === undefined || v === '') return false;
+  const s = v.toString().trim().toLowerCase();
+  if (s === 'good' || s === 'bad') return true;
+  return !isNaN(parseInt(v));
 }
 
 function isGoodRated(row) {
-  const v = parseInt(row[COL.csat]);
-  return !isNaN(v) && v >= 3;
+  const v = row[COL.csat];
+  if (!v) return false;
+  const s = v.toString().trim().toLowerCase();
+  if (s === 'good') return true;
+  const n = parseInt(v);
+  return !isNaN(n) && n >= 3;
 }
 
 function isBadRated(row) {
-  const v = parseInt(row[COL.csat]);
-  return !isNaN(v) && v <= 2;
+  const v = row[COL.csat];
+  if (!v) return false;
+  const s = v.toString().trim().toLowerCase();
+  if (s === 'bad') return true;
+  const n = parseInt(v);
+  return !isNaN(n) && n <= 2;
 }
 
 // Строит Set chat-id'шников, чьи дизлайки УЧИТЫВАЮТСЯ (первый или через 24ч+)
@@ -1039,6 +1050,7 @@ function analyze() {
   const botPrivipChats  = rows.filter(r => isBotOnly(r) && isPrivip(r)).length;
   // Все TG чаты
   const tgChats = rows.filter(isTG).length;
+  const tgPercent = totalChats > 0 ? (tgChats / totalChats * 100) : 0;
 
   // Прошли через бота = regular + privip (маркер 'bot' в категориях)
   const passedThroughBot = rows.filter(r => isRegular(r) || isPrivip(r)).length;

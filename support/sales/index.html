@@ -456,7 +456,8 @@
     <div class="tab" onclick="switchSalesTab('jan')">Январь 2026</div>
     <div class="tab" onclick="switchSalesTab('feb')">Февраль 2026</div>
     <div class="tab" onclick="switchSalesTab('mar')">Март 2026</div>
-    <div class="tab active" onclick="switchSalesTab('apr')">Апрель 2026</div>
+    <div class="tab" onclick="switchSalesTab('apr')">Апрель 2026</div>
+    <div class="tab active" onclick="switchSalesTab('may')">Май 2026</div>
   </div>
 
   <!-- ─── Stats strip ─── -->
@@ -518,12 +519,11 @@
   </div>
 
   <!-- ==================== АПРЕЛЬ ==================== -->
-  <div id="stab-apr" class="tab-content active">
+  <div id="stab-apr" class="tab-content">
     <div class="section-header">
       <span class="icon">📈</span>
       <span>Рейтинг продаж — Апрель 2026</span>
       <span class="line"></span>
-      <span style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted);white-space:nowrap;">🕐 Данные на <span style="color:var(--green);font-weight:700;">26.04.2026</span></span>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -626,18 +626,46 @@
     </div>
   </div>
 
+  <!-- ==================== МАЙ ==================== -->
+  <div id="stab-may" class="tab-content active">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Май 2026</span>
+      <span class="line"></span>
+      <span style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted);white-space:nowrap;">🕐 Данные с <span style="color:var(--green);font-weight:700;">27.04</span> по <span style="color:var(--green);font-weight:700;">03.05.2026</span></span>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Оператор</th>
+            <th>Всего чатов</th>
+            <th>Предложения</th>
+            <th>Активации</th>
+            <th title="Активации / Офферов">Акт / Оффер</th>
+            <th title="Офферов / Всего чатов">Оффер / Тотал</th>
+            <th title="Активации / Всего чатов">Акт / Тотал</th>
+            <th>Бонус ($)</th>
+          </tr>
+        </thead>
+        <tbody id="sales-may-body"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="footer">✦ Support Sales Activations 2026 ✦</div>
 
 </div>
 
 <script>
 // ─── Sales tabs ───
-const PERIOD_LABELS = { jan: 'Январь', feb: 'Февраль', mar: 'Март', apr: 'Апрель' };
+const PERIOD_LABELS = { jan: 'Январь', feb: 'Февраль', mar: 'Март', apr: 'Апрель', may: 'Май' };
 
 function switchSalesTab(month) {
   document.querySelectorAll('#sales-tabs .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const map = { jan: 0, feb: 1, mar: 2, apr: 3 };
+  const map = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4 };
   document.querySelectorAll('#sales-tabs .tab')[map[month]].classList.add('active');
   document.getElementById('stab-' + month).classList.add('active');
   document.getElementById('period-label').textContent = PERIOD_LABELS[month];
@@ -873,11 +901,61 @@ const salesData = {
     { name: 'Skylar', total: 1650, presales: 37, sales: 7, p_sp: 18.92, p_pt: 2.24, p_st: 0.42, bonus: 0 },
     { name: 'Trinity', total: 701, presales: 16, sales: 2, p_sp: 12.5, p_pt: 2.28, p_st: 0.29, bonus: 0 },
     { name: 'Wade', total: 504, presales: 0, sales: 0, p_sp: null, p_pt: 0.0, p_st: 0.0, bonus: 0 },
+  ],
+  may: [
+    { name: 'River', total: 380, presales: 224, sales: 15, p_sp: 6.7, p_pt: 58.95, p_st: 3.9474, bonus: 99 },
+    { name: 'Mike', total: 212, presales: 74, sales: 12, p_sp: 16.22, p_pt: 34.91, p_st: 5.6604, bonus: 85.8 },
+    { name: 'Earl', total: 454, presales: 138, sales: 13, p_sp: 9.42, p_pt: 30.4, p_st: 2.8634, bonus: 71.5 },
+    { name: 'Jonathan', total: 370, presales: 50, sales: 13, p_sp: 26.0, p_pt: 13.51, p_st: 3.5135, bonus: 70.2 },
+    { name: 'Rudy', total: 507, presales: 118, sales: 14, p_sp: 11.86, p_pt: 23.27, p_st: 2.7613, bonus: 70 },
+    { name: 'Scott', total: 299, presales: 57, sales: 11, p_sp: 19.3, p_pt: 19.06, p_st: 3.6789, bonus: 66 },
+    { name: 'Christine', total: 172, presales: 88, sales: 9, p_sp: 10.23, p_pt: 51.16, p_st: 5.2326, bonus: 64.35 },
+    { name: 'Balfour', total: 178, presales: 82, sales: 8, p_sp: 9.76, p_pt: 46.07, p_st: 4.4944, bonus: 57.2 },
+    { name: 'Florence', total: 209, presales: 35, sales: 9, p_sp: 25.71, p_pt: 16.75, p_st: 4.3062, bonus: 52.65 },
+    { name: 'Kenzo', total: 572, presales: 136, sales: 13, p_sp: 9.56, p_pt: 23.78, p_st: 2.2727, bonus: 52 },
+    { name: 'Casper', total: 397, presales: 93, sales: 9, p_sp: 9.68, p_pt: 23.43, p_st: 2.267, bonus: 36 },
+    { name: 'Gross', total: 483, presales: 97, sales: 9, p_sp: 9.28, p_pt: 20.08, p_st: 1.8634, bonus: 36 },
+    { name: 'Lex', total: 223, presales: 27, sales: 7, p_sp: 25.93, p_pt: 12.11, p_st: 3.139, bonus: 34.65 },
+    { name: 'Tom', total: 187, presales: 43, sales: 6, p_sp: 13.95, p_pt: 22.99, p_st: 3.2086, bonus: 33 },
+    { name: 'Will', total: 210, presales: 63, sales: 6, p_sp: 9.52, p_pt: 30.0, p_st: 2.8571, bonus: 33 },
+    { name: 'Norman', total: 287, presales: 120, sales: 7, p_sp: 5.83, p_pt: 41.81, p_st: 2.439, bonus: 30.8 },
+    { name: 'Robin', total: 172, presales: 22, sales: 6, p_sp: 27.27, p_pt: 12.79, p_st: 3.4884, bonus: 29.7 },
+    { name: 'Warren', total: 244, presales: 60, sales: 5, p_sp: 8.33, p_pt: 24.59, p_st: 2.0492, bonus: 22 },
+    { name: 'Meadow', total: 304, presales: 34, sales: 6, p_sp: 17.65, p_pt: 11.18, p_st: 1.9737, bonus: 21.6 },
+    { name: 'Robert', total: 431, presales: 52, sales: 6, p_sp: 11.54, p_pt: 12.06, p_st: 1.3921, bonus: 21.6 },
+    { name: 'Hardy', total: 341, presales: 37, sales: 5, p_sp: 13.51, p_pt: 10.85, p_st: 1.4663, bonus: 18 },
+    { name: 'Bridget', total: 336, presales: 108, sales: 4, p_sp: 3.7, p_pt: 32.14, p_st: 1.1905, bonus: 17.6 },
+    { name: 'Plover', total: 198, presales: 52, sales: 4, p_sp: 7.69, p_pt: 26.26, p_st: 2.0202, bonus: 17.6 },
+    { name: 'Bowen', total: 220, presales: 38, sales: 4, p_sp: 10.53, p_pt: 17.27, p_st: 1.8182, bonus: 14.4 },
+    { name: 'Fletcher', total: 379, presales: 39, sales: 4, p_sp: 10.26, p_pt: 10.29, p_st: 1.0554, bonus: 14.4 },
+    { name: 'Alexia', total: 200, presales: 59, sales: 3, p_sp: 5.08, p_pt: 29.5, p_st: 1.5, bonus: 13.2 },
+    { name: 'Holly', total: 139, presales: 42, sales: 3, p_sp: 7.14, p_pt: 30.22, p_st: 2.1583, bonus: 13.2 },
+    { name: 'Skylar', total: 530, presales: 71, sales: 5, p_sp: 7.04, p_pt: 13.4, p_st: 0.9434, bonus: 11.25 },
+    { name: 'Joseph', total: 290, presales: 24, sales: 4, p_sp: 16.67, p_pt: 8.28, p_st: 1.3793, bonus: 8.16 },
+    { name: 'Bill', total: 148, presales: 11, sales: 2, p_sp: 18.18, p_pt: 7.43, p_st: 1.3514, bonus: 4.08 },
+    { name: 'Fabio', total: 221, presales: 13, sales: 2, p_sp: 15.38, p_pt: 5.88, p_st: 0.905, bonus: 2.55 },
+    { name: 'Ashton', total: 406, presales: 10, sales: 1, p_sp: 10.0, p_pt: 2.46, p_st: 0.2463, bonus: 0 },
+    { name: 'Bob', total: 170, presales: 8, sales: 1, p_sp: 12.5, p_pt: 4.71, p_st: 0.5882, bonus: 0 },
+    { name: 'Charles', total: 297, presales: 8, sales: 3, p_sp: 37.5, p_pt: 2.69, p_st: 1.0101, bonus: 0 },
+    { name: 'Elijah', total: 201, presales: 2, sales: 1, p_sp: 50.0, p_pt: 1.0, p_st: 0.4975, bonus: 0 },
+    { name: 'Isaac', total: 250, presales: 10, sales: 1, p_sp: 10.0, p_pt: 4.0, p_st: 0.4, bonus: 0 },
+    { name: 'Morgan', total: 354, presales: 7, sales: 1, p_sp: 14.29, p_pt: 1.98, p_st: 0.2825, bonus: 0 },
+    { name: 'Murphy', total: 209, presales: 6, sales: 1, p_sp: 16.67, p_pt: 2.87, p_st: 0.4785, bonus: 0 },
+    { name: 'Reggie', total: 133, presales: 2, sales: 2, p_sp: 100.0, p_pt: 1.5, p_st: 1.5038, bonus: 0 },
+    { name: 'Simon', total: 276, presales: 2, sales: 2, p_sp: 100.0, p_pt: 0.72, p_st: 0.7246, bonus: 0 },
+    { name: 'Trinity', total: 287, presales: 8, sales: 4, p_sp: 50.0, p_pt: 2.79, p_st: 1.3937, bonus: 0 },
+    { name: 'Calvin', total: 144, presales: 7, sales: 0, p_sp: null, p_pt: 4.86, p_st: 0.0, bonus: 0 },
+    { name: 'Chadwick', total: 153, presales: 3, sales: 0, p_sp: null, p_pt: 1.96, p_st: 0.0, bonus: 0 },
+    { name: 'Denzel', total: 147, presales: 38, sales: 0, p_sp: null, p_pt: 25.85, p_st: 0.0, bonus: 0 },
+    { name: 'Felicia', total: 82, presales: 19, sales: 0, p_sp: null, p_pt: 23.17, p_st: 0.0, bonus: 0 },
+    { name: 'Kiana', total: 168, presales: 2, sales: 0, p_sp: null, p_pt: 1.19, p_st: 0.0, bonus: 0 },
+    { name: 'Nora', total: 184, presales: 13, sales: 0, p_sp: null, p_pt: 7.07, p_st: 0.0, bonus: 0 },
+    { name: 'Wade', total: 80, presales: 0, sales: 0, p_sp: null, p_pt: 0.0, p_st: 0.0, bonus: 0 },
   ]
 };
 
 // ─── Sort state ───
-const sortState = { jan: { col: 'bonus', dir: -1 }, feb: { col: 'bonus', dir: -1 }, mar: { col: 'bonus', dir: -1 }, apr: { col: 'bonus', dir: -1 } };
+const sortState = { jan: { col: 'bonus', dir: -1 }, feb: { col: 'bonus', dir: -1 }, mar: { col: 'bonus', dir: -1 }, apr: { col: 'bonus', dir: -1 }, may: { col: 'bonus', dir: -1 } };
 const COL_KEYS = ['rank', 'name', 'total', 'presales', 'sales', 'p_sp', 'p_pt', 'p_st', 'bonus'];
 
 function sortData(data, col, dir) {
@@ -970,11 +1048,11 @@ function initSortHeaders(month) {
   updateSortHeaders(month);
 }
 
-['jan', 'feb', 'mar', 'apr'].forEach(m => {
+['jan', 'feb', 'mar', 'apr', 'may'].forEach(m => {
   renderSalesTable(m);
   initSortHeaders(m);
 });
-updateStats('apr');
+updateStats('may');
 </script>
 </body>
 </html>

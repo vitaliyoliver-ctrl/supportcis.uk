@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Stats</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #2C2C2A; font-size: 14px; }
+.app { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+h1 { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+
+/* Upload */
+.upload-zone { border: 2px dashed #ccc; border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; background: #fff; transition: border-color .2s; margin-bottom: 20px; }
+.upload-zone:hover, .upload-zone.drag { border-color: #378ADD; background: #f0f7ff; }
+.upload-zone input { display: none; }
+.upload-icon { font-size: 36px; margin-bottom: 8px; }
+.upload-label { color: #555; font-size: 13px; margin-top: 6px; }
+.upload-label b { color: #378ADD; cursor: pointer; }
+.file-name { margin-top: 8px; font-size: 12px; color: #888; }
+
+/* Controls */
+.controls { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-group label { font-size: 11px; color: #888; }
+.ctrl-group input[type=date] { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: #fff; }
+.btn { padding: 8px 20px; background: #378ADD; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn:hover { background: #2a6db0; }
+.btn:disabled { background: #aaa; cursor: not-allowed; }
+.btn-sec { background: #fff; color: #378ADD; border: 1px solid #378ADD; }
+.btn-sec:hover { background: #f0f7ff; }
+
+/* Summary cards */
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 24px; }
+.scard { background: #fff; border-radius: 8px; border: 0.5px solid #e0e0dc; padding: 12px 14px; }
+.scard-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+.scard-val { font-size: 22px; font-weight: 600; }
+.scard-sub { font-size: 11px; margin-top: 3px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tab { padding: 5px 14px; border-radius: 6px; border: 0.5px solid #ccc; cursor: pointer; font-size: 12px; background: #fff; color: #666; transition: all .15s; }
+.tab:hover { border-color: #378ADD; color: #378ADD; }
+.tab.active { background: #378ADD; color: #fff; border-color: #378ADD; font-weight: 500; }
+.tab.extra { border-style: dashed; }
+.tab.extra.active { background: #888; border-color: #888; }
+
+/* Chart panel */
+.panel { background: #fff; border-radius: 10px; border: 0.5px solid #e0e0dc; padding: 16px 20px; }
+.brand-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.brand-name { font-size: 15px; font-weight: 600; }
+.brand-meta { font-size: 12px; color: #888; }
+.brand-diff { font-size: 13px; font-weight: 600; }
+.legend { display: flex; gap: 16px; margin-bottom: 10px; font-size: 12px; color: #888; }
+.lbox { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.chart-wrap { position: relative; width: 100%; height: 220px; margin-bottom: 16px; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; color: #888; font-weight: 400; padding: 5px 8px; border-bottom: 0.5px solid #e8e8e4; font-size: 11px; }
+th.r { text-align: right; }
+td { padding: 4px 8px; border-bottom: 0.5px solid #f0f0ec; }
+td.r { text-align: right; }
+td.muted { color: #888; }
+.up { color: #27AE60; } .dn { color: #C0392B; }
+tr.bg-up td { background: #EAF7EF; }
+tr.bg-dn td { background: #FDECEA; }
+tr.bg-neu td { background: #fafaf8; }
+tr.footer td { font-weight: 600; border-top: 1px solid #ddd; }
+tr.footer.bg-up td { background: #d4f0df; }
+tr.footer.bg-dn td { background: #fad4d0; }
+
+.empty { text-align: center; padding: 60px; color: #aaa; font-size: 14px; }
+.sep { border: none; border-top: 1px dashed #e0e0dc; margin: 16px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📊 Payment Stats</h1>
+
+  <div class="upload-zone" id="dropzone">
+    <input type="file" id="fileInput" accept=".csv">
+    <div class="upload-icon">📁</div>
+    <div>Перетащи CSV-файл или <b onclick="document.getElementById('fileInput').click()">выбери вручную</b></div>
+    <div class="upload-label">Формат: выгрузка helpdesk с полем teamName и createdAt</div>
+    <div class="file-name" id="fileName"></div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Дата 1 (база)</label>
+      <input type="date" id="date1">
+    </div>
+    <div class="ctrl-group">
+      <label>Дата 2 (сравнение)</label>
+      <input type="date" id="date2">
+    </div>
+    <button class="btn" id="buildBtn" disabled onclick="buildStats()">Построить</button>
+    <button class="btn btn-sec" id="resetBtn" onclick="resetDates()" style="display:none">Сбросить</button>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+const BLUE = '#378ADD';
+const GREEN_BAR = '#1D9E75';
+const COL_UP = '#27AE60';
+const COL_DN = '#C0392B';
+const GRAY = '#888';
+
+let csvData = [];
+let activeChart = null;
+let activeGroup = null;
+
+function getBrand(team) {
+  for (const b of ['Arkada','Cat','Daddy','Gama','Kent','Kometa','Mers','R7']) {
+    if (team.includes(b)) return b;
+  }
+  return null;
+}
+
+// File handling
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag'); loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+
+function loadFile(file) {
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    csvData = parseCSV(e.target.result);
+    prefillDates();
+    document.getElementById('buildBtn').disabled = false;
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = parseCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => obj[h.replace(/"/g,'')] = (vals[i]||'').replace(/"/g,''));
+    return obj;
+  }).filter(r => r.createdAt);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQ = !inQ; }
+    else if (line[i] === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += line[i]; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function prefillDates() {
+  const dates = [...new Set(csvData.map(r => r.createdAt.slice(0,10)))].sort();
+  if (dates.length >= 2) {
+    document.getElementById('date1').value = dates[dates.length - 2];
+    document.getElementById('date2').value = dates[dates.length - 1];
+  } else if (dates.length === 1) {
+    document.getElementById('date1').value = dates[0];
+  }
+}
+
+function resetDates() {
+  prefillDates();
+  buildStats();
+}
+
+function buildStats() {
+  const d1 = document.getElementById('date1').value;
+  const d2 = document.getElementById('date2').value;
+  if (!d1 || !d2 || !csvData.length) return;
+  document.getElementById('resetBtn').style.display = '';
+
+  // Collect data
+  const byGroup = {};
+  const addRow = (group, hour, isD1) => {
+    if (!byGroup[group]) byGroup[group] = { y: Array(24).fill(0), t: Array(24).fill(0) };
+    if (isD1) byGroup[group].y[hour]++;
+    else byGroup[group].t[hour]++;
+  };
+
+  csvData.forEach(row => {
+    const team = (row.teamName||'').trim();
+    if (!team.includes('Payment')) return;
+    const date = row.createdAt.slice(0,10);
+    const hour = parseInt(row.createdAt.slice(11,13));
+    if (date !== d1 && date !== d2) return;
+    const brand = getBrand(team);
+    const group = brand || team;
+    addRow(group, hour, date === d1);
+  });
+
+  // Find max hour with data for d2
+  let maxHour = 23;
+  const allT = Object.values(byGroup).reduce((acc, g) => {
+    g.t.forEach((v,i) => { acc[i] = (acc[i]||0) + v; });
+    return acc;
+  }, Array(24).fill(0));
+  for (let h = 23; h >= 0; h--) {
+    if (allT[h] > 0) { maxHour = h; break; }
+  }
+  // Exclude last partial hour
+  const cutHour = maxHour;
+
+  // Brands order
+  const brandOrder = ['Cat','Gama','Kent','R7','Daddy','Kometa','Arkada','Mers'];
+  const extraOrder = ['Waiting declined Payment','Waiting for success Payment','Вывод Payment'];
+  const allGroups = [
+    ...brandOrder.filter(b => byGroup[b]),
+    ...Object.keys(byGroup).filter(k => !brandOrder.includes(k) && !extraOrder.includes(k)),
+    ...extraOrder.filter(b => byGroup[b]),
+  ];
+
+  // Summary
+  let totalY = 0, totalT = 0;
+  allGroups.forEach(g => {
+    byGroup[g].y.forEach((v,h) => { if (h < cutHour) totalY += v; });
+    byGroup[g].t.forEach((v,h) => { if (h < cutHour) totalT += v; });
+  });
+  const totalD = totalT - totalY;
+  const totalPct = totalY ? Math.round(totalD/totalY*100) : 0;
+  const dSign = totalD >= 0 ? '+' : '';
+  const dCol = totalD > 0 ? COL_UP : COL_DN;
+
+  const fmt = d => d.split('-').reverse().join('.');
+
+  let html = `
+    <div class="summary">
+      <div class="scard"><div class="scard-label">Тикетов ${fmt(d1)}</div><div class="scard-val">${totalY}</div></div>
+      <div class="scard"><div class="scard-label">Тикетов ${fmt(d2)} (00–${(cutHour-1).toString().padStart(2,'0')})</div><div class="scard-val">${totalT}</div></div>
+      <div class="scard"><div class="scard-label">Разница</div><div class="scard-val" style="color:${dCol}">${dSign}${totalD}</div></div>
+      <div class="scard"><div class="scard-label">Изменение</div><div class="scard-val" style="color:${dCol}">${dSign}${totalPct}%</div></div>
+      <div class="scard"><div class="scard-label">Брендов</div><div class="scard-val">${allGroups.length}</div></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="panel" id="panel"><div class="empty">Выбери бренд выше</div></div>
+  `;
+  document.getElementById('output').innerHTML = html;
+
+  // Build tabs
+  const tabsEl = document.getElementById('tabs');
+  const brandGroups = brandOrder.filter(b => byGroup[b]);
+  const extraGroups = [...Object.keys(byGroup).filter(k => !brandOrder.includes(k) && !extraOrder.includes(k)), ...extraOrder.filter(b => byGroup[b])];
+
+  [...brandGroups, ...extraGroups].forEach((g, i) => {
+    const isExtra = !brandOrder.includes(g);
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (isExtra ? ' extra' : '');
+    const gData = byGroup[g];
+    const gy = gData.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
+    const gt = gData.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
+    const gd = gt - gy;
+    const gc = gd > 0 ? COL_UP : (gd < 0 ? COL_DN : GRAY);
+    btn.innerHTML = `${g} <span style="color:${gc};font-size:11px">${gd>0?'+':''}${gd}</span>`;
+    btn.onclick = () => {
+      tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderPanel(g, byGroup[g], d1, d2, cutHour, fmt);
+    };
+    tabsEl.appendChild(btn);
+    if (i === 0) { btn.classList.add('active'); }
+  });
+
+  // Render first
+  if (allGroups.length > 0) {
+    renderPanel(allGroups[0], byGroup[allGroups[0]], d1, d2, cutHour, fmt);
+  }
+}
+
+function renderPanel(name, data, d1, d2, cutHour, fmt) {
+  const hours = Array.from({length: cutHour}, (_, i) => i);
+  const yArr = hours.map(h => data.y[h]);
+  const tArr = hours.map(h => data.t[h]);
+  const totY = yArr.reduce((a,b)=>a+b,0);
+  const totT = tArr.reduce((a,b)=>a+b,0);
+  const totD = totT - totY;
+  const totPct = totY ? Math.round(totD/totY*100) : 0;
+  const sign = totD >= 0 ? '+' : '';
+  const dCol = totD > 0 ? COL_UP : COL_DN;
+
+  let tableRows = '';
+  hours.forEach((h, i) => {
+    const yv = yArr[i], tv = tArr[i];
+    const diff = tv - yv;
+    const pct = yv ? Math.round(diff/yv*100) : null;
+    const diffStr = (diff > 0 ? '+' : '') + diff;
+    const pctStr = pct !== null ? (pct > 0 ? '+' : '') + pct + '%' : (tv > 0 ? 'new' : '–');
+    const cls = diff > 0 ? 'up' : (diff < 0 ? 'dn' : '');
+    const bgCls = diff > 0 ? 'bg-up' : (diff < 0 ? 'bg-dn' : 'bg-neu');
+    tableRows += `<tr class="${bgCls}">
+      <td class="muted">${h.toString().padStart(2,'0')}:00</td>
+      <td class="r">${yv}</td>
+      <td class="r">${tv}</td>
+      <td class="r ${cls}">${diffStr}</td>
+      <td class="r ${cls}">${pctStr}</td>
+    </tr>`;
+  });
+
+  const footBg = totD > 0 ? 'bg-up' : 'bg-dn';
+
+  document.getElementById('panel').innerHTML = `
+    <div class="brand-header">
+      <span class="brand-name">${name}</span>
+      <span class="brand-meta">${fmt(d1)}: ${totY} &nbsp;→&nbsp; ${fmt(d2)}: ${totT}</span>
+      <span class="brand-diff" style="color:${dCol}">${sign}${totD} (${sign}${totPct}%)</span>
+    </div>
+    <div class="legend">
+      <span><span class="lbox" style="background:${BLUE}"></span>${fmt(d1)}</span>
+      <span><span class="lbox" style="background:${GREEN_BAR}"></span>${fmt(d2)}</span>
+    </div>
+    <div class="chart-wrap"><canvas id="brandChart" role="img" aria-label="График ${name}"></canvas></div>
+    <table>
+      <thead><tr><th>Час</th><th class="r">${fmt(d1)}</th><th class="r">${fmt(d2)}</th><th class="r">Разница</th><th class="r">%</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+      <tfoot><tr class="footer ${footBg}">
+        <td>Итого</td>
+        <td class="r">${totY}</td>
+        <td class="r">${totT}</td>
+        <td class="r ${totD>0?'up':'dn'}">${sign}${totD}</td>
+        <td class="r ${totD>0?'up':'dn'}">${sign}${totPct}%</td>
+      </tr></tfoot>
+    </table>
+  `;
+
+  if (activeChart) { activeChart.destroy(); activeChart = null; }
+
+  const hlabels = hours.map(h => h.toString().padStart(2,'0') + ':00');
+  activeChart = new Chart(document.getElementById('brandChart'), {
+    type: 'bar',
+    data: {
+      labels: hlabels,
+      datasets: [
+        { label: fmt(d1), data: yArr, backgroundColor: BLUE, borderRadius: 3 },
+        { label: fmt(d2), data: tArr, backgroundColor: GREEN_BAR, borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              const i = items[0].dataIndex;
+              const yv = yArr[i], tv = tArr[i];
+              const diff = tv - yv;
+              const pct = yv ? Math.round(diff/yv*100) : null;
+              return pct !== null ? [`Разница: ${diff>0?'+':''}${diff} (${pct>0?'+':''}${pct}%)`] : [];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 } }, grid: { color: '#f0f0ec' } }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

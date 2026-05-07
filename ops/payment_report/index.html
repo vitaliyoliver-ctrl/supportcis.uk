@@ -45,6 +45,9 @@ h1 { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
 .tab.active { background: #378ADD; color: #fff; border-color: #378ADD; font-weight: 500; }
 .tab.extra { border-style: dashed; }
 .tab.extra.active { background: #888; border-color: #888; }
+.seg-tab { padding: 4px 12px; border-radius: 6px; border: 0.5px solid #ccc; cursor: pointer; font-size: 11px; background: #fff; color: #666; }
+.seg-tab:hover { border-color: #1D9E75; color: #1D9E75; }
+.seg-tab.active { background: #1D9E75; color: #fff; border-color: #1D9E75; font-weight: 500; }
 
 /* Chart panel */
 .panel { background: #fff; border-radius: 10px; border: 0.5px solid #e0e0dc; padding: 16px 20px; }
@@ -73,6 +76,7 @@ tr.footer.bg-dn td { background: #fad4d0; }
 
 .empty { text-align: center; padding: 60px; color: #aaa; font-size: 14px; }
 .sep { border: none; border-top: 1px dashed #e0e0dc; margin: 16px 0; }
+
 </style>
 </head>
 <body>
@@ -83,9 +87,10 @@ tr.footer.bg-dn td { background: #fad4d0; }
     <input type="file" id="fileInput" accept=".csv">
     <div class="upload-icon">📁</div>
     <div>Перетащи CSV-файл или <b>выбери вручную</b></div>
-    <div class="upload-label">Формат: выгрузка helpdesk с полем teamName и createdAt</div>
+    <div class="upload-label">Определяет источник автоматически (SupportCIS / NK)</div>
     <div class="file-name" id="fileName"></div>
   </label>
+  <div id="detectedSource" style="display:none;font-size:12px;color:#378ADD;margin-bottom:12px;font-weight:500;"></div>
 
   <div class="controls">
     <div class="ctrl-group">
@@ -113,13 +118,40 @@ const GRAY = '#888';
 let csvData = [];
 let activeChart = null;
 let activeGroup = null;
+let activeSource = 'cis'; // auto-detected on file load
+
+// Source config
+const SOURCE_CONFIG = {
+  cis: {
+    label: 'SupportCIS',
+    isPayment: team => team.includes('Payment'),
+    getBrand: team => {
+      for (const b of ['Arkada','Cat','Daddy','Gama','Kent','Kometa','Mers','R7']) {
+        if (team.includes(b)) return b;
+      }
+      return null;
+    },
+    extraNames: ['Waiting declined Payment', 'Waiting for success Payment', 'Вывод Payment'],
+    brandOrder: ['Cat','Gama','Kent','R7','Daddy','Kometa','Arkada','Mers'],
+  },
+  nk: {
+    label: 'NK',
+    isPayment: team => team.includes('Payment'),
+    getBrand: team => {
+      if (team.includes('Atom')) return 'Atom';
+      if (team.includes('Motor')) return 'Motor';
+      return null;
+    },
+    extraNames: [],
+    brandOrder: ['Atom','Motor'],
+  }
+};
 
 function getBrand(team) {
-  for (const b of ['Arkada','Cat','Daddy','Gama','Kent','Kometa','Mers','R7']) {
-    if (team.includes(b)) return b;
-  }
-  return null;
+  return SOURCE_CONFIG[activeSource].getBrand(team);
 }
+
+
 
 // File handling
 const dropzone = document.getElementById('dropzone');
@@ -130,12 +162,23 @@ dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
 dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag'); loadFile(e.dataTransfer.files[0]); });
 fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
 
+function detectSource(rows) {
+  // Check first 30 rows for NK brands
+  const sample = rows.slice(0, 30).map(r => (r.teamName||'').trim());
+  const hasNK = sample.some(t => t.includes('Atom') || t.includes('Motor'));
+  return hasNK ? 'nk' : 'cis';
+}
+
 function loadFile(file) {
   if (!file) return;
   document.getElementById('fileName').textContent = file.name;
   const reader = new FileReader();
   reader.onload = e => {
     csvData = parseCSV(e.target.result);
+    activeSource = detectSource(csvData);
+    const label = SOURCE_CONFIG[activeSource].label;
+    document.getElementById('detectedSource').textContent = 'Источник: ' + label;
+    document.getElementById('detectedSource').style.display = '';
     prefillDates();
     document.getElementById('buildBtn').disabled = false;
   };
@@ -186,58 +229,66 @@ function buildStats() {
   if (!d1 || !d2 || !csvData.length) return;
   document.getElementById('resetBtn').style.display = '';
 
-  // Collect data
-  const byGroup = {};
-  const addRow = (group, hour, isD1) => {
-    if (!byGroup[group]) byGroup[group] = { y: Array(24).fill(0), t: Array(24).fill(0) };
-    if (isD1) byGroup[group].y[hour]++;
-    else byGroup[group].t[hour]++;
+  const byTeam = {};
+  const addRow = (key, hour, isD1) => {
+    if (!byTeam[key]) byTeam[key] = { y: Array(24).fill(0), t: Array(24).fill(0) };
+    if (isD1) byTeam[key].y[hour]++; else byTeam[key].t[hour]++;
   };
 
+  const cfg = SOURCE_CONFIG[activeSource];
   csvData.forEach(row => {
     const team = (row.teamName||'').trim();
-    if (!team.includes('Payment')) return;
+    if (!cfg.isPayment(team)) return;
     const date = row.createdAt.slice(0,10);
     const hour = parseInt(row.createdAt.slice(11,13));
     if (date !== d1 && date !== d2) return;
-    const brand = getBrand(team);
-    const group = brand || team;
-    addRow(group, hour, date === d1);
+    addRow(team, hour, date === d1);
   });
 
-  // Find max hour with data for d2
-  let maxHour = 23;
-  const allT = Object.values(byGroup).reduce((acc, g) => {
-    g.t.forEach((v,i) => { acc[i] = (acc[i]||0) + v; });
-    return acc;
-  }, Array(24).fill(0));
-  for (let h = 23; h >= 0; h--) {
-    if (allT[h] > 0) { maxHour = h; break; }
-  }
-  // Exclude last partial hour
-  const cutHour = maxHour;
+  const allT = Array(24).fill(0);
+  Object.values(byTeam).forEach(g => g.t.forEach((v,i) => allT[i] += v));
+  let cutHour = 23;
+  for (let h = 23; h >= 0; h--) { if (allT[h] > 0) { cutHour = h; break; } }
 
-  // Brands order
-  const brandOrder = ['Cat','Gama','Kent','R7','Daddy','Kometa','Arkada','Mers'];
-  const extraOrder = ['Waiting declined Payment','Waiting for success Payment','Вывод Payment'];
-  const allGroups = [
-    ...brandOrder.filter(b => byGroup[b]),
-    ...Object.keys(byGroup).filter(k => !brandOrder.includes(k) && !extraOrder.includes(k)),
-    ...extraOrder.filter(b => byGroup[b]),
-  ];
+  const brandOrder = cfg.brandOrder;
+  const emptyGroup = () => ({ y: Array(24).fill(0), t: Array(24).fill(0) });
+  const mergeInto = (target, src) => {
+    target.y = target.y.map((v,i) => v + src.y[i]);
+    target.t = target.t.map((v,i) => v + src.t[i]);
+  };
 
-  // Summary
+  const byBrand = {};
+  const byExtra = {};
+
+  Object.entries(byTeam).forEach(([team, data]) => {
+    const brand = cfg.getBrand(team);
+    const isVip = /vip/i.test(team);
+    const seg = isVip ? 'vip' : 'regular';
+    if (brand) {
+      if (!byBrand[brand]) byBrand[brand] = { regular: emptyGroup(), vip: emptyGroup(), all: emptyGroup() };
+      mergeInto(byBrand[brand][seg], data);
+      mergeInto(byBrand[brand].all, data);
+    } else {
+      if (!byExtra[team]) byExtra[team] = emptyGroup();
+      mergeInto(byExtra[team], data);
+    }
+  });
+
+  const fmt = d => d.split('-').reverse().join('.');
   let totalY = 0, totalT = 0;
-  allGroups.forEach(g => {
-    byGroup[g].y.forEach((v,h) => { if (h < cutHour) totalY += v; });
-    byGroup[g].t.forEach((v,h) => { if (h < cutHour) totalT += v; });
+  Object.values(byBrand).forEach(b => {
+    b.all.y.forEach((v,h) => { if (h < cutHour) totalY += v; });
+    b.all.t.forEach((v,h) => { if (h < cutHour) totalT += v; });
+  });
+  Object.values(byExtra).forEach(b => {
+    b.y.forEach((v,h) => { if (h < cutHour) totalY += v; });
+    b.t.forEach((v,h) => { if (h < cutHour) totalT += v; });
   });
   const totalD = totalT - totalY;
   const totalPct = totalY ? Math.round(totalD/totalY*100) : 0;
   const dSign = totalD >= 0 ? '+' : '';
   const dCol = totalD > 0 ? COL_UP : COL_DN;
-
-  const fmt = d => d.split('-').reverse().join('.');
+  const brandCount = Object.keys(byBrand).length;
 
   let html = `
     <div class="summary">
@@ -245,57 +296,153 @@ function buildStats() {
       <div class="scard"><div class="scard-label">Тикетов ${fmt(d2)} (00–${(cutHour-1).toString().padStart(2,'0')})</div><div class="scard-val">${totalT}</div></div>
       <div class="scard"><div class="scard-label">Разница</div><div class="scard-val" style="color:${dCol}">${dSign}${totalD}</div></div>
       <div class="scard"><div class="scard-label">Изменение</div><div class="scard-val" style="color:${dCol}">${dSign}${totalPct}%</div></div>
-      <div class="scard"><div class="scard-label">Брендов</div><div class="scard-val">${allGroups.length}</div></div>
+      <div class="scard"><div class="scard-label">Брендов</div><div class="scard-val">${brandCount}</div></div>
     </div>
-    <div class="tabs" id="tabs"></div>
+    <div class="tabs" id="tabs" style="margin-bottom:8px;"></div>
+    <div class="tabs extra-tabs" id="extraTabs" style="margin-bottom:8px;"></div>
+    <div class="seg-tabs" id="segTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
     <div class="panel" id="panel"><div class="empty">Выбери бренд выше</div></div>
   `;
   document.getElementById('output').innerHTML = html;
 
-  // Build tabs
   const tabsEl = document.getElementById('tabs');
-  const brandGroups = brandOrder.filter(b => byGroup[b]);
-  const extraGroups = [...Object.keys(byGroup).filter(k => !brandOrder.includes(k) && !extraOrder.includes(k)), ...extraOrder.filter(b => byGroup[b])];
+  const segTabsEl = document.getElementById('segTabs');
 
-  [...brandGroups, ...extraGroups].forEach((g, i) => {
-    const isExtra = !brandOrder.includes(g);
+  let activeBrand = null;
+  let activeSeg = 'all';
+
+  const renderSeg = () => {
+    if (!activeBrand) return;
+    if (activeBrand === '__all__') { renderPanel('Все проекты', allData, d1, d2, cutHour, fmt); return; }
+    const isExtra = !byBrand[activeBrand];
+    const data = isExtra ? byExtra[activeBrand] : byBrand[activeBrand][activeSeg];
+    const label = activeBrand + (activeSeg === 'vip' ? ' — VIP' : activeSeg === 'regular' ? ' — Regular' : '');
+    renderPanel(label, data, d1, d2, cutHour, fmt);
+  };
+
+  const buildSegTabs = (brand) => {
+    segTabsEl.innerHTML = '';
+    if (!byBrand[brand]) return;
+    const hasVip = byBrand[brand].vip.y.some(v=>v>0) || byBrand[brand].vip.t.some(v=>v>0);
+    if (!hasVip) return;
+    [['all','Все'],['regular','Regular'],['vip','VIP']].forEach(([seg, label]) => {
+      const b = document.createElement('button');
+      b.className = 'seg-tab' + (seg === activeSeg ? ' active' : '');
+      b.textContent = label;
+      b.onclick = () => {
+        activeSeg = seg;
+        segTabsEl.querySelectorAll('.seg-tab').forEach(t => t.classList.remove('active'));
+        b.classList.add('active');
+        renderSeg();
+      };
+      segTabsEl.appendChild(b);
+    });
+  };
+
+  const orderedBrands = [...brandOrder.filter(b => byBrand[b]), ...Object.keys(byBrand).filter(b => !brandOrder.includes(b))];
+  const extraKeys = Object.keys(byExtra);
+  const extraTabsEl = document.getElementById('extraTabs');
+
+  const makeTab = (g, targetEl, isExtra) => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (isExtra ? ' extra' : '');
-    const gData = byGroup[g];
-    const gy = gData.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
-    const gt = gData.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
+    const data = isExtra ? byExtra[g] : byBrand[g].all;
+    const gy = data.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
+    const gt = data.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
     const gd = gt - gy;
+    const gpct = gy ? Math.round(gd/gy*100) : null;
     const gc = gd > 0 ? COL_UP : (gd < 0 ? COL_DN : GRAY);
-    btn.innerHTML = `${g} <span style="color:${gc};font-size:11px">${gd>0?'+':''}${gd}</span>`;
+    const pctStr = gpct !== null ? (gpct > 0 ? '+' : '') + gpct + '%' : '–';
+    btn.innerHTML = `${g} <span style="color:${gc};font-size:11px">${pctStr}</span>`;
     btn.onclick = () => {
       tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      extraTabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      renderPanel(g, byGroup[g], d1, d2, cutHour, fmt);
+      activeBrand = g;
+      activeSeg = 'all';
+      buildSegTabs(g);
+      renderSeg();
     };
-    tabsEl.appendChild(btn);
-    if (i === 0) { btn.classList.add('active'); }
+    targetEl.appendChild(btn);
+    return btn;
+  };
+
+  // Build "All" total data by merging all brands
+  const allData = { y: Array(24).fill(0), t: Array(24).fill(0) };
+  Object.values(byBrand).forEach(b => {
+    b.all.y.forEach((v,i) => allData.y[i] += v);
+    b.all.t.forEach((v,i) => allData.t[i] += v);
+  });
+  Object.values(byExtra).forEach(b => {
+    b.y.forEach((v,i) => allData.y[i] += v);
+    b.t.forEach((v,i) => allData.t[i] += v);
   });
 
-  // Render first
-  if (allGroups.length > 0) {
-    renderPanel(allGroups[0], byGroup[allGroups[0]], d1, d2, cutHour, fmt);
+  // "All" tab
+  const allBtn = document.createElement('button');
+  allBtn.className = 'tab active';
+  const ally = allData.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
+  const allt = allData.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
+  const alld = allt - ally;
+  const allpct = ally ? Math.round(alld/ally*100) : null;
+  const allc = alld > 0 ? COL_UP : (alld < 0 ? COL_DN : GRAY);
+  const allpctStr = allpct !== null ? (allpct > 0 ? '+' : '') + allpct + '%' : '–';
+  allBtn.innerHTML = `Все <span style="color:${allc};font-size:11px">${allpctStr}</span>`;
+  activeBrand = '__all__';
+  allBtn.onclick = () => {
+    tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    extraTabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    allBtn.classList.add('active');
+    activeBrand = '__all__';
+    activeSeg = 'all';
+    segTabsEl.innerHTML = '';
+    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt);
+  };
+  tabsEl.appendChild(allBtn);
+
+  orderedBrands.forEach(g => {
+    const btn = makeTab(g, tabsEl, false);
+  });
+
+  extraKeys.forEach(g => makeTab(g, extraTabsEl, true));
+
+  if (orderedBrands.length > 0 || extraKeys.length > 0) {
+    // Render "All" by default
+    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt);
   }
 }
-
 function renderPanel(name, data, d1, d2, cutHour, fmt) {
-  const hours = Array.from({length: cutHour}, (_, i) => i);
+  // Always show all 24 hours; for d2, hours >= cutHour are empty
+  const hours = Array.from({length: 24}, (_, i) => i);
   const yArr = hours.map(h => data.y[h]);
-  const tArr = hours.map(h => data.t[h]);
-  const totY = yArr.reduce((a,b)=>a+b,0);
-  const totT = tArr.reduce((a,b)=>a+b,0);
+  const tArr = hours.map(h => h < cutHour ? data.t[h] : null);
+
+  // Totals only up to cutHour
+  const totY = yArr.slice(0, cutHour).reduce((a,b)=>a+b,0);
+  const totT = tArr.slice(0, cutHour).reduce((a,b)=>a+(b||0),0);
   const totD = totT - totY;
   const totPct = totY ? Math.round(totD/totY*100) : 0;
   const sign = totD >= 0 ? '+' : '';
   const dCol = totD > 0 ? COL_UP : COL_DN;
 
   let tableRows = '';
-  hours.forEach((h, i) => {
-    const yv = yArr[i], tv = tArr[i];
+  hours.forEach(h => {
+    const yv = data.y[h];
+    const hasTodayData = h < cutHour;
+    const tv = hasTodayData ? data.t[h] : null;
+
+    if (tv === null) {
+      // No d2 data yet for this hour
+      tableRows += `<tr class="bg-neu">
+        <td class="muted">${h.toString().padStart(2,'0')}:00</td>
+        <td class="r">${yv || '–'}</td>
+        <td class="r muted">–</td>
+        <td class="r muted">–</td>
+        <td class="r muted">–</td>
+      </tr>`;
+      return;
+    }
+
     const diff = tv - yv;
     const pct = yv ? Math.round(diff/yv*100) : null;
     const diffStr = (diff > 0 ? '+' : '') + diff;
@@ -357,7 +504,9 @@ function renderPanel(name, data, d1, d2, cutHour, fmt) {
           callbacks: {
             afterBody: (items) => {
               const i = items[0].dataIndex;
-              const yv = yArr[i], tv = tArr[i];
+              const yv = yArr[i];
+              const tv = tArr[i];
+              if (tv === null) return ['Данных ещё нет'];
               const diff = tv - yv;
               const pct = yv ? Math.round(diff/yv*100) : null;
               return pct !== null ? [`Разница: ${diff>0?'+':''}${diff} (${pct>0?'+':''}${pct}%)`] : [];

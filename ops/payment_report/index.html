@@ -79,13 +79,13 @@ tr.footer.bg-dn td { background: #fad4d0; }
 <div class="app">
   <h1>📊 Payment Stats</h1>
 
-  <div class="upload-zone" id="dropzone">
+  <label class="upload-zone" id="dropzone" for="fileInput">
     <input type="file" id="fileInput" accept=".csv">
     <div class="upload-icon">📁</div>
-    <div>Перетащи CSV-файл или <b onclick="document.getElementById('fileInput').click()">выбери вручную</b></div>
+    <div>Перетащи CSV-файл или <b>выбери вручную</b></div>
     <div class="upload-label">Формат: выгрузка helpdesk с полем teamName и createdAt</div>
     <div class="file-name" id="fileName"></div>
-  </div>
+  </label>
 
   <div class="controls">
     <div class="ctrl-group">

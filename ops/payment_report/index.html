@@ -75,6 +75,9 @@ tr.footer.bg-up td { background: #d4f0df; }
 tr.footer.bg-dn td { background: #fad4d0; }
 
 .empty { text-align: center; padding: 60px; color: #aaa; font-size: 14px; }
+.mode-btn { padding:4px 12px; border-radius:6px; border:0.5px solid #ccc; background:#fff; font-size:12px; cursor:pointer; color:#666; }
+.mode-btn:hover { border-color:#378ADD; color:#378ADD; }
+.mode-btn.active { background:#378ADD; color:#fff; border-color:#378ADD; font-weight:500; }
 .sep { border: none; border-top: 1px dashed #e0e0dc; margin: 16px 0; }
 
 </style>
@@ -275,27 +278,73 @@ function buildStats() {
   });
 
   const fmt = d => d.split('-').reverse().join('.');
-  let totalY = 0, totalT = 0;
+  const brandCount = Object.keys(byBrand).length;
+
+  // Precompute totals for both modes
+  let totalYday = 0, totalYtime = 0, totalT = 0;
   Object.values(byBrand).forEach(b => {
-    b.all.y.forEach((v,h) => { if (h < cutHour) totalY += v; });
+    b.all.y.forEach((v,h) => { totalYday += v; if (h < cutHour) totalYtime += v; });
     b.all.t.forEach((v,h) => { if (h < cutHour) totalT += v; });
   });
   Object.values(byExtra).forEach(b => {
-    b.y.forEach((v,h) => { if (h < cutHour) totalY += v; });
+    b.y.forEach((v,h) => { totalYday += v; if (h < cutHour) totalYtime += v; });
     b.t.forEach((v,h) => { if (h < cutHour) totalT += v; });
   });
-  const totalD = totalT - totalY;
-  const totalPct = totalY ? Math.round(totalD/totalY*100) : 0;
-  const dSign = totalD >= 0 ? '+' : '';
-  const dCol = totalD > 0 ? COL_UP : COL_DN;
-  const brandCount = Object.keys(byBrand).length;
+
+  let compareMode = 'time'; // 'day' or 'time'
+
+  const renderSummary = () => {
+    const totalY = compareMode === 'day' ? totalYday : totalYtime;
+    const totalD = totalT - totalY;
+    const totalPct = totalY ? Math.round(totalD/totalY*100) : 0;
+    const dSign = totalD >= 0 ? '+' : '';
+    const dCol = totalD > 0 ? COL_UP : COL_DN;
+    const d1label = compareMode === 'day'
+      ? `${fmt(d1)} (весь день)`
+      : `${fmt(d1)} (00–${(cutHour-1).toString().padStart(2,'0')})`;
+    document.getElementById('card-y').innerHTML = `<div class="scard-label">Тикетов ${d1label}</div><div class="scard-val">${totalY}</div>`;
+    document.getElementById('card-t').innerHTML = `<div class="scard-label">Тикетов ${fmt(d2)} (00–${(cutHour-1).toString().padStart(2,'0')})</div><div class="scard-val">${totalT}</div>`;
+    document.getElementById('card-d').innerHTML = `<div class="scard-label">Разница</div><div class="scard-val" style="color:${dCol}">${dSign}${totalD}</div>`;
+    document.getElementById('card-pct').innerHTML = `<div class="scard-label">Изменение</div><div class="scard-val" style="color:${dCol}">${dSign}${totalPct}%</div>`;
+    // Update tabs % too
+    rebuildTabLabels();
+  };
+
+  const calcPct = (data) => {
+    const gy = compareMode === 'day'
+      ? data.y.reduce((a,b)=>a+b,0)
+      : data.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
+    const gt = data.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
+    const gd = gt - gy;
+    const gpct = gy ? Math.round(gd/gy*100) : null;
+    return { gd, gpct };
+  };
+
+  let tabBtnMap = {}; // g -> btn element
+
+  const rebuildTabLabels = () => {
+    Object.entries(tabBtnMap).forEach(([g, btn]) => {
+      const isExtra = !byBrand[g] && g !== '__all__';
+      const data = g === '__all__' ? allData : (isExtra ? byExtra[g] : byBrand[g].all);
+      const { gd, gpct } = calcPct(data);
+      const gc = gd > 0 ? COL_UP : (gd < 0 ? COL_DN : GRAY);
+      const pctStr = gpct !== null ? (gpct > 0 ? '+' : '') + gpct + '%' : '–';
+      const name = g === '__all__' ? 'Все' : g;
+      btn.innerHTML = `${name} <span style="color:${gc};font-size:11px">${pctStr}</span>`;
+    });
+  };
 
   let html = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-size:12px;color:#888;">Сравнение:</span>
+      <button class="mode-btn active" id="modeTime" onclick="setMode('time',this)">По времени (00–${(cutHour-1).toString().padStart(2,'0')})</button>
+      <button class="mode-btn" id="modeDay" onclick="setMode('day',this)">За весь день d1</button>
+    </div>
     <div class="summary">
-      <div class="scard"><div class="scard-label">Тикетов ${fmt(d1)}</div><div class="scard-val">${totalY}</div></div>
-      <div class="scard"><div class="scard-label">Тикетов ${fmt(d2)} (00–${(cutHour-1).toString().padStart(2,'0')})</div><div class="scard-val">${totalT}</div></div>
-      <div class="scard"><div class="scard-label">Разница</div><div class="scard-val" style="color:${dCol}">${dSign}${totalD}</div></div>
-      <div class="scard"><div class="scard-label">Изменение</div><div class="scard-val" style="color:${dCol}">${dSign}${totalPct}%</div></div>
+      <div class="scard" id="card-y"></div>
+      <div class="scard" id="card-t"></div>
+      <div class="scard" id="card-d"></div>
+      <div class="scard" id="card-pct"></div>
       <div class="scard"><div class="scard-label">Брендов</div><div class="scard-val">${brandCount}</div></div>
     </div>
     <div class="tabs" id="tabs" style="margin-bottom:8px;"></div>
@@ -311,13 +360,21 @@ function buildStats() {
   let activeBrand = null;
   let activeSeg = 'all';
 
+  window.setMode = (mode, btn) => {
+    compareMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSummary();
+    if (activeBrand) renderSeg();
+  };
+
   const renderSeg = () => {
     if (!activeBrand) return;
-    if (activeBrand === '__all__') { renderPanel('Все проекты', allData, d1, d2, cutHour, fmt); return; }
+    if (activeBrand === '__all__') { renderPanel('Все проекты', allData, d1, d2, cutHour, fmt, compareMode); return; }
     const isExtra = !byBrand[activeBrand];
     const data = isExtra ? byExtra[activeBrand] : byBrand[activeBrand][activeSeg];
     const label = activeBrand + (activeSeg === 'vip' ? ' — VIP' : activeSeg === 'regular' ? ' — Regular' : '');
-    renderPanel(label, data, d1, d2, cutHour, fmt);
+    renderPanel(label, data, d1, d2, cutHour, fmt, compareMode);
   };
 
   const buildSegTabs = (brand) => {
@@ -346,14 +403,7 @@ function buildStats() {
   const makeTab = (g, targetEl, isExtra) => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (isExtra ? ' extra' : '');
-    const data = isExtra ? byExtra[g] : byBrand[g].all;
-    const gy = data.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
-    const gt = data.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
-    const gd = gt - gy;
-    const gpct = gy ? Math.round(gd/gy*100) : null;
-    const gc = gd > 0 ? COL_UP : (gd < 0 ? COL_DN : GRAY);
-    const pctStr = gpct !== null ? (gpct > 0 ? '+' : '') + gpct + '%' : '–';
-    btn.innerHTML = `${g} <span style="color:${gc};font-size:11px">${pctStr}</span>`;
+    tabBtnMap[g] = btn;
     btn.onclick = () => {
       tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       extraTabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -381,13 +431,7 @@ function buildStats() {
   // "All" tab
   const allBtn = document.createElement('button');
   allBtn.className = 'tab active';
-  const ally = allData.y.slice(0, cutHour).reduce((a,b)=>a+b,0);
-  const allt = allData.t.slice(0, cutHour).reduce((a,b)=>a+b,0);
-  const alld = allt - ally;
-  const allpct = ally ? Math.round(alld/ally*100) : null;
-  const allc = alld > 0 ? COL_UP : (alld < 0 ? COL_DN : GRAY);
-  const allpctStr = allpct !== null ? (allpct > 0 ? '+' : '') + allpct + '%' : '–';
-  allBtn.innerHTML = `Все <span style="color:${allc};font-size:11px">${allpctStr}</span>`;
+  tabBtnMap['__all__'] = allBtn;
   activeBrand = '__all__';
   allBtn.onclick = () => {
     tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -396,7 +440,7 @@ function buildStats() {
     activeBrand = '__all__';
     activeSeg = 'all';
     segTabsEl.innerHTML = '';
-    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt);
+    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt, compareMode);
   };
   tabsEl.appendChild(allBtn);
 
@@ -406,19 +450,22 @@ function buildStats() {
 
   extraKeys.forEach(g => makeTab(g, extraTabsEl, true));
 
+  // Init summary + tab labels + panel
+  renderSummary();
   if (orderedBrands.length > 0 || extraKeys.length > 0) {
-    // Render "All" by default
-    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt);
+    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt, compareMode);
   }
 }
-function renderPanel(name, data, d1, d2, cutHour, fmt) {
+function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
   // Always show all 24 hours; for d2, hours >= cutHour are empty
   const hours = Array.from({length: 24}, (_, i) => i);
   const yArr = hours.map(h => data.y[h]);
   const tArr = hours.map(h => h < cutHour ? data.t[h] : null);
 
-  // Totals only up to cutHour
-  const totY = yArr.slice(0, cutHour).reduce((a,b)=>a+b,0);
+  // Totals: d1 depends on mode (day=all 24h, time=0..cutHour)
+  const totY = (mode === 'day')
+    ? yArr.reduce((a,b)=>a+b,0)
+    : yArr.slice(0, cutHour).reduce((a,b)=>a+b,0);
   const totT = tArr.slice(0, cutHour).reduce((a,b)=>a+(b||0),0);
   const totD = totT - totY;
   const totPct = totY ? Math.round(totD/totY*100) : 0;

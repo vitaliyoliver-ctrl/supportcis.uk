@@ -624,6 +624,13 @@ function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
         <td class="r ${totD>0?'up':'dn'}">${sign}${totPct}%</td>
       </tr></tfoot>
     </table>
+    <div style="margin-top:20px;">
+      <div class="legend">
+        <span><span class="lbox" style="background:${BLUE}"></span>${fmt(d1)}</span>
+        <span><span class="lbox" style="background:${GREEN_BAR}"></span>${fmt(d2)}</span>
+      </div>
+      <div style="position:relative;width:100%;height:220px;"><canvas id="hourlyChart" role="img" aria-label="Сравнение по часам ${name}"></canvas></div>
+    </div>
   `;
 
   if (activeChart) { activeChart.destroy(); activeChart = null; }
@@ -662,6 +669,50 @@ function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
       }
     }
   });
+
+  // Hourly comparison line chart
+  setTimeout(() => {
+    if (window.hourlyChart && typeof window.hourlyChart.destroy === 'function') { window.hourlyChart.destroy(); }
+    window.hourlyChart = null;
+    const hourlyEl = document.getElementById('hourlyChart');
+    if (!hourlyEl) return;
+    window.hourlyChart = new Chart(hourlyEl, {
+    type: 'line',
+    data: {
+      labels: hlabels,
+      datasets: [
+        { label: fmt(d1), data: yArr, borderColor: BLUE, backgroundColor: BLUE+'22',
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: BLUE, fill: true, tension: 0.3 },
+        { label: fmt(d2), data: tArr, borderColor: GREEN_BAR, backgroundColor: GREEN_BAR+'22',
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: GREEN_BAR, fill: true, tension: 0.3,
+          spanGaps: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: {
+            afterBody: (items) => {
+              const i = items[0].dataIndex;
+              const yv = yArr[i], tv = tArr[i];
+              if (tv === null) return ['Данных ещё нет'];
+              const diff = tv - yv;
+              const pct = yv ? Math.round(diff/yv*100) : null;
+              return pct !== null ? [`Разница: ${diff>0?'+':''}${diff} (${pct>0?'+':''}${pct}%)`] : [];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 } }, grid: { color: '#f0f0ec' }, beginAtZero: true }
+      }
+    }
+  });
+  }, 0);
 }
 
 window.showTrend = () => {

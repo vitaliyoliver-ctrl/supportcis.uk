@@ -97,12 +97,21 @@ tr.footer.bg-dn td { background: #fad4d0; }
 
   <div class="controls">
     <div class="ctrl-group">
-      <label>Дата 1 (база)</label>
-      <input type="date" id="date1">
+      <label>Период 1 (база) — от</label>
+      <input type="date" id="d1from">
     </div>
     <div class="ctrl-group">
-      <label>Дата 2 (сравнение)</label>
-      <input type="date" id="date2">
+      <label>до</label>
+      <input type="date" id="d1to">
+    </div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:2px;color:#bbb;font-size:18px;">vs</div>
+    <div class="ctrl-group">
+      <label>Период 2 (сравнение) — от</label>
+      <input type="date" id="d2from">
+    </div>
+    <div class="ctrl-group">
+      <label>до</label>
+      <input type="date" id="d2to">
     </div>
     <button class="btn" id="buildBtn" disabled onclick="buildStats()">Построить</button>
     <button class="btn btn-sec" id="resetBtn" onclick="resetDates()" style="display:none">Сбросить</button>
@@ -224,12 +233,17 @@ function toUTCHour(isoStr) {
 
 function prefillDates() {
   const dates = [...new Set(csvData.map(r => toUTCDateStr(r.createdAt)))].sort();
-  if (dates.length >= 2) {
-    document.getElementById('date1').value = dates[dates.length - 2];
-    document.getElementById('date2').value = dates[dates.length - 1];
-  } else if (dates.length === 1) {
-    document.getElementById('date1').value = dates[0];
-  }
+  const edgeDates = new Set([dates[0], dates[dates.length - 1]]);
+  window.edgeDates = edgeDates;
+  const fullDays = dates.filter(d => !edgeDates.has(d));
+
+  // Default: first full day as p1, last full day as p2
+  const p1 = fullDays.length >= 1 ? fullDays[0] : dates[0];
+  const p2 = fullDays.length >= 2 ? fullDays[fullDays.length - 1] : dates[dates.length - 1];
+  document.getElementById('d1from').value = p1;
+  document.getElementById('d1to').value = p1;
+  document.getElementById('d2from').value = p2;
+  document.getElementById('d2to').value = p2;
 }
 
 function resetDates() {
@@ -237,11 +251,32 @@ function resetDates() {
   buildStats();
 }
 
+function getDateRange(fromId, toId) {
+  const from = document.getElementById(fromId).value;
+  const to = document.getElementById(toId).value;
+  const result = [];
+  let cur = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  while (cur <= end) {
+    result.push(cur.toISOString().slice(0,10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return result;
+}
+
 function buildStats() {
-  const d1 = document.getElementById('date1').value;
-  const d2 = document.getElementById('date2').value;
-  if (!d1 || !d2 || !csvData.length) return;
+  const d1from = document.getElementById('d1from').value;
+  const d1to = document.getElementById('d1to').value;
+  const d2from = document.getElementById('d2from').value;
+  const d2to = document.getElementById('d2to').value;
+  if (!d1from || !d1to || !d2from || !d2to || !csvData.length) return;
   document.getElementById('resetBtn').style.display = '';
+
+  const p1dates = new Set(getDateRange('d1from', 'd1to'));
+  const p2dates = new Set(getDateRange('d2from', 'd2to'));
+  // Labels for display
+  const d1 = d1from === d1to ? d1from : d1from + '→' + d1to;
+  const d2 = d2from === d2to ? d2from : d2from + '→' + d2to;
 
   const byTeam = {};
   const addRow = (key, hour, isD1) => {
@@ -249,20 +284,46 @@ function buildStats() {
     if (isD1) byTeam[key].y[hour]++; else byTeam[key].t[hour]++;
   };
 
+  // Multi-day trend: only full days (exclude edge dates)
+  const byDateBrand = {};
+  const byDateAll = {};
+  const allDatesInFile = [...new Set(csvData.map(r => toUTCDateStr(r.createdAt)))].sort();
+  const edgeDates = window.edgeDates || new Set();
+  const fullDaysForTrend = allDatesInFile.filter(d => !edgeDates.has(d));
+
   const cfg = SOURCE_CONFIG[activeSource];
   csvData.forEach(row => {
     const team = (row.teamName||'').trim();
     if (!cfg.isPayment(team)) return;
     const date = toUTCDateStr(row.createdAt);
     const hour = toUTCHour(row.createdAt);
-    if (date !== d1 && date !== d2) return;
-    addRow(team, hour, date === d1);
+
+    // Trend aggregation (full days only)
+    if (!edgeDates.has(date)) {
+      if (!byDateAll[date]) byDateAll[date] = 0;
+      byDateAll[date]++;
+      const brand = cfg.getBrand(team);
+      if (brand) {
+        if (!byDateBrand[date]) byDateBrand[date] = {};
+        if (!byDateBrand[date][brand]) byDateBrand[date][brand] = 0;
+        byDateBrand[date][brand]++;
+      }
+    }
+
+    // Period comparison
+    if (!p1dates.has(date) && !p2dates.has(date)) return;
+    addRow(team, hour, p1dates.has(date));
   });
 
   const allT = Array(24).fill(0);
   Object.values(byTeam).forEach(g => g.t.forEach((v,i) => allT[i] += v));
-  let cutHour = 23;
-  for (let h = 23; h >= 0; h--) { if (allT[h] > 0) { cutHour = h; break; } }
+  // If p2 spans multiple days or p2to is not today/edge, treat as full
+  const today = toUTCDateStr(new Date().toISOString());
+  const p2IsPartial = edgeDates.has(d2to) || d2to === today;
+  let cutHour = 24;
+  if (p2IsPartial) {
+    for (let h = 23; h >= 0; h--) { if (allT[h] > 0) { cutHour = h; break; } }
+  }
 
   const brandOrder = cfg.brandOrder;
   const emptyGroup = () => ({ y: Array(24).fill(0), t: Array(24).fill(0) });
@@ -288,7 +349,9 @@ function buildStats() {
     }
   });
 
-  const fmt = d => d.split('-').reverse().join('.');
+  const fmt = d => d.includes('→')
+    ? d.split('→').map(s => s.split('-').reverse().join('.')).join(' → ')
+    : d.split('-').reverse().join('.');
   const brandCount = Object.keys(byBrand).length;
 
   // Precompute totals for both modes
@@ -310,11 +373,15 @@ function buildStats() {
     const totalPct = totalY ? Math.round(totalD/totalY*100) : 0;
     const dSign = totalD >= 0 ? '+' : '';
     const dCol = totalD > 0 ? COL_UP : COL_DN;
+    const isD1Edge = window.edgeDates && window.edgeDates.has(d1);
+    const isD2Edge = window.edgeDates && window.edgeDates.has(d2);
+    const edgeWarn = compareMode === 'day' && isD1Edge ? ' ⚠️' : '';
     const d1label = compareMode === 'day'
-      ? `${fmt(d1)} (весь день)`
+      ? `${fmt(d1)} (весь день${edgeWarn})`
       : `${fmt(d1)} (00–${(cutHour-1).toString().padStart(2,'0')})`;
     document.getElementById('card-y').innerHTML = `<div class="scard-label">Тикетов ${d1label}</div><div class="scard-val">${totalY}</div>`;
-    document.getElementById('card-t').innerHTML = `<div class="scard-label">Тикетов ${fmt(d2)} (00–${(cutHour-1).toString().padStart(2,'0')})</div><div class="scard-val">${totalT}</div>`;
+    const d2timeLabel = cutHour < 24 ? ` (00–${(cutHour-1).toString().padStart(2,'0')})` : '';
+    document.getElementById('card-t').innerHTML = `<div class="scard-label">Тикетов ${fmt(d2)}${d2timeLabel}</div><div class="scard-val">${totalT}</div>`;
     document.getElementById('card-d').innerHTML = `<div class="scard-label">Разница</div><div class="scard-val" style="color:${dCol}">${dSign}${totalD}</div>`;
     document.getElementById('card-pct').innerHTML = `<div class="scard-label">Изменение</div><div class="scard-val" style="color:${dCol}">${dSign}${totalPct}%</div>`;
     // Update tabs % too
@@ -348,7 +415,7 @@ function buildStats() {
   let html = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <span style="font-size:12px;color:#888;">Сравнение:</span>
-      <button class="mode-btn active" id="modeTime" onclick="setMode('time',this)">По времени (00–${(cutHour-1).toString().padStart(2,'0')})</button>
+      <button class="mode-btn active" id="modeTime" onclick="setMode('time',this)">${cutHour < 24 ? 'По времени (00–'+(cutHour-1).toString().padStart(2,'0')+')' : 'По времени (полный день)'}</button>
       <button class="mode-btn" id="modeDay" onclick="setMode('day',this)">За весь день d1</button>
     </div>
     <div class="summary">
@@ -358,7 +425,10 @@ function buildStats() {
       <div class="scard" id="card-pct"></div>
       <div class="scard"><div class="scard-label">Брендов</div><div class="scard-val">${brandCount}</div></div>
     </div>
-    <div class="tabs" id="tabs" style="margin-bottom:8px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="tabs" id="tabs" style="margin-bottom:0;flex:1;"></div>
+      <button class="mode-btn" id="trendBtn" onclick="showTrend()" style="margin-left:12px;white-space:nowrap;">📈 Тренд</button>
+    </div>
     <div class="tabs extra-tabs" id="extraTabs" style="margin-bottom:8px;"></div>
     <div class="seg-tabs" id="segTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
     <div class="panel" id="panel"><div class="empty">Выбери бренд выше</div></div>
@@ -381,6 +451,7 @@ function buildStats() {
 
   const renderSeg = () => {
     if (!activeBrand) return;
+    document.getElementById('trendBtn') && document.getElementById('trendBtn').classList.remove('active');
     if (activeBrand === '__all__') { renderPanel('Все проекты', allData, d1, d2, cutHour, fmt, compareMode); return; }
     const isExtra = !byBrand[activeBrand];
     const data = isExtra ? byExtra[activeBrand] : byBrand[activeBrand][activeSeg];
@@ -419,10 +490,15 @@ function buildStats() {
       tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       extraTabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      activeBrand = g;
+      activeBrand = g; window.activeBrand = g;
       activeSeg = 'all';
-      buildSegTabs(g);
-      renderSeg();
+      const trendActive = document.getElementById('trendBtn') && document.getElementById('trendBtn').classList.contains('active');
+      if (trendActive) {
+        renderTrend(window.activeBrand);
+      } else {
+        buildSegTabs(g);
+        renderSeg();
+      }
     };
     targetEl.appendChild(btn);
     return btn;
@@ -443,15 +519,16 @@ function buildStats() {
   const allBtn = document.createElement('button');
   allBtn.className = 'tab active';
   tabBtnMap['__all__'] = allBtn;
-  activeBrand = '__all__';
+  activeBrand = '__all__'; window.activeBrand = '__all__';
   allBtn.onclick = () => {
     tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     extraTabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     allBtn.classList.add('active');
-    activeBrand = '__all__';
+    activeBrand = '__all__'; window.activeBrand = '__all__';
     activeSeg = 'all';
     segTabsEl.innerHTML = '';
-    renderPanel('Все проекты', allData, d1, d2, cutHour, fmt, compareMode);
+    const trendActiveAll = document.getElementById('trendBtn') && document.getElementById('trendBtn').classList.contains('active');
+    if (trendActiveAll) { renderTrend(window.activeBrand); } else { renderPanel('Все проекты', allData, d1, d2, cutHour, fmt, compareMode); }
   };
   tabsEl.appendChild(allBtn);
 
@@ -460,6 +537,13 @@ function buildStats() {
   });
 
   extraKeys.forEach(g => makeTab(g, extraTabsEl, true));
+
+  // Expose multi-day data for trend
+  window.allDatesInFile = allDatesInFile;
+  window.fullDaysForTrend = fullDaysForTrend;
+  window.byDateBrand = byDateBrand;
+  window.byDateAll = byDateAll;
+  window.cutHour = cutHour;
 
   // Init summary + tab labels + panel
   renderSummary();
@@ -485,14 +569,14 @@ function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
 
   let tableRows = '';
   hours.forEach(h => {
+    const msk = ((h + 3) % 24).toString().padStart(2,'0') + ':00';
     const yv = data.y[h];
     const hasTodayData = h < cutHour;
     const tv = hasTodayData ? data.t[h] : null;
 
     if (tv === null) {
-      // No d2 data yet for this hour
       tableRows += `<tr class="bg-neu">
-        <td class="muted">${h.toString().padStart(2,'0')}:00</td>
+        <td class="muted">${h.toString().padStart(2,'0')}:00 <span style="color:#bbb;font-size:10px">${msk}</span></td>
         <td class="r">${yv || '–'}</td>
         <td class="r muted">–</td>
         <td class="r muted">–</td>
@@ -508,7 +592,7 @@ function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
     const cls = diff > 0 ? 'up' : (diff < 0 ? 'dn' : '');
     const bgCls = diff > 0 ? 'bg-up' : (diff < 0 ? 'bg-dn' : 'bg-neu');
     tableRows += `<tr class="${bgCls}">
-      <td class="muted">${h.toString().padStart(2,'0')}:00</td>
+      <td class="muted">${h.toString().padStart(2,'0')}:00 <span style="color:#bbb;font-size:10px">${msk}</span></td>
       <td class="r">${yv}</td>
       <td class="r">${tv}</td>
       <td class="r ${cls}">${diffStr}</td>
@@ -530,7 +614,7 @@ function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
     </div>
     <div class="chart-wrap"><canvas id="brandChart" role="img" aria-label="График ${name}"></canvas></div>
     <table>
-      <thead><tr><th>Час</th><th class="r">${fmt(d1)}</th><th class="r">${fmt(d2)}</th><th class="r">Разница</th><th class="r">%</th></tr></thead>
+      <thead><tr><th>UTC <span style="color:#bbb;font-size:10px">МСК</span></th><th class="r">${fmt(d1)}</th><th class="r">${fmt(d2)}</th><th class="r">Разница</th><th class="r">%</th></tr></thead>
       <tbody>${tableRows}</tbody>
       <tfoot><tr class="footer ${footBg}">
         <td>Итого</td>
@@ -575,6 +659,91 @@ function renderPanel(name, data, d1, d2, cutHour, fmt, mode) {
       scales: {
         x: { ticks: { autoSkip: false, maxRotation: 45, font: { size: 10 } }, grid: { display: false } },
         y: { ticks: { font: { size: 10 } }, grid: { color: '#f0f0ec' } }
+      }
+    }
+  });
+}
+
+window.showTrend = () => {
+  document.querySelectorAll('#tabs .tab, #extraTabs .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('trendBtn').classList.add('active');
+  document.getElementById('segTabs').innerHTML = '';
+  renderTrend(window.activeBrand);
+};
+
+function renderTrend(brand) {
+  const dates = window.fullDaysForTrend || [];
+  const byDateBrand = window.byDateBrand;
+  const byDateAll = window.byDateAll;
+  const cutHour = window.cutHour;
+  if (!dates.length) { document.getElementById('panel').innerHTML = '<div class="empty">Нет полных дней для тренда</div>'; return; }
+  const isPartialLast = false; // trend only shows full days
+
+  // Build series
+  let series = [];
+  if (!brand || brand === '__all__') {
+    // Single line: all payment tickets per day
+    series = [{
+      label: 'Все проекты',
+      color: BLUE,
+      data: dates.map(d => byDateAll[d] || 0),
+    }];
+  } else {
+    // Single line for the brand
+    series = [{
+      label: brand,
+      color: BLUE,
+      data: dates.map(d => (byDateBrand[d] && byDateBrand[d][brand]) || 0),
+    }];
+  }
+
+  const fmtDate = d => d.split('-').reverse().slice(0,2).join('.');
+
+  document.getElementById('panel').innerHTML = `
+    <div class="brand-header">
+      <span class="brand-name">Тренд — ${brand && brand !== '__all__' ? brand : 'Все проекты'}</span>
+      <span class="brand-meta" style="font-size:11px;color:#aaa;">${isPartialLast ? '* последний день неполный' : ''}</span>
+    </div>
+    <div style="position:relative;width:100%;height:280px;"><canvas id="trendChart" role="img" aria-label="Тренд по дням"></canvas></div>
+    <table style="margin-top:12px;">
+      <thead><tr><th>Дата</th>${series.map(s=>`<th class="r">${s.label}</th>`).join('')}</tr></thead>
+      <tbody>${dates.map((d,i) => {
+        const isLast = i === dates.length - 1;
+        return `<tr class="${isLast && isPartialLast ? 'bg-neu' : ''}">
+          <td class="muted">${fmtDate(d)}${isLast && isPartialLast ? ' <span style="color:#aaa;font-size:10px">*</span>' : ''}</td>
+          ${series.map(s => `<td class="r">${s.data[i]}</td>`).join('')}
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  `;
+
+  if (activeChart) { activeChart.destroy(); activeChart = null; }
+
+  // Only full days — single solid dataset per series
+  const datasets = series.map(s => ({
+    label: s.label,
+    data: s.data,
+    borderColor: s.color,
+    backgroundColor: s.color + '22',
+    borderWidth: 2,
+    pointRadius: 4,
+    pointBackgroundColor: s.color,
+    fill: true,
+    tension: 0.3
+  }));
+
+  activeChart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: { labels: dates.map(fmtDate), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: series.length > 1, position: 'top', labels: { font: { size: 11 } } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: { ticks: { font: { size: 11 } }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 } }, grid: { color: '#f0f0ec' }, beginAtZero: true }
       }
     }
   });

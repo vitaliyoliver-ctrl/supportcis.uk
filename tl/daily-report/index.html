@@ -3,382 +3,855 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ежедневный отчёт</title>
+<title>Отчёт по смене</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, sans-serif; font-size: 13px; color: #222; background: #fff; padding: 20px; }
+:root{--bg:#0f0f13;--surface:#16161d;--surface2:#1e1e28;--border:#2a2a38;--accent:#7c6af7;--text:#e8e6f0;--muted:#6b6880;--green:#5af78e;--red:#f75a5a;--day:#f7d56a;--night:#6ab8f7;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
-.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-.toolbar label { font-size: 12px; color: #555; display: flex; align-items: center; gap: 5px; cursor: pointer; }
-.btn { padding: 5px 14px; border: 1px solid #1a73e8; border-radius: 4px; background: #1a73e8; color: #fff; cursor: pointer; font-size: 13px; }
-.btn:hover { background: #1557b0; }
-.btn-sec { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-sec:hover { background: #e8f0fe; }
-.btn-red { background: #fff; color: #c00; border: 1px solid #c00; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-red:hover { background: #fce8e6; }
-#save-status { font-size: 12px; font-weight: 600; min-width: 160px; }
+/* HEADER */
+.header{padding:18px 36px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.logo{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header h1{font-size:16px;font-weight:800;}
+.header span{font-size:11px;color:var(--muted);}
 
-.day-block { margin-bottom: 32px; }
-.day-header { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #e0e0e0; }
-.date-icon { width: 22px; height: 22px; background: #1a73e8; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.main{padding:24px 36px;max-width:1020px;}
 
-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-th { background: #f8f8f8; font-weight: 600; font-size: 12px; padding: 7px 10px; text-align: center; border-bottom: 2px solid #ddd; color: #444; white-space: nowrap; }
-th:first-child { text-align: left; }
-td { padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center; }
-td:first-child { text-align: left; font-weight: 500; }
-tr.total-row td { font-weight: 700; background: #f0f4ff; border-top: 2px solid #c5cfe8; }
-.zero { color: #bbb; }
-.nz { color: #1a1a1a; font-weight: 500; }
+/* UPLOAD */
+.upload-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 26px;margin-bottom:20px;}
+.card-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:0;}
+.upload-zone:hover{border-color:var(--accent);background:rgba(124,106,247,.05);}
+.upload-zone.loaded{border-style:solid;border-color:var(--green);background:rgba(90,247,142,.04);}
+.upload-zone input{display:none;}
+.uz-icon{font-size:24px;margin-bottom:6px;}
+.uz-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.upload-zone.loaded .uz-title{color:var(--green);}
+.uz-sub{font-size:12px;color:var(--muted);}
 
-.col-hl { background: #fff3cd !important; }
-.row-hl td { background: #e8f4fd !important; }
-tr.total-row.row-hl td { background: #d0e8f8 !important; }
-.cell-hl { background: #ffd700 !important; color: #000 !important; font-weight: 700 !important; }
+/* DAYS BUILDER */
+.days-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 26px;margin-bottom:20px;}
+.days-list{display:flex;flex-direction:column;gap:12px;margin-bottom:14px;}
 
-.providers { font-size: 12px; color: #444; padding: 8px 12px; background: #f9f9f9; border-left: 3px solid #1a73e8; border-radius: 0 4px 4px 0; }
-.providers strong { color: #1a73e8; }
-.providers span { display: inline-block; margin-right: 12px; }
+.day-row{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;}
+.day-row-top{display:grid;grid-template-columns:auto auto auto auto auto 1fr auto;gap:10px;align-items:end;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);}
+input[type="date"],input[type="time"]{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;transition:border-color .15s;}
+input[type="date"]:focus,input[type="time"]:focus{border-color:var(--accent);}
+input[type="text"]{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;transition:border-color .15s;width:100%;}
+input[type="text"]:focus{border-color:var(--accent);}
+textarea{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;font-family:'Manrope',sans-serif;outline:none;resize:vertical;width:100%;transition:border-color .15s;min-height:48px;}
+textarea::placeholder{color:var(--muted);}
+textarea:focus{border-color:var(--accent);}
 
-.add-btn { display: block; width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 6px; background: none; cursor: pointer; font-size: 13px; color: #888; margin-top: 8px; }
-.add-btn:hover { border-color: #1a73e8; color: #1a73e8; background: #f0f7ff; }
+.mode-toggle{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;}
+.mode-btn{padding:7px 11px;font-size:11px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .15s;white-space:nowrap;}
+.mode-btn.active{background:var(--accent);color:#fff;}
+.custom-times{display:none;align-items:center;gap:8px;margin-top:10px;}
+.custom-times.vis{display:flex;}
+.sep{color:var(--muted);font-size:14px;}
 
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: flex-start; justify-content: center; padding-top: 30px; overflow-y: auto; }
-.overlay.open { display: flex; }
-.modal { background: #fff; border-radius: 8px; padding: 24px; width: 580px; max-width: 96vw; margin-bottom: 30px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
-.modal h3 { margin-bottom: 14px; font-size: 15px; }
-.tabs { display: flex; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
-.tab { flex: 1; padding: 8px; border: none; cursor: pointer; font-size: 13px; background: #f5f5f5; color: #555; }
-.tab.on { background: #1a73e8; color: #fff; font-weight: 600; }
-textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; font-family: monospace; margin-bottom: 10px; resize: vertical; }
-.modal input, .modal select { width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; font-size: 13px; }
-.modal label { font-size: 12px; color: #555; display: block; margin-bottom: 3px; }
-.preview { background: #f0f7ff; border: 1px solid #c0d8f8; border-radius: 6px; padding: 10px 12px; font-size: 12px; margin-bottom: 12px; line-height: 1.9; display: none; }
-.preview b { color: #1a73e8; }
-.col-hdr { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 24px; gap: 5px; margin-bottom: 4px; }
-.col-hdr span { font-size: 11px; color: #888; text-align: center; }
-.col-hdr span:first-child { text-align: left; }
-.prow { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 24px; gap: 5px; margin-bottom: 5px; align-items: center; }
-.prow input { margin-bottom: 0; padding: 5px 4px; text-align: center; }
-.prow input:first-child { text-align: left; padding: 5px 8px; }
-.rm { width: 24px; height: 24px; border: none; background: #fee; color: #c00; border-radius: 4px; cursor: pointer; font-size: 15px; }
-.mactions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
-.mactions button { padding: 7px 18px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.bsave { background: #1a73e8; color: #fff; border: none; }
-.bcancel { background: #fff; color: #555; border: 1px solid #ccc; }
+.day-comment{margin-top:10px;}
+
+.btn-del{background:transparent;border:1px solid #f75a5a44;color:var(--red);padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;}
+.btn-del:hover{background:rgba(247,90,90,.1);border-color:var(--red);}
+
+.btn-add{width:100%;padding:10px;border:2px dashed var(--border);border-radius:10px;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);font-family:'Manrope',sans-serif;transition:all .15s;}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);}
+
+.btn-gen{background:var(--accent);border:none;color:#fff;padding:11px 28px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer;transition:opacity .15s;display:block;width:100%;margin-top:14px;}
+.btn-gen:hover{opacity:.85;}
+
+/* STATUS */
+.status-bar{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 15px;margin-bottom:16px;font-size:12px;color:var(--muted);display:none;}
+.status-bar.vis{display:block;}
+.status-bar.err{border-color:var(--red);color:var(--red);}
+.status-bar.ok{border-color:var(--green);color:var(--green);}
+
+/* REPORT OUTPUT */
+.report-out{display:none;}
+.report-out.vis{display:block;}
+
+.report-top-actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;flex-wrap:wrap;}
+.btn-act{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;font-family:'Manrope',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-act:hover{border-color:var(--accent);color:var(--accent);}
+.btn-act.photo{border-color:#f7a26a55;color:#f7a26a;}
+.btn-act.photo:hover{border-color:#f7a26a;background:rgba(247,162,106,.08);}
+.btn-act svg{width:13px;height:13px;}
+
+/* WHITE TABLE REPORT */
+#reportScreenshot{background:#fff;border-radius:14px;padding:28px 32px;margin-bottom:18px;width:100%;}
+
+.rday-block{margin-bottom:32px;}
+.rday-block:last-child{margin-bottom:0;}
+
+.rday-header{display:flex;align-items:center;gap:10px;margin-bottom:4px;padding-bottom:8px;border-bottom:2px solid #e0e0e0;}
+.rday-datebox{width:26px;height:26px;background:#1a73e8;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;flex-shrink:0;}
+.rday-title{font-size:15px;font-weight:700;color:#1a1a1a;}
+.rday-comment{font-size:12px;color:#666;margin-bottom:10px;padding:6px 10px;background:#f9f9fb;border-left:3px solid #1a73e8;border-radius:0 4px 4px 0;font-style:italic;white-space:pre-wrap;}
+
+.rtable{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;color:#222;margin-bottom:8px;}
+.rtable th{background:#f8f8f8;font-weight:600;font-size:12px;padding:7px 10px;text-align:center;border-bottom:2px solid #ddd;color:#444;white-space:normal;word-break:break-word;min-width:80px;line-height:1.35;}
+.rtable th:first-child{text-align:left;}
+.rtable td{padding:6px 10px;border-bottom:1px solid #eee;text-align:center;}
+.rtable td:first-child{text-align:left;font-weight:500;}
+.rtable tr.total td{font-weight:700;background:#f0f4ff;border-top:2px solid #c5cfe8;}
+.zero{color:#bbb;}
+.nz{color:#1a1a1a;font-weight:500;}
+
+.rprov{font-size:12px;color:#444;padding:7px 12px;background:#f9f9f9;border-left:3px solid #1a73e8;border-radius:0 4px 4px 0;margin-top:6px;}
+.rprov strong{color:#1a73e8;}
+
+
+/* ANALYTICS BLOCK */
+.analytics-wrap{margin-bottom:20px;}
+.analytics-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 26px;}
+.an-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.an-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.an-row{display:grid;grid-template-columns:200px 120px 70px 70px 1fr;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);}
+.an-row:last-child{border-bottom:none;}
+.an-cat{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.an-right{display:contents;}
+.an-col-bars{display:flex;gap:5px;align-items:flex-end;height:32px;justify-content:flex-start;}
+.an-col-total{font-size:15px;font-weight:800;color:var(--accent2);text-align:right;}
+.an-col-share{text-align:right;}
+.an-col-chain{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;}
+.an-bars{display:flex;gap:6px;align-items:flex-end;height:32px;flex-shrink:0;}
+.an-col-bars{display:flex;gap:5px;align-items:flex-end;height:32px;}
+.an-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.an-bar{width:18px;border-radius:3px 3px 0 0;transition:height .3s;min-height:2px;}
+.an-bar-lbl{font-size:9px;color:var(--muted);font-family:monospace;white-space:nowrap;}
+.an-trend{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;text-align:center;}
+.an-trend.up{background:rgba(247,90,90,.15);color:var(--red);}
+.an-trend.down{background:rgba(90,247,142,.15);color:var(--green);}
+.an-trend.flat{background:var(--surface2);color:var(--muted);}
+.an-pct{font-size:12px;color:var(--muted);min-width:48px;text-align:right;font-family:monospace;}
+.an-chain{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;flex-shrink:0;}
+.an-step-val{font-size:12px;font-weight:700;color:var(--text);min-width:16px;text-align:center;}
+.an-step-arr{display:flex;flex-direction:column;align-items:center;gap:0;}
+.an-step-arrow{font-size:11px;font-weight:700;line-height:1;}
+.an-step-pct{font-size:9px;font-family:monospace;line-height:1;}
+.an-step-arr.up .an-step-arrow,.an-step-arr.up .an-step-pct{color:var(--red);}
+.an-step-arr.down .an-step-arrow,.an-step-arr.down .an-step-pct{color:var(--green);}
+.an-step-arr.flat .an-step-arrow,.an-step-arr.flat .an-step-pct{color:var(--muted);}
+.an-final{font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:4px;white-space:nowrap;}
+.an-final.up{background:rgba(247,90,90,.15);color:var(--red);}
+.an-final.down{background:rgba(90,247,142,.15);color:var(--green);}
+.an-final.flat{background:var(--surface2);color:var(--muted);}
+.an-total-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.an-total-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;}
+.an-total-chip .tc-day{font-weight:700;color:var(--accent);font-size:15px;}
+.an-total-chip .tc-lbl{color:var(--muted);font-size:11px;}
+/* TEXT OUTPUT */
+.text-out-wrap{margin-top:4px;}
+.text-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.text-out{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;font-family:'Courier New',monospace;font-size:13px;line-height:1.9;white-space:pre-wrap;color:var(--text);}
+
+@media(max-width:700px){
+  .main{padding:14px;}
+  .header{padding:16px;}
+  .day-row-top{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
-
-<div class="toolbar">
-  <label><input type="checkbox" id="hl-on" checked> Подсветка</label>
-  <button class="btn-sec" onclick="openModal(-1)">+ Добавить день</button>
-  <button class="btn-sec" onclick="doExport()">⬇ Экспорт HTML</button>
-  <button class="btn-red" onclick="clearAll()">🗑 Очистить всё</button>
-  <span id="save-status"></span>
+<div class="header">
+  <div class="logo">📊</div>
+  <div><h1>Отчёт по смене</h1><span>Технические трудности · CG</span></div>
 </div>
 
-<div id="container"></div>
-<button class="add-btn" onclick="openModal(-1)">+ Добавить новый день</button>
+<div class="main">
 
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <h3 id="mtitle">Добавить день</h3>
-    <div class="tabs">
-      <button class="tab on" id="t-paste" onclick="switchTab('paste')">📋 Вставить текст смены</button>
-      <button class="tab" id="t-manual" onclick="switchTab('manual')">✏️ Вручную</button>
-    </div>
-
-    <div id="p-paste">
-      <label style="font-weight:600;color:#1a73e8;">Вставьте текст из отчёта смены:</label>
-      <textarea id="paste-area" rows="16" placeholder="📅 22.03.2026
-🕒 Дневная смена (9:00 – 21:00)
-Не работает сайт:
-GAMA — 2
-CAT — 1
-Не работают слоты:
-DADDY — 2
-Трудности с провайдерами:
-Playson — 1
-Pragmatic Play — 1
-Другое:
-CAT — 1"></textarea>
-      <div class="preview" id="preview"></div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-sec" style="flex:1;padding:8px" onclick="doPreview()">👁 Предпросмотр</button>
-        <button class="btn" style="flex:2;padding:8px;font-size:14px" onclick="doPaste()">✅ Добавить в отчёт</button>
-      </div>
-    </div>
-
-    <div id="p-manual" style="display:none">
-      <label>Дата</label><input type="date" id="m-date">
-      <label>Период</label>
-      <select id="m-period">
-        <option>день + ночь</option><option>Дневная смена</option>
-        <option>Ночная смена</option><option>день</option><option>ночь</option>
-      </select>
-      <label>Провайдеры (через запятую: Pragmatic Play — 3, NetEnt — 1)</label>
-      <input type="text" id="m-prov" placeholder="Pragmatic Play — 3, NetEnt — 1">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <strong>Проекты</strong>
-        <button class="btn-sec" style="padding:3px 10px;font-size:12px" onclick="addRow()">+ Строка</button>
-      </div>
-      <div class="col-hdr">
-        <span>Проект</span><span>Чат</span><span>Слоты</span><span>Сайт</span>
-        <span>Вывод</span><span>Депозит</span><span>Провайд.</span><span>Другое</span><span></span>
-      </div>
-      <div id="prows"></div>
-      <div class="mactions">
-        <button class="bcancel" onclick="closeModal()">Отмена</button>
-        <button class="bsave" onclick="saveManual()">Сохранить</button>
-      </div>
+  <!-- UPLOAD -->
+  <div class="upload-card">
+    <div class="card-label">1. Загрузите файл Excel</div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+      <div class="uz-icon">📂</div>
+      <div class="uz-title">Загрузите файл из SharePoint / OneDrive</div>
+      <div class="uz-sub">Скачайте и перетащите сюда или нажмите · .xlsx</div>
     </div>
   </div>
+
+  <!-- DAYS -->
+  <div class="days-card">
+    <div class="card-label">2. Настройте дни и смены</div>
+    <div class="days-list" id="daysList"></div>
+    <button class="btn-add" onclick="addDay()">+ Добавить день</button>
+    <button class="btn-gen" onclick="generate()">📊 Сформировать отчёт</button>
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <!-- OUTPUT -->
+  <div class="report-out" id="reportOut">
+    <div class="report-top-actions">
+      <button class="btn-act" onclick="copyText()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="9" height="9" rx="2"/><path d="M3 11V3h8"/></svg>
+        Копировать текст
+      </button>
+      <button class="btn-act photo" onclick="takePhoto()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="8" cy="8" r="2.5"/><path d="M5 3l1-2h4l1 2"/></svg>
+        Сохранить фото
+      </button>
+    </div>
+
+    <div id="reportScreenshot"></div>
+
+    <!-- Analytics: topics -->
+    <div id="analyticsWrap" style="display:none;margin-bottom:16px;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <button class="btn-act photo" onclick="takePhotoEl('analyticsInner','analytics')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="8" cy="8" r="2.5"/><path d="M5 3l1-2h4l1 2"/></svg>
+          Сохранить фото аналитики
+        </button>
+      </div>
+      <div id="analyticsInner"></div>
+    </div>
+
+    <!-- Analytics: providers -->
+    <div id="provAnalyticsWrap" style="display:none;margin-bottom:16px;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <button class="btn-act photo" onclick="takePhotoEl('provAnalyticsInner','providers')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="8" cy="8" r="2.5"/><path d="M5 3l1-2h4l1 2"/></svg>
+          Сохранить фото провайдеров
+        </button>
+      </div>
+      <div id="provAnalyticsInner"></div>
+    </div>
+
+    <div class="text-out-wrap">
+      <div class="text-label">Текст для отправки</div>
+      <div class="text-out" id="textOut"></div>
+    </div>
+  </div>
+
 </div>
 
+
 <script>
-const COLS = ['Чат','Слоты','Сайт','Вывод','Депозит','Провайдеры','Другое'];
-const CAT = [
-  [/не работает чат/i,            0],
-  [/не работают слоты/i,          1],
-  [/не работает сайт/i,           2],
-  [/не может.{0,10}вывод/i,       3],
-  [/не может.{0,10}депозит/i,     4],
-  [/трудности.{0,10}провайдер/i,  5],
-  [/другое/i,                     6],
-];
-const KEY = 'rpt_v3';
-let days = [], editIdx = -1;
+// ── State ─────────────────────────────────────────────────────────────────────
+var parsedRows = null;
+var xlsxLoaded = false;
+var dayCount   = 0;
 
-// ── Storage ──────────────────────────────────────────────────────────────────
-function save() {
-  const st = document.getElementById('save-status');
-  try {
-    localStorage.setItem(KEY, JSON.stringify(days));
-    if (st) { st.style.color = 'green'; st.textContent = '✓ Сохранено (' + days.length + ' дн.)'; setTimeout(() => { st.textContent = ''; }, 3000); }
-  } catch(e) {
-    if (st) { st.style.color = 'red'; st.textContent = '⚠ Не сохранилось: ' + e.message; }
-  }
-}
+// ── Upload ────────────────────────────────────────────────────────────────────
+var zone = document.getElementById('uploadZone');
+var fi   = document.getElementById('fileInput');
+zone.addEventListener('click', function(){ fi.click(); });
+zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.style.borderColor='var(--accent)'; });
+zone.addEventListener('dragleave', function(){ zone.style.borderColor=''; });
+zone.addEventListener('drop', function(e){ e.preventDefault(); zone.style.borderColor=''; if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change', function(e){ if(e.target.files[0]) loadFile(e.target.files[0]); });
 
-function load() {
-  try {
-    const r = localStorage.getItem(KEY);
-    if (r) { const p = JSON.parse(r); if (Array.isArray(p)) days = p; }
-  } catch(e) {}
-}
-
-// ── Parser ───────────────────────────────────────────────────────────────────
-function parseText(raw) {
-  const lines = raw.split('\n').map(l => l.replace(/^[\s📅🕒]+/, '').trim()).filter(Boolean);
-  let date = '', period = '';
-  const proj = {}, prov = {};
-  let col = -1, isProv = false;
-
-  for (const line of lines) {
-    if (/^\d{2}\.\d{2}\.\d{4}$/.test(line)) { date = line; continue; }
-    if (!line.includes('—') && !line.endsWith(':') && /смена|дневн|ноч|9:00|21:00/i.test(line)) {
-      period = line.replace(/\s*\(.*?\)/g, '').trim(); continue;
-    }
-    if (line.endsWith(':')) {
-      const h = line.slice(0,-1).toLowerCase();
-      isProv = false; col = -1;
-      for (const [rx, idx] of CAT) { if (rx.test(h)) { col = idx; isProv = idx===5; break; } }
-      continue;
-    }
-    const m = line.match(/^(.+?)\s*[—–-]\s*(\d+)$/);
-    if (m) {
-      const name = m[1].trim(), n = parseInt(m[2]);
-      if (isProv) { prov[name] = (prov[name]||0) + n; }
-      else if (col >= 0) { if (!proj[name]) proj[name]=[0,0,0,0,0,0,0]; proj[name][col]+=n; }
-    }
-  }
-  const providers = Object.entries(prov).map(([k,v])=>`${k} — ${v}`).join(', ');
-  const projects = Object.entries(proj).map(([name,vals])=>({name,vals}))
-    .sort((a,b)=>b.vals.reduce((x,y)=>x+y,0)-a.vals.reduce((x,y)=>x+y,0));
-  return {date, period, providers, projects};
-}
-
-// ── Paste tab ─────────────────────────────────────────────────────────────────
-function doPreview() {
-  const d = parseText(document.getElementById('paste-area').value);
-  const box = document.getElementById('preview');
-  let h = `<b>📅</b> ${d.date||'<i style="color:#c00">не найдена</i>'} &nbsp; <b>🕒</b> ${d.period||'—'}<br>`;
-  if (d.providers) {
-    const cnt = d.providers.split(',').reduce((a,p)=>{const m=p.match(/—\s*(\d+)/);return a+(m?+m[1]:1);},0);
-    h += `<b>Провайдеры (${cnt}):</b> ${d.providers}<br>`;
-  }
-  h += '<b>Проекты:</b><br>';
-  if (!d.projects.length) h += '<i style="color:#c00">Не найдено. Проверьте формат: НАЗВАНИЕ — 2</i>';
-  else d.projects.forEach(p=>{
-    const parts = p.vals.map((v,i)=>v?`${COLS[i]}: ${v}`:'').filter(Boolean);
-    h += `&nbsp;• <b>${p.name}</b> — ${parts.join(', ')}<br>`;
+function loadFile(file) {
+  setSt('⏳ Загружаю...','');
+  loadXLSX(function(){
+    var r = new FileReader();
+    r.onload = function(e){
+      try {
+        var wb = XLSX.read(e.target.result,{type:'array',cellDates:false,sheetStubs:false});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        parsedRows = XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+        zone.classList.add('loaded');
+        zone.innerHTML = '<div class="uz-icon">✅</div><div class="uz-title">'+file.name+'</div><div class="uz-sub">'+(parsedRows.length-1)+' строк · нажмите для замены</div>';
+        zone.addEventListener('click', function(){ fi.click(); });
+        setSt('✓ Файл загружен · настройте дни и нажмите «Сформировать»','ok');
+      } catch(err){ setSt('✗ Ошибка: '+err.message,'err'); }
+    };
+    r.readAsArrayBuffer(file);
   });
-  box.innerHTML = h; box.style.display = 'block';
 }
 
-function doPaste() {
-  const text = document.getElementById('paste-area').value.trim();
-  if (!text) { alert('Вставьте текст смены'); return; }
-  const d = parseText(text);
-  if (!d.date) { alert('Не найдена дата.\nФормат строки: 22.03.2026'); return; }
-  if (!d.projects.length) { alert('Не найдено ни одного проекта.\nФормат строки: НАЗВАНИЕ — 2'); return; }
-  if (editIdx >= 0) days[editIdx] = d; else days.push(d);
-  closeModal(); save(); render();
+function loadXLSX(cb){
+  if(xlsxLoaded){cb();return;}
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=function(){xlsxLoaded=true;cb();};
+  document.head.appendChild(s);
 }
 
-// ── Manual tab ────────────────────────────────────────────────────────────────
-function addRow(name='', vals=[0,0,0,0,0,0,0]) {
-  const d = document.createElement('div'); d.className = 'prow';
-  d.innerHTML = `<input type="text" value="${name}" placeholder="Проект">
-    ${vals.map(v=>`<input type="number" value="${v}" min="0">`).join('')}
-    <button class="rm" onclick="this.parentElement.remove()">×</button>`;
-  document.getElementById('prows').appendChild(d);
+// ── Days builder ──────────────────────────────────────────────────────────────
+function today(){
+  var t=new Date(),p=function(n){return n<10?'0'+n:''+n;};
+  return t.getFullYear()+'-'+p(t.getMonth()+1)+'-'+p(t.getDate());
 }
 
-function saveManual() {
-  const dr = document.getElementById('m-date').value;
-  if (!dr) { alert('Укажите дату'); return; }
-  const dp = dr.split('-');
-  const day = {
-    date: `${dp[2]}.${dp[1]}.${dp[0]}`,
-    period: document.getElementById('m-period').value,
-    providers: document.getElementById('m-prov').value.trim(),
-    projects: []
-  };
-  document.getElementById('prows').querySelectorAll('.prow').forEach(row => {
-    const inp = row.querySelectorAll('input');
-    const name = inp[0].value.trim();
-    if (name) day.projects.push({name, vals: Array.from(inp).slice(1).map(i=>parseInt(i.value)||0)});
+function addDay(){
+  var id = dayCount++;
+  var td = today();
+  var div = document.createElement('div');
+  div.className = 'day-row';
+  div.id = 'day-'+id;
+  div.innerHTML =
+    '<div class="day-row-top">'
+    +'<div class="field"><label>Дата с</label><input type="date" id="df-'+id+'" value="'+td+'"></div>'
+    +'<div class="field"><label>Дата по</label><input type="date" id="dt-'+id+'" value="'+td+'"></div>'
+    +'<div class="field"><label>Смена</label>'
+    +'<div class="mode-toggle">'
+    +'<button class="mode-btn active" id="md-day-'+id+'" onclick="setMode('+id+',\'day\')">☀️ День</button>'
+    +'<button class="mode-btn" id="md-night-'+id+'" onclick="setMode('+id+',\'night\')">🌙 Ночь</button>'
+    +'<button class="mode-btn" id="md-both-'+id+'" onclick="setMode('+id+',\'both\')">🌗 Сутки</button>'
+    +'<button class="mode-btn" id="md-custom-'+id+'" onclick="setMode('+id+',\'custom\')">⚙️</button>'
+    +'</div></div>'
+    +'<div class="custom-times" id="ct-'+id+'">'
+    +'<div class="field"><label>С</label><input type="time" id="tf-'+id+'" value="09:00"></div>'
+    +'<span class="sep">→</span>'
+    +'<div class="field"><label>По</label><input type="time" id="tt-'+id+'" value="21:00"></div>'
+    +'</div>'
+    +'<div class="field"><label>Подпись смены</label><input type="text" id="lbl-'+id+'" placeholder="Дневная смена" value="Дневная смена (9:00 – 21:00)"></div>'
+    +'<div></div>'
+    +'<button class="btn-del" onclick="delDay('+id+')">✕ Удалить</button>'
+    +'</div>'
+    +'<div class="day-comment"><div class="field"><label>Комментарий (необязательно)</label><textarea id="cmt-'+id+'" placeholder="Добавьте заметку к смене..."></textarea></div></div>';
+  document.getElementById('daysList').appendChild(div);
+}
+
+function delDay(id){
+  var el = document.getElementById('day-'+id);
+  if(el) el.remove();
+}
+
+function setMode(id, m){
+  ['day','night','both','custom'].forEach(function(x){
+    var b = document.getElementById('md-'+x+'-'+id);
+    if(b) b.classList.toggle('active', x===m);
   });
-  if (editIdx >= 0) days[editIdx] = day; else days.push(day);
-  closeModal(); save(); render();
+  var ct = document.getElementById('ct-'+id);
+  if(ct) ct.classList.toggle('vis', m==='custom'||m==='both');
+  var lbl = document.getElementById('lbl-'+id);
+  if(lbl){
+    var labels={day:'Дневная смена (9:00 – 21:00)',night:'Ночная смена (21:00 – 9:00)',both:'Дневная + Ночная смена (24ч)',custom:''};
+    lbl.value = labels[m]||'';
+  }
+  if(m==='both'){
+    var tf=document.getElementById('tf-'+id); if(tf) tf.value='09:00';
+    var tt=document.getElementById('tt-'+id); if(tt) tt.value='09:00';
+  }
+  var el = document.getElementById('day-'+id);
+  if(el) el.dataset.mode = m;
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-function switchTab(t) {
-  document.getElementById('p-paste').style.display  = t==='paste'  ? '' : 'none';
-  document.getElementById('p-manual').style.display = t==='manual' ? '' : 'none';
-  document.getElementById('t-paste').className  = 'tab' + (t==='paste'  ? ' on' : '');
-  document.getElementById('t-manual').className = 'tab' + (t==='manual' ? ' on' : '');
-}
-
-function openModal(di) {
-  editIdx = di;
-  document.getElementById('mtitle').textContent = di < 0 ? 'Добавить день' : 'Редактировать день';
-  document.getElementById('preview').style.display = 'none';
-  document.getElementById('paste-area').value = '';
-  if (di >= 0) {
-    switchTab('manual');
-    const d = days[di], p = d.date.split('.');
-    document.getElementById('m-date').value = p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : '';
-    document.getElementById('m-period').value = d.period;
-    document.getElementById('m-prov').value = d.providers || '';
-    document.getElementById('prows').innerHTML = '';
-    d.projects.forEach(p => addRow(p.name, p.vals));
-  } else { switchTab('paste'); }
-  document.getElementById('overlay').classList.add('open');
-}
-
-function closeModal() { document.getElementById('overlay').classList.remove('open'); }
-
-document.getElementById('overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-
-// ── Render ────────────────────────────────────────────────────────────────────
-function cntProv(s) { return s.split(',').reduce((a,p)=>{const m=p.match(/—\s*(\d+)/);return a+(m?+m[1]:1);},0); }
-function fmtProv(s) { return s.split(',').map(p=>`<span>${p.trim()}</span>`).join(''); }
-
-function render() {
-  const c = document.getElementById('container'); c.innerHTML = '';
-  days.forEach((day, di) => {
-    const tots = day.projects.reduce((acc,p)=>p.vals.map((v,i)=>acc[i]+v), new Array(7).fill(0));
-    const tot  = tots.reduce((a,b)=>a+b,0);
-    const num  = (day.date||'').split('.')[0];
-    const bl   = document.createElement('div'); bl.className = 'day-block';
-    bl.innerHTML = `
-      <div class="day-header">
-        <div class="date-icon">${num}</div>
-        <span>${day.date} (${day.period})</span>
-        <button onclick="openModal(${di})" style="margin-left:auto;padding:2px 10px;font-size:11px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;color:#555">Редактировать</button>
-        <button onclick="delDay(${di})" style="padding:2px 10px;font-size:11px;border:1px solid #f99;border-radius:4px;background:#fff;cursor:pointer;color:#c00">Удалить</button>
-      </div>
-      <table>
-        <thead><tr>
-          <th>Проект</th>
-          ${COLS.map((col,ci)=>`<th data-di="${di}" data-ci="${ci}">${col}</th>`).join('')}
-          <th>Всего</th>
-        </tr></thead>
-        <tbody>
-          ${day.projects.map((p,pi)=>`
-            <tr data-di="${di}" data-pi="${pi}">
-              <td>${p.name}</td>
-              ${p.vals.map((v,ci)=>`<td data-di="${di}" data-ci="${ci}" class="${v?'nz':'zero'}">${v}</td>`).join('')}
-              <td class="${p.vals.reduce((a,b)=>a+b,0)?'nz':'zero'}">${p.vals.reduce((a,b)=>a+b,0)}</td>
-            </tr>`).join('')}
-        </tbody>
-        <tfoot>
-          <tr class="total-row" data-di="${di}">
-            <td>Всего</td>
-            ${tots.map((v,ci)=>`<td data-di="${di}" data-ci="${ci}">${v}</td>`).join('')}
-            <td>${tot}</td>
-          </tr>
-        </tfoot>
-      </table>
-      ${day.providers ? `<div class="providers"><strong>Провайдеры (${cntProv(day.providers)}):</strong><br>${fmtProv(day.providers)}</div>` : ''}`;
-    c.appendChild(bl);
+// ── Column detection ──────────────────────────────────────────────────────────
+var detectedCols = null;
+function detectCols(header){
+  if(detectedCols) return detectedCols;
+  var c={time:-1,date:-1,project:-1,category:-1,prov:[]};
+  header.forEach(function(h,i){
+    var lh=String(h).toLowerCase().trim();
+    if(c.time<0&&(lh.includes('врем')||lh==='time'))c.time=i;
+    else if(c.date<0&&(lh.includes('дат')||lh==='date'))c.date=i;
+    else if(c.project<0&&(lh.includes('проект')||lh.includes('бренд')||lh.includes('brand')))c.project=i;
+    else if(c.category<0&&(lh.includes('трудност')||lh.includes('категор')||lh.includes('тип')))c.category=i;
+    else if((lh.includes('провайдер')||lh.includes('provider')||lh.startsWith('prov'))
+      && !lh.includes('интернет') && !lh.includes('internet'))c.prov.push(i);
   });
-  attachHL();
+  if(c.time<0)c.time=1; if(c.date<0)c.date=2; if(c.project<0)c.project=3; if(c.category<0)c.category=5;
+  if(c.prov.length===0)c.prov=[14,15,16];
+  detectedCols=c; return c;
 }
 
-// ── Hover highlight ───────────────────────────────────────────────────────────
-function clrHL() {
-  document.querySelectorAll('.col-hl').forEach(c=>c.classList.remove('col-hl'));
-  document.querySelectorAll('.row-hl').forEach(r=>r.classList.remove('row-hl'));
-  document.querySelectorAll('.cell-hl').forEach(c=>c.classList.remove('cell-hl'));
+function normDate(s){
+  s=String(s||'').trim(); if(!s)return'';
+  var m1=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if(m1)return m1[3]+'-'+(m1[2].length<2?'0':'')+m1[2]+'-'+(m1[1].length<2?'0':'')+m1[1];
+  var m2=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m2)return m2[0];
+  if(/^\d+$/.test(s)){var sn=parseInt(s);if(sn>40000&&sn<60000){var d=new Date((sn-25569)*86400000),p=function(n){return n<10?'0'+n:''+n;};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}}
+  return s.slice(0,10);
 }
-function attachHL() {
-  document.querySelectorAll('td[data-di],th[data-di]').forEach(cell => {
-    cell.addEventListener('mouseenter', function() {
-      if (!document.getElementById('hl-on').checked) return;
-      clrHL();
-      const {di, ci} = this.dataset;
-      if (ci != null) document.querySelectorAll(`[data-di="${di}"][data-ci="${ci}"]`).forEach(c=>c.classList.add('col-hl'));
-      this.closest('tr')?.classList.add('row-hl');
-      this.classList.add('cell-hl');
+function timeToMins(t){
+  if(!t)return-1; var s=String(t).trim();
+  var m=s.match(/^(\d{1,2}):(\d{2})/); if(m)return parseInt(m[1])*60+parseInt(m[2]);
+  var f=parseFloat(s); if(!isNaN(f)&&f>=0&&f<1)return Math.round(f*24*60);
+  return-1;
+}
+function fmtDate(iso){var d=iso.split('-');return d[2]+'.'+d[1]+'.'+d[0];}
+function dateToDays(iso){var d=iso.split('-');return parseInt(d[0])*365+parseInt(d[1])*31+parseInt(d[2]);}
+function dtToNum(iso,mins){return dateToDays(iso)*1440+mins;}
+
+// ── Is provider category ──────────────────────────────────────────────────────
+function isProvCat(cat){
+  var l=cat.toLowerCase();
+  return l.includes('провайдер')||l.includes('provider');
+}
+
+// ── Process one day — DYNAMIC categories ─────────────────────────────────────
+function processDay(cfg){
+  var cols = detectCols(parsedRows[0]);
+  // projectMap[proj][cat] = count   (cat = exact string from Excel)
+  var projectMap = {};
+  // provMap[providerName] = count
+  var provMap    = {};
+  // ordered list of all unique categories encountered
+  var catOrder   = [];
+  var catSet     = {};
+
+  var fromDt = dtToNum(cfg.dateFrom, cfg.timeFrom);
+  var toDt   = dtToNum(cfg.dateTo,   cfg.timeTo);
+
+  for(var i=1;i<parsedRows.length;i++){
+    var row=parsedRows[i];
+    if(!row||row.length<4)continue;
+    var rd=normDate(row[cols.date]);
+    var mins=timeToMins(row[cols.time]);
+    if(!rd||mins<0)continue;
+
+    var inShift;
+    if(cfg.useDatetime){
+      var rowDt=dtToNum(rd,mins);
+      inShift=(rowDt>=fromDt&&rowDt<toDt);
+    } else if(cfg.crossMidnight){
+      if(rd<cfg.dateFrom||rd>cfg.dateTo)continue;
+      inShift=(mins>=cfg.timeFrom||mins<cfg.timeTo);
+    } else {
+      if(rd<cfg.dateFrom||rd>cfg.dateTo)continue;
+      inShift=(mins>=cfg.timeFrom&&mins<cfg.timeTo);
+    }
+    if(!inShift)continue;
+
+    var cat  = String(row[cols.category]||'').trim();
+    var proj = String(row[cols.project]||'').trim().toUpperCase();
+    if(!cat||!proj)continue;
+
+    // Register category
+    if(!catSet[cat]){ catSet[cat]=1; catOrder.push(cat); }
+
+    if(!projectMap[proj]) projectMap[proj]={};
+    projectMap[proj][cat] = (projectMap[proj][cat]||0)+1;
+
+    // Collect providers from N/O/P columns for ANY row that has them filled
+    cols.prov.forEach(function(pc){
+      var pv=row[pc]?String(row[pc]).trim():'';
+      if(pv&&pv!=='0'&&pv!=='-'&&pv.length>1)provMap[pv]=(provMap[pv]||0)+1;
     });
-    cell.addEventListener('mouseleave', clrHL);
-  });
+  }
+
+  return {projectMap:projectMap, provMap:provMap, catOrder:catOrder};
 }
 
-// ── Actions ───────────────────────────────────────────────────────────────────
-function delDay(di) { if (confirm('Удалить этот день?')) { days.splice(di,1); save(); render(); } }
-function clearAll() { if (confirm('Удалить все данные?')) { days=[]; save(); render(); } }
+// ── Generate all days ─────────────────────────────────────────────────────────
+function generate(){
+  if(!parsedRows){setSt('⚠ Сначала загрузите файл','err');return;}
+  var dayEls=document.getElementById('daysList').children;
+  if(!dayEls.length){setSt('⚠ Добавьте хотя бы один день','err');return;}
 
-function doExport() {
-  const clone = document.documentElement.cloneNode(true);
+  var reportHtml='', textAll='', allResults=[], allLabels=[];
 
-  const scripts = clone.querySelectorAll("script");
-  scripts.forEach(s => {
-    if (s.innerHTML.includes("const KEY")) {
-      s.innerHTML = `
-const COLS = ${JSON.stringify(COLS)};
-const KEY = '${KEY}';
-let days = ${JSON.stringify(days)};
-render();
-`;
+  for(var di=0;di<dayEls.length;di++){
+    var el=dayEls[di];
+    var id=el.id.replace('day-','');
+    var dateFrom=document.getElementById('df-'+id).value;
+    var dateTo  =document.getElementById('dt-'+id).value;
+    var mode    =el.dataset.mode||'day';
+    var label   =document.getElementById('lbl-'+id).value||'Смена';
+    var comment =(document.getElementById('cmt-'+id)||{}).value||'';
+
+    var tFrom,tTo,cross=false,useDt=false;
+    if(mode==='day'){tFrom=9*60;tTo=21*60;}
+    else if(mode==='night'){tFrom=21*60;tTo=9*60;cross=true;}
+    else if(mode==='both'){
+      tFrom=timeToMins(document.getElementById('tf-'+id).value||'09:00');
+      tTo  =timeToMins(document.getElementById('tt-'+id).value||'09:00');
+      useDt=true;
+    } else {
+      tFrom=timeToMins(document.getElementById('tf-'+id).value||'00:00');
+      tTo  =timeToMins(document.getElementById('tt-'+id).value||'23:59');
+      if(dateFrom!==dateTo&&tTo<=tFrom)useDt=true;
+      else cross=tTo<=tFrom;
+    }
+
+    var result=processDay({dateFrom:dateFrom,dateTo:dateTo,timeFrom:tFrom,timeTo:tTo,crossMidnight:cross,useDatetime:useDt});
+    var dateLabel=dateFrom===dateTo?fmtDate(dateFrom):fmtDate(dateFrom)+' – '+fmtDate(dateTo);
+    var dayNum=dateFrom.split('-')[2];
+
+    reportHtml+=buildTableBlock(dayNum,dateLabel,label,comment,result);
+    textAll+=buildTextBlock(dateLabel,label,comment,result)+'\n\n---\n\n';
+    allResults.push(result);
+    allLabels.push(dateLabel);
+  }
+
+  document.getElementById('reportScreenshot').innerHTML=reportHtml;
+  document.getElementById('textOut').textContent=textAll.replace(/\n\n---\n\n$/,'').trim();
+  document.getElementById('reportOut').classList.add('vis');
+
+  // Analytics block — only for 2+ days
+  var anWrap=document.getElementById('analyticsWrap');
+  var provWrap=document.getElementById('provAnalyticsWrap');
+  // Provider analytics — show for 1+ days if providers exist
+  var provHtml=buildProvAnalytics(allResults,allLabels);
+  if(provHtml){
+    provWrap.style.display='block';
+    document.getElementById('provAnalyticsInner').innerHTML=provHtml;
+  } else {
+    provWrap.style.display='none';
+  }
+  // Topic analytics — only for 2+ days
+  if(allResults.length>=2){
+    anWrap.style.display='block';
+    document.getElementById('analyticsInner').innerHTML=buildAnalytics(allResults,allLabels);
+  } else {
+    anWrap.style.display='none';
+  }
+
+  setSt('✓ Отчёт сформирован · '+dayEls.length+' дн.','ok');
+  document.getElementById('reportOut').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── Build provider analytics block ───────────────────────────────────────────
+// ── Step-by-step chain builder (shared) ──────────────────────────────────────
+function buildChain(vals, showVals){
+  var html='<div class="an-chain">';
+  vals.forEach(function(v, i){
+    if(showVals){
+      html+='<div class="an-step-val">'+v+'</div>';
+    }
+    if(i < vals.length - 1){
+      var curr=v, next=vals[i+1];
+      var diff=next-curr;
+      var pct=curr>0?Math.round((diff/curr)*100):next>0?100:0;
+      var cls=diff>0?'up':diff<0?'down':'flat';
+      var stepArrow=diff>0?'↑':diff<0?'↓':'→';
+      var pctTxt=diff>0?'+'+pct+'%':diff<0?pct+'%':'0%';
+      html+='<div class="an-step-arr '+cls+'">'
+        +'<div class="an-step-arrow">'+stepArrow+'</div>'
+        +'<div class="an-step-pct">'+pctTxt+'</div>'
+        +'</div>';
     }
   });
-
-  const blob = new Blob([clone.outerHTML], { type: 'text/html;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'report_' + new Date().toISOString().slice(0,10) + '.html';
-  a.click();
+  if(vals.length >= 2){
+    var first=vals[0], last=vals[vals.length-1];
+    var diff=last-first;
+    var pct=first>0?Math.round((diff/first)*100):last>0?100:0;
+    var cls=diff>0?'up':diff<0?'down':'flat';
+    var arrow=diff>0?'↑':diff<0?'↓':'→';
+    html+='<span class="an-final '+cls+'">Итог: '+arrow+(diff!==0?(diff>0?'+':'')+pct+'%':'±0')+'</span>';
+  }
+  html+='</div>';
+  return html;
 }
 
-// ── Init ──
-load();
-render();
+function buildProvAnalytics(results, labels){
+  // Gather all providers
+  var allProvs={}, provTotal=0;
+  results.forEach(function(r){ Object.keys(r.provMap).forEach(function(p){ allProvs[p]=1; provTotal+=r.provMap[p]; }); });
+  var provList=Object.keys(allProvs);
+  if(!provList.length) return '';
+
+  var BAR_COLORS=['#7c6af7','#f7a26a','#5af78e','#6ab8f7','#f75a5a','#f7d56a'];
+
+  // Per-provider counts per day
+  var provData={};
+  provList.forEach(function(p){
+    provData[p]=results.map(function(r){return r.provMap[p]||0;});
+  });
+
+  // Sort by total desc
+  provList.sort(function(a,b){
+    var sa=provData[a].reduce(function(s,v){return s+v;},0);
+    var sb=provData[b].reduce(function(s,v){return s+v;},0);
+    return sb-sa;
+  });
+
+  var maxV=1;
+  provList.forEach(function(p){ provData[p].forEach(function(v){if(v>maxV)maxV=v;}); });
+
+  // Day totals for providers
+  var dayProvTotals=results.map(function(r){
+    return Object.values(r.provMap).reduce(function(s,v){return s+v;},0);
+  });
+  var grandProvTotal=dayProvTotals.reduce(function(s,v){return s+v;},0);
+  if(!grandProvTotal) return '';
+
+  var html='<div class="analytics-card">'
+    +'<div class="an-title">⚙️ Аналитика по провайдерам</div>'
+    +'<div class="an-sub">Динамика обращений · '+labels.join(' → ')+'</div>';
+
+  // Day total chips
+  html+='<div class="an-total-row">';
+  labels.forEach(function(lbl,i){
+    html+='<div class="an-total-chip"><div class="tc-day">'+dayProvTotals[i]+'</div><div class="tc-lbl">'+lbl+'</div></div>';
+  });
+  html+='</div>';
+
+  if(results.length>=2){
+    html+='<div style="margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;display:inline-flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:11px;color:var(--muted);font-weight:700;">ОБЩИЙ ТРЕНД</span>'
+      +buildChain(dayProvTotals, true)
+      +'</div>';
+  }
+
+  // Per-provider rows with % share
+  html+='<div style="margin-top:18px">';
+
+  // Header row
+  html+='<div style="display:grid;grid-template-columns:200px 120px 70px 70px 1fr;gap:8px;align-items:center;padding:0 0 8px;border-bottom:2px solid var(--border);margin-bottom:4px;">'
+    +'<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Провайдер</span>'
+    +'<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">По дням</span>'
+    +'<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right">Всего</span>'
+    +'<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right">Доля</span>'
+    +'<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Динамика</span>'
+    +'</div>';
+
+  provList.forEach(function(prov){
+    var vals=provData[prov];
+    var total=vals.reduce(function(s,v){return s+v;},0);
+    if(!total)return;
+    var share=grandProvTotal>0?Math.round((total/grandProvTotal)*100):0;
+    html+='<div class="an-row">';
+    // Col 1: Name
+    html+='<span class="an-cat">'+escHtml(prov)+'</span>';
+    // Col 2: Bars (По дням)
+    html+='<div class="an-col-bars">';
+    vals.forEach(function(v,i){
+      var barH=maxV>0?Math.max(Math.round((v/maxV)*28),v>0?3:1):1;
+      html+='<div class="an-bar-wrap">'
+        +'<div class="an-bar" style="height:'+barH+'px;background:'+BAR_COLORS[i%BAR_COLORS.length]+'" title="'+escHtml(labels[i])+': '+v+'"></div>'
+        +'<div class="an-bar-lbl">'+v+'</div>'
+        +'</div>';
+    });
+    html+='</div>';
+    // Col 3: Total (Всего)
+    html+='<div class="an-col-total">'+total+'</div>';
+    // Col 4: Share (Доля)
+    html+='<div class="an-col-share">'
+      +'<span style="font-size:12px;color:var(--muted)">'+share+'%</span>'
+      +'<div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px;"><div style="height:100%;width:'+share+'%;background:var(--accent);border-radius:2px;"></div></div>'
+      +'</div>';
+    // Col 5: Chain (Динамика)
+    html+=buildChain(vals,false).replace('class="an-chain"','class="an-col-chain"');
+    html+='</div>';
+  });
+
+  html+='</div></div>';
+  return html;
+}
+
+
+// ── Build table block (white, dynamic columns) ────────────────────────────────
+function buildTableBlock(dayNum,dateLabel,shiftLabel,comment,result){
+  var pm=result.projectMap, prov=result.provMap, cats=result.catOrder;
+  var projects=Object.keys(pm).sort();
+  if(!projects.length&&!Object.keys(prov).length) return '<div class="rday-block"><div class="rday-header"><div class="rday-datebox">'+dayNum+'</div><span class="rday-title">'+dateLabel+' — нет данных</span></div></div>';
+
+  var html='<div class="rday-block">'
+    +'<div class="rday-header">'
+    +'<div class="rday-datebox">'+dayNum+'</div>'
+    +'<span class="rday-title">'+dateLabel+' ('+shiftLabel+')</span>'
+    +'</div>';
+  if(comment)html+='<div class="rday-comment">'+escHtml(comment)+'</div>';
+
+  html+='<table class="rtable" style="width:100%;table-layout:fixed"><thead><tr><th style="width:90px">Проект</th>';
+  cats.forEach(function(c){
+    html+='<th>'+escHtml(c)+'</th>';
+  });
+  html+='<th style="width:60px">Всего</th></tr></thead><tbody>';
+
+  // totals
+  var totals={};cats.forEach(function(c){totals[c]=0;});
+  var grand=0;
+
+  projects.forEach(function(p){
+    var v=pm[p];
+    var rowTotal=0;cats.forEach(function(c){rowTotal+=(v[c]||0);});
+    grand+=rowTotal;
+    html+='<tr><td>'+escHtml(p)+'</td>';
+    cats.forEach(function(c){
+      var n=v[c]||0; totals[c]+=n;
+      html+='<td class="'+(n?'nz':'zero')+'">'+n+'</td>';
+    });
+    html+='<td class="'+(rowTotal?'nz':'zero')+'">'+rowTotal+'</td></tr>';
+  });
+
+  html+='</tbody><tfoot><tr class="total"><td>Всего</td>';
+  cats.forEach(function(c){html+='<td>'+totals[c]+'</td>';});
+  html+='<td>'+grand+'</td></tr></tfoot></table></div>';
+
+  var provList=Object.entries(prov).sort(function(a,b){return b[1]-a[1];});
+  if(provList.length){
+    html+='<div class="rprov"><strong>Провайдеры:</strong> ';
+    html+=provList.map(function(e){return escHtml(e[0])+' — '+e[1];}).join(' &nbsp;·&nbsp; ');
+    html+='';
+  }
+  html+='</div>';
+  return html;
+}
+
+// ── Build text block ──────────────────────────────────────────────────────────
+function buildTextBlock(dateLabel,shiftLabel,comment,result){
+  var pm=result.projectMap, prov=result.provMap, cats=result.catOrder;
+  var lines=['📊 Отчёт по смене','📅 '+dateLabel,'🕒 '+shiftLabel];
+  if(comment)lines.push('💬 '+comment);
+  lines.push('');
+
+  // Group by category → list projects
+  cats.forEach(function(cat){
+    var entries=[];
+    Object.keys(pm).forEach(function(proj){
+      var n=pm[proj][cat]||0;
+      if(n>0)entries.push({proj:proj,n:n});
+    });
+    entries.sort(function(a,b){return b.n-a.n;});
+    if(!entries.length)return;
+    if(isProvCat(cat))return; // handle below
+    lines.push(cat+':');
+    entries.forEach(function(e){lines.push(e.proj+' — '+e.n);});
+    lines.push('');
+  });
+
+  var provList=Object.entries(prov).sort(function(a,b){return b[1]-a[1];});
+  if(provList.length){
+    lines.push('Трудности с провайдерами:');
+    provList.forEach(function(e){lines.push(e[0]+' — '+e[1]);});
+    lines.push('');
+  }
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+
+// ── Build analytics comparison block ─────────────────────────────────────────
+function buildAnalytics(results, labels){
+  // Collect all categories across all days
+  var allCatSet={}, allCats=[];
+  results.forEach(function(r){
+    r.catOrder.forEach(function(c){
+      if(!isProvCat(c)&&!allCatSet[c]){allCatSet[c]=1;allCats.push(c);}
+    });
+  });
+
+  // For each category, get total count per day
+  // catTotals[cat][dayIdx] = count
+  var catTotals={};
+  allCats.forEach(function(cat){
+    catTotals[cat]=results.map(function(r){
+      var total=0;
+      Object.keys(r.projectMap).forEach(function(p){total+=(r.projectMap[p][cat]||0);});
+      return total;
+    });
+  });
+
+  // Grand totals per day
+  var dayTotals=results.map(function(r){
+    var t=0;
+    Object.keys(r.projectMap).forEach(function(p){
+      Object.keys(r.projectMap[p]).forEach(function(c){t+=r.projectMap[p][c];});
+    });
+    return t;
+  });
+
+  // Bar colors by day
+  var BAR_COLORS=['#7c6af7','#f7a26a','#5af78e','#6ab8f7','#f75a5a','#f7d56a'];
+
+  var maxBarVal=1;
+  allCats.forEach(function(cat){ catTotals[cat].forEach(function(v){if(v>maxBarVal)maxBarVal=v;}); });
+
+  var html='<div class="analytics-card">'
+    +'<div class="an-title">📈 Сравнительная аналитика</div>'
+    +'<div class="an-sub">Динамика обращений по тематикам · '+labels.join(' → ')+'</div>';
+
+  // Total chips per day
+  html+='<div class="an-total-row">';
+  labels.forEach(function(lbl,i){
+    html+='<div class="an-total-chip"><div class="tc-day">'+dayTotals[i]+'</div><div class="tc-lbl">'+lbl+'</div></div>';
+  });
+  // Overall trend chip
+  html+='</div>';
+
+  if(results.length>=2){
+    html+='<div style="margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;display:inline-flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:11px;color:var(--muted);font-weight:700;">ОБЩИЙ ТРЕНД</span>'
+      +buildChain(dayTotals, true)
+      +'</div>';
+  }
+
+  html+='<div style="margin-top:18px">';
+
+  // Sort cats by total desc
+  allCats.sort(function(a,b){
+    var sa=catTotals[a].reduce(function(s,v){return s+v;},0);
+    var sb=catTotals[b].reduce(function(s,v){return s+v;},0);
+    return sb-sa;
+  });
+
+  allCats.forEach(function(cat){
+    var vals=catTotals[cat];
+    var total=vals.reduce(function(s,v){return s+v;},0);
+    if(total===0)return;
+
+    html+='<div class="an-row" style="grid-template-columns:200px 120px 1fr">';
+    html+='<span class="an-cat">'+escHtml(cat)+'</span>';
+    html+='<div class="an-col-bars">';
+    vals.forEach(function(v,i){
+      var barH=maxBarVal>0?Math.max(Math.round((v/maxBarVal)*28),v>0?3:1):1;
+      var color=BAR_COLORS[i%BAR_COLORS.length];
+      html+='<div class="an-bar-wrap">'
+        +'<div class="an-bar" style="height:'+barH+'px;background:'+color+'" title="'+labels[i]+': '+v+'"></div>'
+        +'<div class="an-bar-lbl">'+v+'</div>'
+        +'</div>';
+    });
+    html+='</div>';
+    html+=buildChain(vals, false);
+    html+='</div>';
+  });
+
+  html+='</div>';
+
+
+  html+='</div>'; // close categories div
+  html+='</div>'; // close analytics-card
+  return html;
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function copyText(){
+  var t=document.getElementById('textOut').textContent;
+  navigator.clipboard.writeText(t).then(function(){
+    var b=document.querySelector('.report-top-actions .btn-act:not(.photo)');
+    if(!b)return;
+    var o=b.innerHTML; b.textContent='✓ Скопировано!';
+    setTimeout(function(){b.innerHTML=o;},2000);
+  });
+}
+
+function takePhoto(){
+  var btn=document.querySelector('.report-top-actions .btn-act.photo');
+  takePhotoEl('reportScreenshot','report',btn);
+}
+
+function takePhotoEl(elId, suffix, btn){
+  if(!btn){
+    var el=document.getElementById(elId);
+    btn=el&&el.parentElement?el.parentElement.querySelector('.btn-act.photo'):null;
+  }
+  if(btn) btn.textContent='⏳...';
+  var doIt=function(){
+    var el=document.getElementById(elId);
+    if(!el){if(btn)btn.textContent='📷 Сохранить фото'; return;}
+    html2canvas(el,{backgroundColor:'#1e1e28',scale:2,useCORS:true,logging:false}).then(function(canvas){
+      var a=document.createElement('a');
+      a.download='report_'+suffix+'_'+today()+'.png';
+      a.href=canvas.toDataURL('image/png'); a.click();
+      if(btn){btn.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="8" cy="8" r="2.5"/><path d="M5 3l1-2h4l1 2"/></svg> Сохранить фото';}
+      setSt('✓ Фото сохранено','ok');
+    }).catch(function(e){if(btn)btn.textContent='📷 Сохранить фото'; setSt('✗ '+e.message,'err');});
+  };
+  if(typeof html2canvas==='undefined'){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload=doIt; document.head.appendChild(s);
+  }else{doIt();}
+}
+
+function setSt(msg,type){
+  var el=document.getElementById('statusBar');
+  el.textContent=msg; el.className='status-bar vis'+(type?' '+type:'');
+}
+
+// Init
+addDay();
+
 </script>
 </body>
 </html>

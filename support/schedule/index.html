@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SupportCIS — График смен</title>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --surface2: #161920;
+      --border: rgba(255,255,255,0.07);
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --sub: #9ca3b0;
+      --tl: #4f8ef7;
+      --tl-glow: rgba(79,142,247,0.15);
+      --support: #34d399;
+      --support-glow: rgba(52,211,153,0.15);
+      --ops: #f59e42;
+      --ops-glow: rgba(245,158,66,0.15);
+
+      /* Смены */
+      --shift-morning: #4f8ef7;       /* 06-15 */
+      --shift-morning-bg: rgba(79,142,247,0.12);
+      --shift-evening: #a78bfa;       /* 15-00 */
+      --shift-evening-bg: rgba(167,139,250,0.12);
+      --shift-night: #34d399;         /* 00-10 */
+      --shift-night-bg: rgba(52,211,153,0.12);
+      --shift-super: #f59e42;         /* 12h sup */
+      --shift-super-bg: rgba(245,158,66,0.12);
+      --shift-off: transparent;
+      --shift-vacation: rgba(248,113,113,0.12);
+      --shift-sick: rgba(251,191,36,0.10);
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: hidden; }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px; pointer-events: none; z-index: 0;
+    }
+    .bg-glow { position: fixed; width: 500px; height: 500px; border-radius: 50%; filter: blur(120px); opacity: 0.08; pointer-events: none; z-index: 0; }
+    .bg-glow-1 { background: var(--tl); top: -200px; left: -100px; }
+    .bg-glow-2 { background: var(--support); bottom: -200px; right: -100px; }
+
+    .layout { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* NAV */
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px; border-bottom: 1px solid var(--border);
+      background: rgba(10,12,16,0.8); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-left { display: flex; align-items: center; gap: 16px; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--muted); font-size: 13px; text-decoration: none;
+      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s, background .2s;
+    }
+    .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+    .nav-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: #fff; }
+    .nav-title span { color: var(--tl); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .month-badge {
+      font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 400;
+      color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .admin-btn {
+      display: none; align-items: center; gap: 6px;
+      background: var(--tl-glow); border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 8px; color: var(--tl); font-size: 12px; font-family: 'Mulish', sans-serif;
+      font-weight: 600; padding: 6px 14px; cursor: pointer; transition: all .2s;
+    }
+    .admin-btn:hover { background: rgba(79,142,247,0.22); border-color: rgba(79,142,247,0.6); }
+    .admin-btn.visible { display: flex; }
+
+    /* MAIN */
+    .main { flex: 1; padding: 28px 24px 48px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+    /* LEGEND */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;
+      padding: 14px 18px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; align-items: center;
+    }
+    .legend-label { font-size: 11px; color: var(--muted); font-family: 'Unbounded', sans-serif; letter-spacing: 0.08em; margin-right: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--sub); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* STATS ROW */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); font-family: 'Unbounded', sans-serif; letter-spacing: 0.08em; }
+    .stat-val { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; color: #fff; }
+    .stat-sub { font-size: 11px; color: var(--muted); }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 12px; font-family: 'Mulish', sans-serif;
+      cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .filter-btn.active { background: var(--tl-glow); border-color: rgba(79,142,247,0.4); color: var(--tl); }
+
+    /* SCHEDULE TABLE */
+    .schedule-section { margin-bottom: 32px; }
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .section-title { font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase; }
+    .section-badge {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+      background: var(--tl-glow); color: var(--tl);
+    }
+    .section-badge.green { background: var(--support-glow); color: var(--support); }
+    .section-badge.orange { background: var(--ops-glow); color: var(--ops); }
+
+    .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+
+    thead th {
+      background: var(--surface); padding: 10px 8px; font-size: 10px;
+      font-family: 'Unbounded', sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap;
+      font-weight: 400; text-align: center;
+    }
+    thead th.col-name { text-align: left; padding-left: 16px; min-width: 120px; position: sticky; left: 0; background: var(--surface); z-index: 2; }
+    thead th.col-shift { min-width: 100px; }
+    thead th.weekend { color: rgba(248,113,113,0.6); }
+    thead th.today { color: var(--tl); }
+
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    td {
+      padding: 8px; text-align: center; font-size: 12px;
+      color: var(--sub); vertical-align: middle;
+    }
+    td.col-name {
+      text-align: left; padding-left: 16px; font-weight: 600; color: var(--text);
+      font-size: 13px; position: sticky; left: 0; background: var(--surface2); z-index: 1;
+      white-space: nowrap;
+    }
+    tbody tr:hover td.col-name { background: #1a1d24; }
+
+    td.col-shift { padding: 8px 6px; }
+
+    .shift-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      white-space: nowrap; min-width: 52px; line-height: 1;
+    }
+    .shift-morning { background: var(--shift-morning-bg); color: var(--shift-morning); }
+    .shift-evening { background: var(--shift-evening-bg); color: var(--shift-evening); }
+    .shift-night { background: var(--shift-night-bg); color: var(--shift-night); }
+    .shift-super-day { background: var(--shift-super-bg); color: var(--shift-super); }
+    .shift-super-night { background: rgba(245,158,66,0.08); color: rgba(245,158,66,0.7); }
+    .shift-off { color: rgba(255,255,255,0.12); font-size: 10px; }
+    .shift-vacation { background: var(--shift-vacation); color: #f87171; }
+    .shift-sick { background: var(--shift-sick); color: #fbbf24; }
+    .shift-work8 { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+
+    td.is-today { background: rgba(79,142,247,0.04); }
+
+    /* GROUP DIVIDERS */
+    .group-row td { padding: 6px 16px; font-size: 10px; font-family: 'Unbounded', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: rgba(255,255,255,0.015); border-top: 1px solid var(--border); }
+
+    /* ONLINE COUNTS */
+    .online-section { margin-bottom: 28px; }
+    .online-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .online-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .online-time { font-size: 10px; font-family: 'Unbounded', sans-serif; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+    .online-count { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 700; color: #fff; line-height: 1; }
+    .online-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .online-bar { height: 2px; border-radius: 2px; margin-top: 10px; background: var(--border); }
+    .online-bar-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+
+    /* ADMIN PANEL OVERLAY */
+    .admin-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      align-items: flex-start; justify-content: flex-end;
+    }
+    .admin-overlay.open { display: flex; animation: fadeIn .2s ease; }
+    .admin-panel {
+      width: 420px; height: 100vh; background: var(--surface);
+      border-left: 1px solid var(--border); display: flex; flex-direction: column;
+      animation: slideIn .25s ease;
+    }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    .admin-panel-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .admin-panel-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: #fff; }
+    .close-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center; transition: all .2s;
+    }
+    .close-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .admin-panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    .admin-field { display: flex; flex-direction: column; gap: 8px; }
+    .admin-label {
+      font-family: 'Unbounded', sans-serif; font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .admin-select, .admin-input {
+      background: #0d0f14; border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 14px;
+      padding: 10px 14px; outline: none; width: 100%;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .admin-select:focus, .admin-input:focus {
+      border-color: rgba(79,142,247,0.5); box-shadow: 0 0 0 3px var(--tl-glow);
+    }
+    .admin-select option { background: #111318; }
+
+    .admin-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .shift-type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .shift-type-btn {
+      padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 11px; font-family: 'Mulish', sans-serif;
+      cursor: pointer; text-align: center; transition: all .2s; line-height: 1.4;
+    }
+    .shift-type-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .shift-type-btn.selected { border-color: var(--tl); background: var(--tl-glow); color: var(--tl); }
+    .shift-type-btn .stime { font-weight: 700; font-size: 12px; display: block; margin-bottom: 2px; }
+
+    .admin-divider { height: 1px; background: var(--border); }
+
+    .admin-panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+    .btn-save {
+      flex: 1; padding: 12px; background: linear-gradient(135deg, var(--tl), #3a7bd5);
+      border: none; border-radius: 10px; color: #fff; font-family: 'Unbounded', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: opacity .2s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(79,142,247,0.25);
+    }
+    .btn-save:hover { opacity: .9; box-shadow: 0 6px 24px rgba(79,142,247,0.35); }
+    .btn-save:disabled { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); cursor: not-allowed; box-shadow: none; }
+    .btn-cancel { padding: 12px 18px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--muted); font-family: 'Mulish', sans-serif; font-size: 13px; cursor: pointer; transition: all .2s; }
+    .btn-cancel:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .save-msg { font-size: 12px; padding: 10px 14px; border-radius: 8px; text-align: center; display: none; }
+    .save-msg.ok { display: block; background: var(--support-glow); color: var(--support); }
+    .save-msg.err { display: block; background: rgba(248,113,113,0.12); color: #f87171; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 500;
+      padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      transform: translateY(16px); opacity: 0; transition: all .3s ease; pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok { background: var(--support-glow); color: var(--support); border: 1px solid rgba(52,211,153,0.3); }
+    .toast.err { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 300; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    }
+    .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--tl); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-family: 'Unbounded', sans-serif; font-size: 11px; color: var(--muted); letter-spacing: 0.1em; }
+
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+      .online-grid { grid-template-columns: repeat(2,1fr); }
+      .admin-panel { width: 100vw; }
+      .nav { padding: 12px 16px; }
+      .main { padding: 16px 12px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Загрузка графика...</div>
+</div>
+
+<div class="layout" id="app" style="display:none">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/support/" class="back-btn">← Support</a>
+      <div class="nav-title">Support<span>CIS</span> — График</div>
+    </div>
+    <div class="nav-right">
+      <div class="month-badge" id="month-badge">Июнь 2026</div>
+      <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Операторов онлайн</div>
+        <div class="stat-val" id="stat-online">—</div>
+        <div class="stat-sub">сейчас на смене</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Regular Support</div>
+        <div class="stat-val">24</div>
+        <div class="stat-sub">операторов в отделе</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">VIP Support</div>
+        <div class="stat-val">24</div>
+        <div class="stat-sub">операторов в отделе</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Сегодня выходных</div>
+        <div class="stat-val" id="stat-off">—</div>
+        <div class="stat-sub">из всего персонала</div>
+      </div>
+    </div>
+
+    <!-- ONLINE BY ZONE -->
+    <div class="online-section">
+      <div class="section-header">
+        <div class="section-title">Покрытие по зонам</div>
+      </div>
+      <div class="online-grid">
+        <div class="online-card">
+          <div class="online-time">00:00 — 06:00</div>
+          <div class="online-count" id="zone-night">3</div>
+          <div class="online-label">ночная смена</div>
+          <div class="online-bar"><div class="online-bar-fill" style="width:30%;background:var(--shift-night)"></div></div>
+        </div>
+        <div class="online-card">
+          <div class="online-time">06:00 — 10:00</div>
+          <div class="online-count" id="zone-overlap">9</div>
+          <div class="online-label">утро + ночь</div>
+          <div class="online-bar"><div class="online-bar-fill" style="width:90%;background:var(--shift-morning)"></div></div>
+        </div>
+        <div class="online-card">
+          <div class="online-time">10:00 — 15:00</div>
+          <div class="online-count" id="zone-morning">6</div>
+          <div class="online-label">утренняя смена</div>
+          <div class="online-bar"><div class="online-bar-fill" style="width:60%;background:var(--shift-morning)"></div></div>
+        </div>
+        <div class="online-card">
+          <div class="online-time">15:00 — 00:00</div>
+          <div class="online-count" id="zone-evening">6</div>
+          <div class="online-label">вечерняя смена</div>
+          <div class="online-bar"><div class="online-bar-fill" style="width:60%;background:var(--shift-evening)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <span class="legend-label">Легенда:</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-morning)"></span>06:00–15:00</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-evening)"></span>15:00–00:00</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-night)"></span>00:00–10:00</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super)"></span>12h Supervisor</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>08h (TL/QA)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Отпуск</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>Больничный</span>
+      <span class="legend-item"><span class="legend-dot" style="background:rgba(255,255,255,0.12)"></span>Выходной</span>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
+      <button class="filter-btn" onclick="setFilter('regular',this)">Regular</button>
+      <button class="filter-btn" onclick="setFilter('vip',this)">VIP</button>
+      <button class="filter-btn" onclick="setFilter('supervisors',this)">Supervisors</button>
+      <button class="filter-btn" onclick="setFilter('management',this)">Management</button>
+    </div>
+
+    <!-- SCHEDULE TABLES -->
+    <div id="schedule-container"></div>
+
+  </div>
+</div>
+
+<!-- ADMIN OVERLAY -->
+<div class="admin-overlay" id="admin-overlay" onclick="overlayClick(event)">
+  <div class="admin-panel" id="admin-panel">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">Редактировать смену</div>
+      <button class="close-btn" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <select class="admin-select" id="ap-operator"></select>
+      </div>
+
+      <div class="admin-field">
+        <div class="admin-label">Период</div>
+        <div class="admin-date-row">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">С</div>
+            <input type="date" class="admin-input" id="ap-date-from" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">По</div>
+            <input type="date" class="admin-input" id="ap-date-to" />
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-field">
+        <div class="admin-label">Тип смены</div>
+        <div class="shift-type-grid">
+          <button class="shift-type-btn" data-type="morning" onclick="selectShiftType(this)">
+            <span class="stime">06–15</span>Утренняя
+          </button>
+          <button class="shift-type-btn" data-type="evening" onclick="selectShiftType(this)">
+            <span class="stime">15–00</span>Вечерняя
+          </button>
+          <button class="shift-type-btn" data-type="night" onclick="selectShiftType(this)">
+            <span class="stime">00–10</span>Ночная
+          </button>
+          <button class="shift-type-btn" data-type="super_day" onclick="selectShiftType(this)">
+            <span class="stime">07–19</span>Sup День
+          </button>
+          <button class="shift-type-btn" data-type="super_night" onclick="selectShiftType(this)">
+            <span class="stime">19–07</span>Sup Ночь
+          </button>
+          <button class="shift-type-btn" data-type="work8" onclick="selectShiftType(this)">
+            <span class="stime">09–18</span>8h (TL/QA)
+          </button>
+          <button class="shift-type-btn" data-type="vacation" onclick="selectShiftType(this)">
+            <span class="stime">✈</span>Отпуск
+          </button>
+          <button class="shift-type-btn" data-type="sick" onclick="selectShiftType(this)">
+            <span class="stime">🤒</span>Больничный
+          </button>
+          <button class="shift-type-btn" data-type="off" onclick="selectShiftType(this)">
+            <span class="stime">—</span>Выходной
+          </button>
+        </div>
+      </div>
+
+      <div class="admin-divider"></div>
+
+      <div class="admin-field">
+        <div class="admin-label">Заметка (необязательно)</div>
+        <input type="text" class="admin-input" id="ap-note" placeholder="например: замена Кена" maxlength="80" />
+      </div>
+
+      <div class="save-msg" id="save-msg"></div>
+
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeAdmin()">Отмена</button>
+      <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+const MONTH = 6; // июнь
+const YEAR = 2026;
+
+// ── Данные операторов ──
+const GROUPS = {
+  head: {
+    label: 'Head of Support',
+    color: 'blue',
+    members: ['Oliver']
+  },
+  tl: {
+    label: 'Team Leaders',
+    color: 'blue',
+    members: ['Jordan', 'Naomi', 'Matthew']
+  },
+  supervisors: {
+    label: 'Supervisors — Regular',
+    color: 'orange',
+    members: ['Curtis', 'Manuel', 'Irma', 'Solomon', 'Richard', 'Toby']
+  },
+  vip_supervisors: {
+    label: 'Supervisors — VIP',
+    color: 'orange',
+    members: ['Adam', 'Amelia', 'Lucas']
+  },
+  regular: {
+    label: 'Regular Support',
+    color: 'blue',
+    members: [
+      'Will','Bridget','Kenzo','Nora','Florence','Fletcher','Charles','Earl',
+      'Rudy','Balfour','Jonathan','Bill','Gross','Meadow','Norman','Robin',
+      'Bob','Lex','Calvin','Mike','Hardy','Murphy','Joseph','Bowen'
+    ]
+  },
+  vip: {
+    label: 'VIP Support',
+    color: 'green',
+    members: [
+      'Scott','Tom','Simon','Casper','Elijah','Holly','River','Chadwick',
+      'Fabio','Plover','Morgan','Reggie','Nolan','Skylar','Wade','Denzel',
+      'Ashton','Christine','Isaac','Felicia','Warren','Alexia','Kiana','Trinity'
+    ]
+  },
+  other: {
+    label: 'Other',
+    color: 'orange',
+    members: ['Reed','Jayden','Anna','Nikita']
+  },
+  qa: {
+    label: 'QA',
+    color: 'orange',
+    members: ['Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger']
+  }
+};
+
+// Все сотрудники в порядке отображения
+const GROUP_ORDER = ['head','tl','supervisors','vip_supervisors','regular','vip','other','qa'];
+
+// Дни июня 2026
+function getDaysInMonth(year, month) {
+  const days = [];
+  const count = new Date(year, month, 0).getDate(); // июнь = 30
+  for (let d = 1; d <= count; d++) {
+    const date = new Date(year, month - 1, d);
+    days.push({ d, day: date.toLocaleDateString('ru', { weekday: 'short' }), date });
+  }
+  return days;
+}
+
+const DAYS = getDaysInMonth(YEAR, MONTH);
+const TODAY = new Date();
+const TODAY_STR = `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(TODAY.getDate()).padStart(2,'0')}`;
+
+// ── Базовый паттерн смен (генерация) ──
+
+// Новый формат: дневные 4/2, ночные 2/2
+// Группы: утренняя А/Б/В (offset 0/2/4), вечерняя А/Б/В (offset 0/2/4), ночная А/Б (offset 0/2)
+function getDayShift(dayIndex, offset, type) {
+  // type: 'morning' | 'evening' | 'night'
+  const cycle = type === 'night' ? 4 : 6; // 2/2 или 4/2
+  const workDays = type === 'night' ? 2 : 4;
+  const pos = ((dayIndex + offset) % cycle + cycle) % cycle;
+  return pos < workDays ? type : 'off';
+}
+
+// Супервайзеры: 12h 2/2, день = 07-19, ночь = 19-07
+// offset задает начало цикла
+function getSuperShift(dayIndex, offset) {
+  const pos = ((dayIndex + offset) % 4 + 4) % 4;
+  if (pos === 0 || pos === 1) return 'super_day';
+  if (pos === 2 || pos === 3) return 'super_night';
+  return 'off';
+}
+
+// Management / QA / Other: 8h пн-пт
+function getMgmtShift(dayIndex) {
+  const date = DAYS[dayIndex].date;
+  const dow = date.getDay(); // 0=вс, 6=сб
+  return (dow === 0 || dow === 6) ? 'off' : 'work8';
+}
+
+// Назначаем базовые паттерны операторам
+const REGULAR_MEMBERS = GROUPS.regular.members;
+const VIP_MEMBERS = GROUPS.vip.members;
+
+// Regular: 8 утренних А (0), 8 утренних Б (2), 8 утренних В (4) → нет, делаем 9/9/6 по типам
+// Упрощаем: распределяем 24 regular по 6 группам равномерно
+const REG_GROUPS = [
+  { type: 'morning', offset: 0 }, // Утренняя А — 4 чел
+  { type: 'morning', offset: 2 }, // Утренняя Б — 4 чел
+  { type: 'morning', offset: 4 }, // Утренняя В — 4 чел
+  { type: 'evening', offset: 0 }, // Вечерняя А — 4 чел
+  { type: 'evening', offset: 2 }, // Вечерняя Б — 4 чел
+  { type: 'evening', offset: 4 }, // Вечерняя В — 4 чел
+];
+// 4 на каждую группу = 24
+
+const VIP_GROUPS = [
+  { type: 'morning', offset: 0 },
+  { type: 'morning', offset: 2 },
+  { type: 'morning', offset: 4 },
+  { type: 'evening', offset: 0 },
+  { type: 'evening', offset: 2 },
+  { type: 'evening', offset: 4 },
+];
+
+// Ночные — из supv используем паттерн 2/2
+// Для regular: последние 6 из 24 делаем ночными (3 + 3)
+// Переделаем: 18 дневных/вечерних + 6 ночных (из regular)
+// На самом деле по June file: 18 дневных + 6 ночных для операторов
+// Так и сделаем: первые 18 regular → дневные/вечерние (по 3 чел в группе), остальные 6 → ночные
+const OPERATOR_BASE_SHIFTS = {};
+
+// Regular: первые 18 → дневные группы по 3, последние 6 → ночные по 3
+const regDayGroups = [
+  {type:'morning', offset:0}, {type:'morning', offset:2}, {type:'morning', offset:4},
+  {type:'evening', offset:0}, {type:'evening', offset:2}, {type:'evening', offset:4}
+];
+REGULAR_MEMBERS.slice(0, 18).forEach((name, i) => {
+  const g = regDayGroups[Math.floor(i / 3)];
+  OPERATOR_BASE_SHIFTS[name] = (di) => getDayShift(di, g.offset, g.type);
+});
+REGULAR_MEMBERS.slice(18).forEach((name, i) => {
+  const offset = i < 3 ? 0 : 2;
+  OPERATOR_BASE_SHIFTS[name] = (di) => getDayShift(di, offset, 'night');
+});
+
+// VIP: то же самое — первые 18 дневные, последние 6 ночные
+VIP_MEMBERS.slice(0, 18).forEach((name, i) => {
+  const g = regDayGroups[Math.floor(i / 3)];
+  OPERATOR_BASE_SHIFTS[name] = (di) => getDayShift(di, g.offset, g.type);
+});
+VIP_MEMBERS.slice(18).forEach((name, i) => {
+  const offset = i < 3 ? 0 : 2;
+  OPERATOR_BASE_SHIFTS[name] = (di) => getDayShift(di, offset, 'night');
+});
+
+// Supervisors: 12h 2/2, разные офсеты
+const SUP_OFFSETS = [0, 2, 0, 2, 0, 2];
+GROUPS.supervisors.members.forEach((name, i) => {
+  OPERATOR_BASE_SHIFTS[name] = (di) => getSuperShift(di, SUP_OFFSETS[i]);
+});
+const VIP_SUP_OFFSETS = [0, 2, 0];
+GROUPS.vip_supervisors.members.forEach((name, i) => {
+  OPERATOR_BASE_SHIFTS[name] = (di) => getSuperShift(di, VIP_SUP_OFFSETS[i]);
+});
+
+// Management / other / QA
+[...GROUPS.head.members, ...GROUPS.tl.members, ...GROUPS.other.members, ...GROUPS.qa.members].forEach(name => {
+  OPERATOR_BASE_SHIFTS[name] = (di) => getMgmtShift(di);
+});
+
+// ── State ──
+let scheduleOverrides = {}; // { 'Name:2026-06-01': { type, note } }
+let currentUser = null;
+let isAdmin = false;
+let activeFilter = 'all';
+let selectedShiftType = null;
+
+// ── Init ──
+(async () => {
+  try {
+    const res = await fetch(`${API}/check`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.ok) {
+      currentUser = data;
+      isAdmin = data.role === 'tl';
+      if (isAdmin) document.getElementById('admin-btn').classList.add('visible');
+    }
+  } catch {}
+
+  try {
+    const res = await fetch(`${API}/schedule`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      scheduleOverrides = data.overrides || {};
+    }
+  } catch {}
+
+  renderAll();
+  updateStats();
+  populateOperatorSelect();
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+})();
+
+// ── Helpers ──
+function dateStr(d) {
+  return `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function getShift(name, dayIndex) {
+  const key = `${name}:${dateStr(DAYS[dayIndex].d)}`;
+  if (scheduleOverrides[key]) return scheduleOverrides[key].type;
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  return fn ? fn(dayIndex) : 'off';
+}
+
+function shiftLabel(type) {
+  const map = {
+    morning: '06–15', evening: '15–00', night: '00–10',
+    super_day: '07–19', super_night: '19–07',
+    work8: '09–18', vacation: '✈ Отп', sick: '🤒 Бол', off: ''
+  };
+  return map[type] || '';
+}
+
+function shiftClass(type) {
+  const map = {
+    morning: 'shift-morning', evening: 'shift-evening', night: 'shift-night',
+    super_day: 'shift-super-day', super_night: 'shift-super-night',
+    work8: 'shift-work8', vacation: 'shift-vacation', sick: 'shift-sick', off: 'shift-off'
+  };
+  return map[type] || 'shift-off';
+}
+
+// ── Render ──
+function renderAll() {
+  const container = document.getElementById('schedule-container');
+  container.innerHTML = '';
+
+  const filterMap = {
+    all: GROUP_ORDER,
+    regular: ['regular'],
+    vip: ['vip'],
+    supervisors: ['supervisors', 'vip_supervisors'],
+    management: ['head', 'tl', 'other', 'qa']
+  };
+  const groups = filterMap[activeFilter] || GROUP_ORDER;
+
+  groups.forEach(gKey => {
+    const g = GROUPS[gKey];
+    if (!g) return;
+    container.appendChild(renderSection(gKey, g));
+  });
+}
+
+function renderSection(gKey, g) {
+  const section = document.createElement('div');
+  section.className = 'schedule-section';
+  section.dataset.group = gKey;
+
+  const badgeClass = g.color === 'green' ? 'green' : g.color === 'orange' ? 'orange' : '';
+  section.innerHTML = `
+    <div class="section-header">
+      <div class="section-title">${g.label}</div>
+      <div class="section-badge ${badgeClass}">${g.members.length} чел.</div>
+    </div>
+  `;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'table-wrap';
+
+  const table = document.createElement('table');
+
+  // Header
+  const thead = document.createElement('thead');
+  let thHTML = `<tr><th class="col-name">Сотрудник</th><th class="col-shift">Смена</th>`;
+  DAYS.forEach(({d, day, date}) => {
+    const ds = dateStr(d);
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isToday = ds === TODAY_STR;
+    const cls = isToday ? 'today' : isWeekend ? 'weekend' : '';
+    thHTML += `<th class="${cls}" title="${ds}">${d}<br><span style="font-size:9px;font-weight:300">${day}</span></th>`;
+  });
+  thHTML += '</tr>';
+  thead.innerHTML = thHTML;
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  g.members.forEach(name => {
+    const tr = document.createElement('tr');
+    tr.dataset.name = name;
+
+    // Определяем базовую смену для отображения в колонке "Смена"
+    const baseType = OPERATOR_BASE_SHIFTS[name] ? OPERATOR_BASE_SHIFTS[name](0) : 'off';
+    const baseLabel = shiftLabel(OPERATOR_BASE_SHIFTS[name] ? (() => {
+      for (let i = 0; i < 7; i++) {
+        const t = OPERATOR_BASE_SHIFTS[name](i);
+        if (t !== 'off') return t;
+      }
+      return 'work8';
+    })() : 'work8');
+
+    let tdHTML = `<td class="col-name">${name}</td>`;
+    tdHTML += `<td class="col-shift"><span style="font-size:11px;color:var(--muted)">${baseLabel}</span></td>`;
+
+    DAYS.forEach(({d, date}, di) => {
+      const ds = dateStr(d);
+      const dow = date.getDay();
+      const isToday = ds === TODAY_STR;
+      const type = getShift(name, di);
+      const label = shiftLabel(type);
+      const cls = shiftClass(type);
+      const key = `${name}:${ds}`;
+      const note = scheduleOverrides[key]?.note || '';
+      const todayCls = isToday ? ' is-today' : '';
+      const editTitle = isAdmin ? ` title="${note || 'Нажмите для редактирования'}" style="cursor:pointer"` : (note ? ` title="${note}"` : '');
+      const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
+
+      tdHTML += `<td class="${todayCls}"${editTitle}${clickAttr}>`;
+      if (type === 'off') {
+        tdHTML += `<span class="shift-pill shift-off">—</span>`;
+      } else {
+        tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
+      }
+      tdHTML += `</td>`;
+    });
+
+    tr.innerHTML = tdHTML;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  section.appendChild(wrap);
+  return section;
+}
+
+// ── Stats ──
+function updateStats() {
+  const now = new Date();
+  const h = now.getHours();
+  let online = 0;
+  const todayDi = TODAY.getMonth() === (MONTH - 1) && TODAY.getFullYear() === YEAR
+    ? TODAY.getDate() - 1 : -1;
+
+  let offCount = 0;
+  if (todayDi >= 0) {
+    const allMembers = GROUP_ORDER.flatMap(k => GROUPS[k].members);
+    allMembers.forEach(name => {
+      const type = getShift(name, todayDi);
+      if (type === 'off') offCount++;
+      // онлайн сейчас
+      if (type === 'morning' && h >= 6 && h < 15) online++;
+      if (type === 'evening' && (h >= 15 || h < 0)) online++;
+      if (type === 'night' && (h >= 0 && h < 10 || h >= 0)) online++;
+      if ((type === 'super_day') && h >= 7 && h < 19) online++;
+      if ((type === 'super_night') && (h >= 19 || h < 7)) online++;
+      if (type === 'work8' && h >= 9 && h < 18) online++;
+    });
+  }
+
+  document.getElementById('stat-online').textContent = todayDi >= 0 ? online : '—';
+  document.getElementById('stat-off').textContent = todayDi >= 0 ? offCount : '—';
+}
+
+// ── Filter ──
+function setFilter(filter, btn) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ── Admin Panel ──
+function populateOperatorSelect() {
+  const sel = document.getElementById('ap-operator');
+  sel.innerHTML = '';
+  GROUP_ORDER.forEach(gKey => {
+    const g = GROUPS[gKey];
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = g.label;
+    g.members.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      optgroup.appendChild(opt);
+    });
+    sel.appendChild(optgroup);
+  });
+}
+
+function openAdmin() {
+  const today = new Date();
+  const ds = `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  document.getElementById('ap-date-from').value = ds;
+  document.getElementById('ap-date-to').value = ds;
+  document.getElementById('ap-note').value = '';
+  document.getElementById('save-msg').className = 'save-msg';
+  selectedShiftType = null;
+  document.querySelectorAll('.shift-type-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('admin-overlay').classList.add('open');
+}
+
+function closeAdmin() {
+  document.getElementById('admin-overlay').classList.remove('open');
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('admin-overlay')) closeAdmin();
+}
+
+function quickEdit(name, dateStr, di) {
+  document.getElementById('ap-operator').value = name;
+  document.getElementById('ap-date-from').value = dateStr;
+  document.getElementById('ap-date-to').value = dateStr;
+  document.getElementById('ap-note').value = '';
+  document.getElementById('save-msg').className = 'save-msg';
+  selectedShiftType = null;
+  document.querySelectorAll('.shift-type-btn').forEach(b => b.classList.remove('selected'));
+  // Предвыбираем текущий тип
+  const currentType = getShift(name, di);
+  const btn = document.querySelector(`.shift-type-btn[data-type="${currentType}"]`);
+  if (btn) { btn.classList.add('selected'); selectedShiftType = currentType; }
+  document.getElementById('admin-overlay').classList.add('open');
+}
+
+function selectShiftType(btn) {
+  document.querySelectorAll('.shift-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedShiftType = btn.dataset.type;
+}
+
+async function saveShift() {
+  const operator = document.getElementById('ap-operator').value;
+  const dateFrom = document.getElementById('ap-date-from').value;
+  const dateTo = document.getElementById('ap-date-to').value;
+  const note = document.getElementById('ap-note').value.trim();
+  const msgEl = document.getElementById('save-msg');
+
+  if (!operator || !dateFrom || !dateTo || !selectedShiftType) {
+    msgEl.textContent = 'Выберите сотрудника, период и тип смены';
+    msgEl.className = 'save-msg err';
+    return;
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Сохранение...';
+  msgEl.className = 'save-msg';
+
+  // Заполняем overrides для каждого дня в диапазоне
+  const from = new Date(dateFrom);
+  const to = new Date(dateTo);
+  const newOverrides = { ...scheduleOverrides };
+
+  for (let dt = new Date(from); dt <= to; dt.setDate(dt.getDate() + 1)) {
+    if (dt.getMonth() !== MONTH - 1 || dt.getFullYear() !== YEAR) continue;
+    const key = `${operator}:${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    newOverrides[key] = { type: selectedShiftType, note, editedBy: currentUser?.email, editedAt: new Date().toISOString() };
+  }
+
+  try {
+    const res = await fetch(`${API}/schedule`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: newOverrides })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      scheduleOverrides = newOverrides;
+      renderAll();
+      updateStats();
+      closeAdmin();
+      showToast('Изменения сохранены', 'ok');
+    } else {
+      msgEl.textContent = data.error || 'Ошибка сохранения';
+      msgEl.className = 'save-msg err';
+    }
+  } catch {
+    msgEl.textContent = 'Ошибка сети';
+    msgEl.className = 'save-msg err';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Сохранить';
+  }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+
+</body>
+</html>

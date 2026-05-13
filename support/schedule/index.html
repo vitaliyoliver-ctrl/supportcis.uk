@@ -22,8 +22,6 @@
       --support-glow: rgba(52,211,153,0.15);
       --ops: #f59e42;
       --ops-glow: rgba(245,158,66,0.15);
-
-      /* Смены */
       --shift-morning: #5b9cf6;
       --shift-morning-bg: rgba(91,156,246,0.18);
       --shift-evening: #a78bfa;
@@ -37,7 +35,64 @@
       --shift-off: transparent;
       --shift-vacation: rgba(248,113,113,0.15);
       --shift-sick: rgba(251,191,36,0.15);
+      --thead-bg: #181b2a;
+      --thead-count-bg: #13162a;
+      --row-odd: #252838;
+      --row-even: #222535;
+      --row-hover: #2a3050;
+      --nav-bg: rgba(30,33,48,0.92);
+      --section-header-bg: var(--surface);
+      --section-header-hover: #2a2d40;
     }
+
+    html.light {
+      --bg: #f0f2f8;
+      --surface: #ffffff;
+      --surface2: #f5f7fc;
+      --border: rgba(0,0,0,0.08);
+      --text: #1a1d2e;
+      --muted: #8892a4;
+      --sub: #5a6478;
+      --tl: #3b7ef8;
+      --tl-glow: rgba(59,126,248,0.12);
+      --support: #059669;
+      --support-glow: rgba(5,150,105,0.12);
+      --ops: #d97706;
+      --ops-glow: rgba(217,119,6,0.12);
+      --shift-morning: #3b7ef8;
+      --shift-morning-bg: rgba(59,126,248,0.12);
+      --shift-evening: #7c3aed;
+      --shift-evening-bg: rgba(124,58,237,0.12);
+      --shift-night: #059669;
+      --shift-night-bg: rgba(5,150,105,0.12);
+      --shift-super: #d97706;
+      --shift-super-bg: rgba(217,119,6,0.14);
+      --shift-super-night-color: #dc2626;
+      --shift-super-night-bg: rgba(220,38,38,0.10);
+      --shift-vacation: rgba(220,38,38,0.10);
+      --shift-sick: rgba(217,119,6,0.12);
+      --thead-bg: #e8ebf5;
+      --thead-count-bg: #eef0f8;
+      --row-odd: #ffffff;
+      --row-even: #f8f9fd;
+      --row-hover: #eef2ff;
+      --nav-bg: rgba(255,255,255,0.95);
+      --section-header-bg: #ffffff;
+      --section-header-hover: #f0f4ff;
+    }
+
+    /* Переключатель темы */
+    .theme-toggle {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 10px 4px 6px;
+      cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .theme-toggle:hover { background: rgba(255,255,255,0.1); }
+    html.light .theme-toggle { background: rgba(0,0,0,0.04); }
+    html.light .theme-toggle:hover { background: rgba(0,0,0,0.08); }
+    .theme-toggle-icon { font-size: 14px; line-height: 1; }
+    .theme-toggle-label { font-size: 11px; color: var(--muted); font-family: 'Mulish', sans-serif; }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: clip; }
 
@@ -53,7 +108,7 @@
     .nav {
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 32px; border-bottom: 1px solid var(--border);
-      background: rgba(30,33,48,0.92); backdrop-filter: blur(12px);
+      background: var(--nav-bg); backdrop-filter: blur(12px);
       position: sticky; top: 0; z-index: 100;
     }
     .nav-left { display: flex; align-items: center; gap: 16px; }
@@ -118,11 +173,11 @@
     .section-header {
       display: flex; align-items: center; gap: 10px; cursor: pointer;
       margin-bottom: 10px; padding: 10px 14px;
-      background: var(--surface); border: 1px solid var(--border);
+      background: var(--section-header-bg); border: 1px solid var(--border);
       border-radius: 10px; user-select: none;
       transition: background .2s;
     }
-    .section-header:hover { background: #2a2d40; }
+    .section-header:hover { background: var(--section-header-hover); }
     .section-toggle { font-size: 12px; color: var(--muted); transition: transform .2s; margin-left: auto; }
     .section-header.collapsed .section-toggle { transform: rotate(-90deg); }
     .section-title { font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 700; color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase; }
@@ -133,19 +188,19 @@
     .section-badge.green { background: var(--support-glow); color: var(--support); }
     .section-badge.orange { background: var(--ops-glow); color: var(--ops); }
     .thead-counts th {
-      background: #181b2a !important;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: var(--thead-count-bg) !important;
+      border-bottom: 1px solid var(--border);
       padding: 3px 1px;
       vertical-align: middle;
     }
     .section-body { overflow: hidden; }
     .section-body.collapsed { display: none; }
 
-    .table-wrap { border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; margin-top: 8px; }
+    .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
     thead th {
-      background: #181b2a;
+      background: var(--thead-bg);
       padding: 8px 3px;
       font-size: 9px;
       font-family: 'Unbounded', sans-serif;
@@ -154,31 +209,36 @@
       color: var(--muted);
       font-weight: 400;
       text-align: center;
-      border-right: 1px solid rgba(255,255,255,0.08);
-      border-bottom: 2px solid rgba(255,255,255,0.14);
+      border-right: 1px solid var(--border);
+      border-bottom: 2px solid var(--border);
     }
     thead th:last-child { border-right: none; }
     thead th.col-name {
       text-align: left; padding-left: 12px; width: 130px;
-      position: sticky; left: 0; background: #181b2a; z-index: 2;
-      border-right: 1px solid rgba(255,255,255,0.08) !important;
+      position: sticky; left: 0; background: var(--thead-bg); z-index: 2;
+      border-right: 1px solid var(--border) !important;
     }
     thead th.col-info {
       text-align: left; padding-left: 8px; width: 190px;
-      position: sticky; left: 130px; background: #181b2a; z-index: 2;
-      border-right: 2px solid rgba(255,255,255,0.15) !important;
+      position: sticky; left: 130px; background: var(--thead-bg); z-index: 2;
+      border-right: 2px solid rgba(128,128,128,0.2) !important;
     }
-    thead th.weekend { color: #f87171; background: rgba(248,113,113,0.07); }
-    thead th.today { color: var(--tl); background: rgba(91,156,246,0.12); }
+    thead th.weekend { color: var(--muted); }
+    thead th.today { color: var(--tl); background: var(--tl-glow); }
+    html.light thead th.weekend { color: var(--muted); background: none; }
+    html.light thead th { border-right: 1px solid rgba(0,0,0,0.15) !important; border-bottom: 2px solid rgba(0,0,0,0.2) !important; }
+    html.light td { border-right: 2px solid rgba(0,0,0,0.12) !important; }
+    html.light tbody tr { border-bottom: 2px solid rgba(0,0,0,0.1) !important; }
+    html.light .table-wrap { border: 1px solid rgba(0,0,0,0.15) !important; }
 
     tbody tr {
-      border-bottom: 2px solid rgba(255,255,255,0.08);
+      border-bottom: 2px solid var(--border);
       transition: background .15s;
     }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:nth-child(odd)  { background: #252838; }
-    tbody tr:nth-child(even) { background: #222535; }
-    tbody tr:hover { background: #2a3050 !important; }
+    tbody tr:nth-child(odd)  { background: var(--row-odd); }
+    tbody tr:nth-child(even) { background: var(--row-even); }
+    tbody tr:hover { background: var(--row-hover) !important; }
 
     td {
       padding: 5px 2px;
@@ -186,7 +246,7 @@
       font-size: 11px;
       color: var(--sub);
       vertical-align: middle;
-      border-right: 2px solid rgba(255,255,255,0.08);
+      border-right: 2px solid var(--border);
     }
     td:last-child { border-right: none; }
 
@@ -194,21 +254,21 @@
       text-align: left; padding-left: 12px; font-weight: 600; color: var(--text);
       font-size: 12px; position: sticky; left: 0; z-index: 1;
       white-space: nowrap; overflow: hidden;
-      border-right: 1px solid rgba(255,255,255,0.08) !important;
+      border-right: 1px solid var(--border) !important;
     }
     td.col-info {
       text-align: left; padding: 4px 8px; position: sticky; left: 130px; z-index: 1;
       white-space: nowrap; overflow: hidden;
-      border-right: 2px solid rgba(255,255,255,0.18) !important;
-      box-shadow: 3px 0 10px rgba(0,0,0,0.35);
+      border-right: 2px solid rgba(128,128,128,0.2) !important;
+      box-shadow: 3px 0 10px rgba(0,0,0,0.15);
     }
     tbody tr:nth-child(odd)  td.col-name,
-    tbody tr:nth-child(odd)  td.col-info { background: #252838; }
+    tbody tr:nth-child(odd)  td.col-info { background: var(--row-odd); }
     tbody tr:nth-child(even) td.col-name,
-    tbody tr:nth-child(even) td.col-info { background: #222535; }
+    tbody tr:nth-child(even) td.col-info { background: var(--row-even); }
     tbody tr:hover td.col-name,
-    tbody tr:hover td.col-info { background: #2a3050 !important; }
-    td.is-today { background: rgba(91,156,246,0.15) !important; border-right: 2px solid rgba(91,156,246,0.4) !important; }
+    tbody tr:hover td.col-info { background: var(--row-hover) !important; }
+    td.is-today { background: var(--tl-glow) !important; border-right: 2px solid rgba(91,156,246,0.3) !important; }
 
     .shift-pill {
       display: inline-flex; align-items: center; justify-content: center;
@@ -232,6 +292,36 @@
       border-top: 1px solid rgba(255,255,255,0.1);
       border-bottom: 1px solid rgba(255,255,255,0.1);
     }
+    html.light .table-wrap { border-color: rgba(0,0,0,0.12); }
+    html.light tbody tr { border-bottom-color: rgba(0,0,0,0.08); }
+    html.light td { border-right-color: rgba(0,0,0,0.08); color: #374151; }
+    html.light td.col-name { border-right-color: rgba(0,0,0,0.12) !important; color: #111827; }
+    html.light td.col-info { border-right-color: rgba(0,0,0,0.15) !important; }
+    html.light thead th { border-right-color: rgba(0,0,0,0.08); border-bottom-color: rgba(0,0,0,0.12); color: #6b7280; }
+    html.light thead th.col-name { border-right-color: rgba(0,0,0,0.12) !important; }
+    html.light thead th.col-info { border-right-color: rgba(0,0,0,0.15) !important; }
+    html.light .section-divider-row td { background: #e8ebf5; border-top-color: rgba(0,0,0,0.08); border-bottom-color: rgba(0,0,0,0.08); }
+    html.light .stat-val { color: #111827; }
+    html.light .stat-label { color: #6b7280; }
+    html.light .stat-sub { color: #9ca3af; }
+    html.light .stat-card { background: #fff; border-color: rgba(0,0,0,0.08); }
+    html.light .name-pos { color: #6b7280; }
+    html.light .name-email { color: #6b7280; }
+    html.light .name-since { color: #9ca3af; }
+    html.light .shift-off { color: rgba(0,0,0,0.25); }
+    html.light .legend { background: #fff; border-color: rgba(0,0,0,0.08); }
+    html.light .filter-btn { border-color: rgba(0,0,0,0.12); color: #6b7280; }
+    html.light .filter-btn:hover { color: #111827; border-color: rgba(0,0,0,0.25); background: rgba(0,0,0,0.04); }
+    html.light .filter-btn.active { background: var(--tl-glow); border-color: var(--tl); color: var(--tl); }
+    html.light .month-badge { color: #6b7280; }
+    html.light .section-title { color: #374151; }
+    html.light .section-toggle { color: #9ca3af; }
+    html.light .day-info-panel { background: #fff; border-color: rgba(0,0,0,0.1); }
+    html.light .day-info-header { background: #f8f9fc; border-bottom-color: rgba(0,0,0,0.08); }
+    html.light .day-info-title { color: #111827; }
+    html.light .day-info-block-title { color: #6b7280; }
+    html.light .day-info-count { color: #111827; }
+    html.light .day-info-name { color: #374151; }
     .col-info-hidden .col-info { display: none; }
     .name-pos { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; white-space: nowrap; }
     .name-email { font-size: 10px; color: var(--muted); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
@@ -400,6 +490,10 @@
     </div>
     <div class="nav-right">
       <div class="month-badge" id="month-badge">Июнь 2026</div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle-btn">
+        <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+        <span class="theme-toggle-label" id="theme-label">Светлая</span>
+      </button>
       <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
     </div>
@@ -876,10 +970,23 @@ let currentUser = null;
 let isAdmin = false;
 let activeFilter = 'all';
 let selectedShiftType = null;
+let isDark = true;
 const collapsedSections = new Set();
 
 // ── Init ──
 (async () => {
+  // Загружаем тему
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    isDark = false;
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-icon').textContent = '☀️';
+    document.getElementById('theme-label').textContent = 'Светлая';
+  } else {
+    document.getElementById('theme-icon').textContent = '🌙';
+    document.getElementById('theme-label').textContent = 'Тёмная';
+  }
+
   try {
     const res = await fetch(`${API}/check`, { credentials: 'include' });
     const data = await res.json();
@@ -1020,13 +1127,13 @@ function renderSection(s) {
     ];
     shiftRows.forEach(({ type, label, color, min }) => {
       thCountHTML += `<tr class="thead-counts">`;
-      thCountHTML += `<th class="col-name" style="background:#13162a;text-align:left;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+      thCountHTML += `<th class="col-name" style="background:var(--thead-count-bg);text-align:left;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.05)">
         <span style="display:flex;align-items:center;gap:5px">
           <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
           <span style="font-size:9px;color:${color};font-weight:600">${label}</span>
         </span>
       </th>`;
-      thCountHTML += `<th class="col-info" style="background:#13162a;border-bottom:1px solid rgba(255,255,255,0.05)"></th>`;
+      thCountHTML += `<th class="col-info" style="background:var(--thead-count-bg);border-bottom:1px solid rgba(255,255,255,0.05)"></th>`;
       DAYS.forEach(({d, date}, di) => {
         const dow = date.getDay();
         const isWeekend = dow === 0 || dow === 6;
@@ -1036,7 +1143,7 @@ function renderSection(s) {
         const isLow = count < min;
         const bg = isLow ? 'background:rgba(248,113,113,0.2);' : '';
         const fg = isLow ? '#f87171' : color;
-        thCountHTML += `<th class="${baseCls}" style="background:#13162a;${bg}padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+        thCountHTML += `<th class="${baseCls}" style="background:var(--thead-count-bg);${bg}padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <span style="font-size:10px;font-weight:700;color:${fg}">${count}</span>
         </th>`;
       });
@@ -1165,6 +1272,20 @@ function updateStats() {
 }
 
 let infoColumnVisible = true;
+
+function toggleTheme() {
+  isDark = !isDark;
+  if (isDark) {
+    document.documentElement.classList.remove('light');
+    document.getElementById('theme-icon').textContent = '🌙';
+    document.getElementById('theme-label').textContent = 'Тёмная';
+  } else {
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-icon').textContent = '☀️';
+    document.getElementById('theme-label').textContent = 'Светлая';
+  }
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
 function toggleInfoColumn() {
   infoColumnVisible = !infoColumnVisible;
   const container = document.getElementById('schedule-container');

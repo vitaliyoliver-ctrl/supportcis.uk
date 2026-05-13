@@ -384,13 +384,13 @@
       padding: 20px 24px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
     }
-    .admin-panel-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: #fff; }
+    .admin-panel-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
     .close-btn {
       width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
       background: transparent; color: var(--muted); cursor: pointer; font-size: 16px;
       display: flex; align-items: center; justify-content: center; transition: all .2s;
     }
-    .close-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .close-btn:hover { color: var(--text); border-color: var(--muted); }
 
     .admin-panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
 
@@ -400,27 +400,56 @@
       text-transform: uppercase; color: var(--muted);
     }
     .admin-select, .admin-input {
-      background: #0d0f14; border: 1px solid var(--border); border-radius: 10px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
       color: var(--text); font-family: 'Mulish', sans-serif; font-size: 14px;
       padding: 10px 14px; outline: none; width: 100%;
       transition: border-color .2s, box-shadow .2s;
     }
     .admin-select:focus, .admin-input:focus {
-      border-color: rgba(79,142,247,0.5); box-shadow: 0 0 0 3px var(--tl-glow);
+      border-color: var(--tl); box-shadow: 0 0 0 3px var(--tl-glow);
     }
-    .admin-select option { background: #111318; }
+    .admin-select option { background: var(--surface); color: var(--text); }
+    html.light .admin-select option { background: #fff; color: #111827; }
 
     .admin-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    .shift-type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .shift-type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
     .shift-type-btn {
-      padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border);
-      background: transparent; color: var(--muted); font-size: 11px; font-family: 'Mulish', sans-serif;
+      padding: 8px 6px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 10px; font-family: 'Mulish', sans-serif;
       cursor: pointer; text-align: center; transition: all .2s; line-height: 1.4;
     }
-    .shift-type-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .shift-type-btn:hover { border-color: var(--muted); color: var(--text); }
     .shift-type-btn.selected { border-color: var(--tl); background: var(--tl-glow); color: var(--tl); }
-    .shift-type-btn .stime { font-weight: 700; font-size: 12px; display: block; margin-bottom: 2px; }
+    .shift-type-btn .stime { font-weight: 700; font-size: 11px; display: block; margin-bottom: 2px; }
+
+    /* Доп события - отдельная секция */
+    .extra-events-list { display: flex; flex-direction: column; gap: 8px; }
+    .extra-event-row {
+      display: grid; grid-template-columns: 1fr 80px 24px; gap: 6px; align-items: center;
+    }
+    .extra-event-select {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 12px;
+      padding: 7px 10px; outline: none; width: 100%;
+    }
+    .extra-event-hours {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 12px;
+      padding: 7px 8px; outline: none; width: 100%; text-align: center;
+    }
+    .extra-event-remove {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0;
+    }
+    .extra-event-remove:hover { color: #f87171; border-color: #f87171; }
+    .add-extra-btn {
+      padding: 7px 12px; border-radius: 8px; border: 1px dashed var(--border);
+      background: transparent; color: var(--muted); font-size: 11px; font-family: 'Mulish', sans-serif;
+      cursor: pointer; transition: all .2s; text-align: left; width: 100%;
+    }
+    .add-extra-btn:hover { border-color: var(--tl); color: var(--tl); }
 
     .admin-divider { height: 1px; background: var(--border); }
 
@@ -605,6 +634,14 @@
           <input type="number" class="admin-input" id="ap-custom-hours" min="1" max="24" placeholder="по умолчанию" style="max-width:120px" />
           <span style="font-size:12px;color:var(--muted)" id="ap-default-hours-hint"></span>
         </div>
+      </div>
+
+      <div class="admin-divider"></div>
+
+      <div class="admin-field">
+        <div class="admin-label">Доп события / часы</div>
+        <div class="extra-events-list" id="extra-events-list"></div>
+        <button class="add-extra-btn" onclick="addExtraEvent()">+ Добавить событие</button>
       </div>
 
       <div class="admin-divider"></div>
@@ -1438,8 +1475,8 @@ const SHIFT_TYPES = {
     { type: 'morning',     label: 'Утренняя',  time: '06–15' },
     { type: 'evening',     label: 'Вечерняя',  time: '15–00' },
     { type: 'night',       label: 'Ночная',    time: '00–10' },
-    { type: 'super_day',   label: 'Sup День',  time: '09–21' },
-    { type: 'super_night', label: 'Sup Ночь',  time: '21–09' },
+    { type: 'super_day',   label: 'VIP Sup День', time: '09–21' },
+    { type: 'super_night', label: 'VIP Sup Ночь', time: '21–09' },
     { type: 'vacation',    label: 'Отпуск',    time: '✈' },
     { type: 'sick',        label: 'Больничный',time: '🤒' },
     { type: 'off',         label: 'Выходной',  time: '—' },
@@ -1457,6 +1494,47 @@ const SHIFT_TYPES = {
     { type: 'off',      label: 'Выходной',  time: '—' },
   ],
 };
+
+// Типы доп событий
+const EXTRA_EVENT_TYPES = [
+  { value: 'extra_vacation_cover',  label: 'Доп: замена отпуска' },
+  { value: 'extra_sick_cover',      label: 'Доп: замена больничного' },
+  { value: 'extra_critical',        label: 'Доп: крит ситуация' },
+  { value: 'extra_dismissal',       label: 'Доп: увольнение' },
+  { value: 'extra_org',             label: 'Доп: орг моменты' },
+  { value: 'extra_swap_give',       label: 'Доп: обмен (отдал)' },
+  { value: 'extra_swap_take',       label: 'Доп: обмен (получил)' },
+];
+
+let extraEvents = []; // [{type, hours}]
+
+function renderExtraEvents() {
+  const list = document.getElementById('extra-events-list');
+  list.innerHTML = '';
+  extraEvents.forEach((ev, i) => {
+    const row = document.createElement('div');
+    row.className = 'extra-event-row';
+    row.innerHTML = `
+      <select class="extra-event-select" onchange="extraEvents[${i}].type=this.value">
+        ${EXTRA_EVENT_TYPES.map(t => `<option value="${t.value}" ${ev.type===t.value?'selected':''}>${t.label}</option>`).join('')}
+      </select>
+      <input type="number" class="extra-event-hours" placeholder="часы" min="0.5" max="24" step="0.5"
+        value="${ev.hours||''}" onchange="extraEvents[${i}].hours=parseFloat(this.value)||0" />
+      <button class="extra-event-remove" onclick="removeExtraEvent(${i})">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addExtraEvent() {
+  extraEvents.push({ type: EXTRA_EVENT_TYPES[0].value, hours: 0 });
+  renderExtraEvents();
+}
+
+function removeExtraEvent(i) {
+  extraEvents.splice(i, 1);
+  renderExtraEvents();
+}
 
 function onOperatorChange() {
   const name = document.getElementById('ap-operator').value;
@@ -1491,6 +1569,8 @@ function openAdmin() {
   document.getElementById('ap-custom-hours').value = '';
   document.getElementById('save-msg').className = 'save-msg';
   selectedShiftType = null;
+  extraEvents = [];
+  renderExtraEvents();
   const name = document.getElementById('ap-operator').value;
   renderShiftTypeGrid(getSectionForMember(name));
   document.getElementById('custom-hours-field').style.display = 'none';
@@ -1499,6 +1579,7 @@ function openAdmin() {
 
 function closeAdmin() {
   document.getElementById('admin-overlay').classList.remove('open');
+  extraEvents = [];
 }
 
 function overlayClick(e) {
@@ -1516,19 +1597,23 @@ function quickEdit(name, ds, di) {
   const sectionKey = getSectionForMember(name);
   renderShiftTypeGrid(sectionKey);
 
-  // Предвыбираем текущий тип
   const currentType = getShift(name, di);
   const btn = document.querySelector(`.shift-type-btn[data-type="${currentType}"]`);
   if (btn) { btn.classList.add('selected'); selectedShiftType = currentType; }
 
-  // Показываем текущие кастомные часы
   const key = `${name}:${ds}`;
   const override = scheduleOverrides[key];
   const customH = override?.customHours || '';
   document.getElementById('ap-custom-hours').value = customH;
   updateHoursHint(currentType);
-  document.getElementById('custom-hours-field').style.display = selectedShiftType && selectedShiftType !== 'off' && selectedShiftType !== 'vacation' && selectedShiftType !== 'sick' ? 'flex' : 'none';
+  document.getElementById('custom-hours-field').style.display =
+    selectedShiftType && !['off','vacation','sick'].includes(selectedShiftType) ? 'flex' : 'none';
 
+  // Загружаем доп события
+  extraEvents = override?.extraEvents ? [...override.extraEvents] : [];
+  renderExtraEvents();
+
+  document.getElementById('ap-note').value = override?.note || '';
   document.getElementById('admin-overlay').classList.add('open');
 }
 
@@ -1578,6 +1663,7 @@ async function saveShift() {
       type: selectedShiftType,
       note,
       ...(customHours ? { customHours } : {}),
+      ...(extraEvents.length ? { extraEvents: extraEvents.filter(e => e.hours > 0) } : {}),
       editedBy: currentUser?.email,
       editedAt: new Date().toISOString()
     };

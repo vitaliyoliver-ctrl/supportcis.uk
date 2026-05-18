@@ -497,6 +497,7 @@
       .main { padding: 16px 12px 40px; }
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -524,6 +525,7 @@
         <span class="theme-toggle-label" id="theme-label">Светлая</span>
       </button>
       <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
+      <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
     </div>
   </nav>
@@ -1694,6 +1696,164 @@ async function saveShift() {
     btn.disabled = false;
     btn.textContent = 'Сохранить';
   }
+}
+
+// ── Excel Export ──
+function exportToExcel() {
+  const wb = XLSX.utils.book_new();
+
+  const EXTRA_LABELS = {
+    extra_vacation_cover: 'Замена отпуска',
+    extra_sick_cover:     'Замена больничного',
+    extra_critical:       'Крит ситуация',
+    extra_dismissal:      'Увольнение',
+    extra_org:            'Орг моменты',
+    extra_swap_give:      'Обмен (отдал)',
+    extra_swap_take:      'Обмен (получил)',
+  };
+
+  const SHIFT_LABELS = {
+    morning: 'Утро', evening: 'Вечер', night: 'Ночь',
+    super_day: 'Sup День', super_night: 'Sup Ночь',
+    work8: '8h', vacation: 'Отпуск', sick: 'Больничный', off: '—'
+  };
+
+  const DEFAULT_H = { morning:9, evening:9, night:10, super_day:12, super_night:12, work8:8 };
+
+  // Все сотрудники по секциям
+  const allMembers = SECTIONS.flatMap(s => s.members.map(name => ({
+    name, section: s.label, position: EMPLOYEES[name]?.position || ''
+  })));
+
+  // ── Лист 1: График ──
+  const scheduleHeader = ['Сотрудник', 'Отдел', 'Позиция', ...DAYS.map(d => `${d.d}/${MONTH}`)];
+  const scheduleRows = [scheduleHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    const row = [name, section, position];
+    DAYS.forEach((d, di) => {
+      const type = getShift(name, di);
+      row.push(SHIFT_LABELS[type] || type);
+    });
+    scheduleRows.push(row);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(scheduleRows);
+  ws1['!cols'] = [{ wch: 16 }, { wch: 20 }, { wch: 16 }, ...DAYS.map(() => ({ wch: 7 }))];
+  XLSX.utils.book_append_sheet(wb, ws1, 'График');
+
+  // ── Лист 2: Статистика часов ──
+  const statsHeader = [
+    'Сотрудник', 'Отдел', 'Позиция',
+    'Всего часов', 'Смен', 'Утро', 'Вечер', 'Ночь', 'Sup День', 'Sup Ночь', '8h',
+    'Отпусков', 'Больничных', 'Выходных'
+  ];
+  const statsRows = [statsHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    const counts = {};
+    let totalHours = 0;
+    let totalShifts = 0;
+
+    DAYS.forEach((d, di) => {
+      const type = getShift(name, di);
+      counts[type] = (counts[type] || 0) + 1;
+
+      // Кастомные часы или дефолт
+      const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      const override = scheduleOverrides[key];
+      const h = override?.customHours || DEFAULT_H[type] || 0;
+      totalHours += h;
+      if (!['off','vacation','sick'].includes(type)) totalShifts++;
+    });
+
+    statsRows.push([
+      name, section, position,
+      totalHours, totalShifts,
+      counts.morning || 0, counts.evening || 0, counts.night || 0,
+      counts.super_day || 0, counts.super_night || 0, counts.work8 || 0,
+      counts.vacation || 0, counts.sick || 0, counts.off || 0
+    ]);
+  });
+
+  const ws2 = XLSX.utils.aoa_to_sheet(statsRows);
+  ws2['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },{ wch:12 },{ wch:8 },
+    { wch:7 },{ wch:7 },{ wch:7 },{ wch:10 },{ wch:10 },{ wch:7 },
+    { wch:10 },{ wch:12 },{ wch:10 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Статистика');
+
+  // ── Лист 3: Доп события ──
+  const extraHeader = ['Сотрудник', 'Отдел', 'Позиция', 'Дата', 'Тип события', 'Часы', 'Заметка'];
+  const extraRows = [extraHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    DAYS.forEach((d) => {
+      const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      const override = scheduleOverrides[key];
+      if (override?.extraEvents?.length) {
+        override.extraEvents.forEach(ev => {
+          if (ev.hours > 0) {
+            extraRows.push([
+              name, section, position,
+              `${d.d}.${MONTH}.${YEAR}`,
+              EXTRA_LABELS[ev.type] || ev.type,
+              ev.hours,
+              override.note || ''
+            ]);
+          }
+        });
+      }
+    });
+  });
+
+  const ws3 = XLSX.utils.aoa_to_sheet(extraRows);
+  ws3['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },{ wch:12 },{ wch:22 },{ wch:7 },{ wch:30 }];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Доп события');
+
+  // ── Лист 4: Сводка доп часов ──
+  const summaryHeader = ['Сотрудник', 'Отдел', 'Позиция',
+    'Замена отпуска', 'Замена больничного', 'Крит ситуация',
+    'Увольнение', 'Орг моменты', 'Обмен (отдал)', 'Обмен (получил)', 'Итого доп часов'
+  ];
+  const summaryRows = [summaryHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    const extraTotals = {};
+    DAYS.forEach((d) => {
+      const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      const override = scheduleOverrides[key];
+      if (override?.extraEvents) {
+        override.extraEvents.forEach(ev => {
+          if (ev.hours > 0) {
+            extraTotals[ev.type] = (extraTotals[ev.type] || 0) + ev.hours;
+          }
+        });
+      }
+    });
+
+    const total = Object.values(extraTotals).reduce((a,b) => a+b, 0);
+    if (total > 0) {
+      summaryRows.push([
+        name, section, position,
+        extraTotals.extra_vacation_cover || 0,
+        extraTotals.extra_sick_cover || 0,
+        extraTotals.extra_critical || 0,
+        extraTotals.extra_dismissal || 0,
+        extraTotals.extra_org || 0,
+        extraTotals.extra_swap_give || 0,
+        extraTotals.extra_swap_take || 0,
+        total
+      ]);
+    }
+  });
+
+  const ws4 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws4['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },
+    { wch:16 },{ wch:18 },{ wch:14 },
+    { wch:12 },{ wch:14 },{ wch:16 },{ wch:18 },{ wch:14 }];
+  XLSX.utils.book_append_sheet(wb, ws4, 'Сводка доп часов');
+
+  XLSX.writeFile(wb, `График_Июнь_${YEAR}.xlsx`);
 }
 
 function showToast(msg, type) {

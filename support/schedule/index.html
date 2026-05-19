@@ -232,9 +232,9 @@
     thead th.weekend { color: var(--muted); }
     thead th.today { color: var(--tl); background: var(--tl-glow); }
     html.light thead th.weekend { color: var(--muted); background: none; }
-    html.light thead th { border-right: 1px solid rgba(0,0,0,0.15) !important; border-bottom: 2px solid rgba(0,0,0,0.2) !important; }
-    html.light td { border-right: 2px solid rgba(0,0,0,0.12) !important; }
-    html.light tbody tr { border-bottom: 2px solid rgba(0,0,0,0.1) !important; }
+    html.light thead th { border-right: 1px solid rgba(0,0,0,0.25) !important; border-bottom: 2px solid rgba(0,0,0,0.3) !important; }
+    html.light td { border-right: 2px solid rgba(0,0,0,0.2) !important; }
+    html.light tbody tr { border-bottom: 2px solid rgba(0,0,0,0.2) !important; }
     html.light .table-wrap { border: 1px solid rgba(0,0,0,0.15) !important; }
 
     tbody tr {
@@ -298,19 +298,19 @@
       position: relative;
       height: 36px;
     }
-    .shift-morning     { background: rgba(96,165,250,0.35);    color: #fff; }
+    .shift-morning     { background: rgba(96,165,250,0.55);    color: #111; }
     .shift-evening     { background: rgba(67,56,202,0.60);     color: #fff; }
     .shift-night       { background: rgba(52,211,153,0.35);    color: #fff; }
     .shift-vip-morning { background: rgba(109,40,217,0.55);    color: #fff; }
-    .shift-vip-evening { background: rgba(56,189,248,0.35);    color: #fff; }
-    .shift-vip-1200    { background: rgba(251,146,60,0.40);    color: #fff; }
-    .shift-super-day   { background: rgba(245,158,66,0.45);    color: #fff; }
+    .shift-vip-evening { background: rgba(56,189,248,0.55);    color: #111; }
+    .shift-vip-1200    { background: rgba(251,146,60,0.55);    color: #111; }
+    .shift-super-day   { background: rgba(245,158,66,0.55);    color: #111; }
     .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff; }
     .shift-off         { background: transparent; color: rgba(150,150,150,0.35); font-size: 16px; font-weight: 400; text-shadow: none; }
     .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
     .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
-    .shift-work8       { background: rgba(139,92,246,0.40);    color: #fff; }
-    .shift-1200        { background: rgba(251,146,60,0.40);    color: #fff; }
+    .shift-work8       { background: rgba(139,92,246,0.50);    color: #111; }
+    .shift-1200        { background: rgba(251,146,60,0.55);    color: #111; }
 
     td.col-name .name-nick { font-size: 14px; font-weight: 800; color: var(--text); }
 
@@ -337,7 +337,19 @@
     html.light .name-pos { color: #6b7280; }
     html.light .name-email { color: #6b7280; }
     html.light .name-since { color: #9ca3af; }
-    html.light .shift-off { color: rgba(0,0,0,0.25); }
+    html.light .shift-morning     { background: rgba(59,130,246,0.25);    color: #111 !important; }
+    html.light .shift-evening     { background: rgba(55,48,163,0.60);     color: #fff !important; }
+    html.light .shift-night       { background: rgba(16,185,129,0.25);    color: #111 !important; }
+    html.light .shift-vip-morning { background: rgba(109,40,217,0.60);    color: #fff !important; }
+    html.light .shift-vip-evening { background: rgba(14,165,233,0.25);    color: #111 !important; }
+    html.light .shift-vip-1200    { background: rgba(234,88,12,0.28);     color: #111 !important; }
+    html.light .shift-super-day   { background: rgba(217,119,6,0.30);     color: #111 !important; }
+    html.light .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff !important; }
+    html.light .shift-off         { background: transparent; color: rgba(0,0,0,0.2); }
+    html.light .shift-vacation    { background: rgba(220,38,38,0.22);     color: #111 !important; }
+    html.light .shift-sick        { background: rgba(180,130,6,0.25);     color: #111 !important; }
+    html.light .shift-work8       { background: rgba(109,40,217,0.22);    color: #111 !important; }
+    html.light .shift-1200        { background: rgba(234,88,12,0.28);     color: #111 !important; }
     html.light .legend { background: #fff; border-color: rgba(0,0,0,0.08); }
     html.light .filter-btn { border-color: rgba(0,0,0,0.12); color: #6b7280; }
     html.light .filter-btn:hover { color: #111827; border-color: rgba(0,0,0,0.25); background: rgba(0,0,0,0.04); }

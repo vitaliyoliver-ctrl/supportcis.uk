@@ -824,12 +824,11 @@ const SECTIONS = [
     label: 'Regular Support',
     color: 'blue',
     members: [
-      'Curtis','Manuel','Irma','Solomon','Richard','Toby',
+      'Curtis','Manuel','Richard','Irma','Solomon','Toby',
       'Will','Bridget','Fletcher','Kenzo','Nora','Robert',
-      'Florence','Charles','Earl','Rudy','Balfour',
-      'Jonathan','Bill','Gross','Meadow',
-      'Robin','Bob','Lex','Calvin','Mike',
-      'Hardy','Murphy','Joseph','Bowen'
+      'Charles','Earl','Rudy','Bowen','Balfour','Jonathan',
+      'Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike',
+      'Florence','Hardy','Murphy','Joseph'
     ]
   },
   {
@@ -840,8 +839,7 @@ const SECTIONS = [
       'Adam','Amelia','Lucas',
       'Scott','Tom','Simon','Skylar','Felicia','Nolan',
       'Casper','Elijah','Holly','River','Chadwick','Fabio','Plover','Morgan','Reggie',
-      'Wade','Ashton','Trinity','Christine','Isaac',
-      'Warren','Alexia','Kiana','Denzel'
+      'Wade','Ashton','Trinity','Christine','Isaac','Warren','Alexia','Kiana','Denzel'
     ]
   },
   {
@@ -862,7 +860,7 @@ const SECTIONS = [
 const GROUPS = {
   management: { label: 'Management', members: ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita'] },
   supervisors: { label: 'Supervisors', members: ['Curtis','Manuel','Irma','Solomon','Richard','Toby'] },
-  regular: { label: 'Regular Support', members: ['Will','Bridget','Fletcher','Kenzo','Nora','Robert','Florence','Charles','Earl','Rudy','Balfour','Jonathan','Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike','Hardy','Murphy','Joseph','Bowen'] },
+  regular: { label: 'Regular Support', members: ['Will','Bridget','Fletcher','Kenzo','Nora','Robert','Charles','Earl','Rudy','Bowen','Balfour','Jonathan','Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike','Florence','Hardy','Murphy','Joseph'] },
   vip_supervisors: { label: 'VIP Supervisors', members: ['Adam','Amelia','Lucas'] },
   vip: { label: 'VIP Support', members: ['Scott','Tom','Simon','Skylar','Felicia','Nolan','Casper','Elijah','Holly','River','Chadwick','Fabio','Plover','Morgan','Reggie','Wade','Ashton','Trinity','Christine','Isaac','Warren','Alexia','Kiana','Denzel'] },
   qa: { label: 'QA', members: ['Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'] }
@@ -1144,9 +1142,9 @@ function shiftLabel(type, name, ds) {
   // Адам работает как менеджмент — 8 часов
   if (name === 'Adam') return '8';
   const defaults = {
-    morning:9, evening:9, night:9,
-    vip_morning:9, vip_evening:9, vip_1200:12,
-    super_day:12, super_night:12, shift1200:12, work8:8
+    morning:11, evening:11, night:11,
+    vip_morning:11, vip_evening:11, vip_1200:11,
+    super_day:11, super_night:11, shift1200:11, work8:8
   };
   return String(defaults[type] || '');
 }

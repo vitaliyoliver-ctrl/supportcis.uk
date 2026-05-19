@@ -29,10 +29,10 @@
       --shift-night: #34d399;
       --shift-night-bg: rgba(52,211,153,0.16);
       /* VIP смены — тёплые оттенки */
-      --shift-vip-morning: #38bdf8;
-      --shift-vip-morning-bg: rgba(56,189,248,0.16);
-      --shift-vip-evening: #e879f9;
-      --shift-vip-evening-bg: rgba(232,121,249,0.18);
+      --shift-vip-morning: #c4b5fd;
+      --shift-vip-morning-bg: rgba(109,40,217,0.30);
+      --shift-vip-evening: #38bdf8;
+      --shift-vip-evening-bg: rgba(125,211,252,0.20);
       --shift-vip-1200: #fb923c;
       --shift-vip-1200-bg: rgba(251,146,60,0.18);
       --shift-super: #f59e42;
@@ -210,7 +210,7 @@
     .section-body.collapsed { display: none; }
 
     .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    table { width: 100%; border-collapse: collapse; }
 
     thead th {
       background: var(--thead-bg);
@@ -226,16 +226,9 @@
       border-bottom: 2px solid var(--border);
     }
     thead th:last-child { border-right: none; }
-    thead th.col-name {
-      text-align: left; padding-left: 12px; width: 130px;
-      position: sticky; left: 0; background: var(--thead-bg); z-index: 2;
-      border-right: 1px solid var(--border) !important;
-    }
-    thead th.col-info {
-      text-align: left; padding-left: 8px; width: 190px;
-      position: sticky; left: 130px; background: var(--thead-bg); z-index: 2;
-      border-right: 2px solid rgba(128,128,128,0.2) !important;
-    }
+    thead th { min-width: 36px; }
+    thead th.col-name { min-width: 130px; width: 130px; text-align: left; padding-left: 12px; position: sticky; left: 0; background: var(--thead-bg); z-index: 2; border-right: 1px solid var(--border) !important; }
+    thead th.col-info { min-width: 190px; width: 190px; text-align: left; padding-left: 8px; position: sticky; left: 130px; background: var(--thead-bg); z-index: 2; border-right: 2px solid rgba(128,128,128,0.2) !important; }
     thead th.weekend { color: var(--muted); }
     thead th.today { color: var(--tl); background: var(--tl-glow); }
     html.light thead th.weekend { color: var(--muted); background: none; }
@@ -264,7 +257,7 @@
     td:last-child { border-right: none; }
 
     td.col-name {
-      text-align: left; padding-left: 12px; font-weight: 600; color: var(--text);
+      text-align: left; padding: 6px 12px; font-weight: 600; color: var(--text);
       font-size: 12px; position: sticky; left: 0; z-index: 1;
       white-space: nowrap; overflow: hidden;
       border-right: 1px solid var(--border) !important;
@@ -286,23 +279,40 @@
     thead th.is-selected { background: rgba(91,156,246,0.18) !important; color: var(--tl) !important; }
 
     .shift-pill {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px;
-      border-radius: 5px; font-size: 10px; font-weight: 700; line-height: 1;
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900; line-height: 1;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
-    .shift-morning     { background: var(--shift-morning-bg);    color: var(--shift-morning);       border: 1px solid rgba(91,156,246,0.3); }
-    .shift-evening     { background: var(--shift-evening-bg);    color: var(--shift-evening);       border: 1px solid rgba(167,139,250,0.35); }
-    .shift-night       { background: var(--shift-night-bg);      color: var(--shift-night);         border: 1px solid rgba(52,211,153,0.3); }
-    .shift-vip-morning { background: var(--shift-vip-morning-bg); color: var(--shift-vip-morning);  border: 1px solid rgba(56,189,248,0.35); }
-    .shift-vip-evening { background: var(--shift-vip-evening-bg); color: var(--shift-vip-evening);  border: 1px solid rgba(232,121,249,0.35); }
-    .shift-vip-1200    { background: var(--shift-vip-1200-bg);   color: var(--shift-vip-1200);      border: 1px solid rgba(251,146,60,0.35); }
-    .shift-super-day   { background: var(--shift-super-bg);      color: var(--shift-super);         border: 1px solid rgba(245,158,66,0.35); }
-    .shift-super-night { background: var(--shift-super-night-bg);color: var(--shift-super-night-color); border: 1px solid rgba(248,113,113,0.35); }
-    .shift-off         { color: rgba(255,255,255,0.18); font-size: 10px; }
-    .shift-vacation    { background: var(--shift-vacation);      color: #f87171;  border: 1px solid rgba(248,113,113,0.3); }
-    .shift-sick        { background: var(--shift-sick);          color: #fbbf24;  border: 1px solid rgba(251,191,36,0.3); }
-    .shift-work8       { background: rgba(139,92,246,0.15);      color: #a78bfa;  border: 1px solid rgba(139,92,246,0.3); }
-    .shift-1200        { background: rgba(251,191,36,0.18);       color: #f59e0b;  border: 1px solid rgba(251,191,36,0.35); }
+    td {
+      padding: 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--sub);
+      vertical-align: middle;
+      border-right: 2px solid var(--border);
+      position: relative;
+      height: 36px;
+    }
+    .shift-morning     { background: rgba(96,165,250,0.35);    color: #fff; }
+    .shift-evening     { background: rgba(67,56,202,0.60);     color: #fff; }
+    .shift-night       { background: rgba(52,211,153,0.35);    color: #fff; }
+    .shift-vip-morning { background: rgba(109,40,217,0.55);    color: #fff; }
+    .shift-vip-evening { background: rgba(56,189,248,0.35);    color: #fff; }
+    .shift-vip-1200    { background: rgba(251,146,60,0.40);    color: #fff; }
+    .shift-super-day   { background: rgba(245,158,66,0.45);    color: #fff; }
+    .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff; }
+    .shift-off         { background: transparent; color: rgba(150,150,150,0.35); font-size: 16px; font-weight: 400; text-shadow: none; }
+    .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
+    .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
+    .shift-work8       { background: rgba(139,92,246,0.40);    color: #fff; }
+    .shift-1200        { background: rgba(251,146,60,0.40);    color: #fff; }
+
+    td.col-name .name-nick { font-size: 14px; font-weight: 800; color: var(--text); }
 
     .section-divider-row td {
       padding: 4px 12px; font-size: 9px;
@@ -342,6 +352,8 @@
     html.light .day-info-count { color: #111827; }
     html.light .day-info-name { color: #374151; }
     .col-info-hidden .col-info { display: none; }
+    .col-info-hidden thead th.col-info { display: none; }
+    .col-info-hidden .thead-counts th.col-info { display: none; }
     .name-pos { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; white-space: nowrap; }
     .name-email { font-size: 10px; color: var(--muted); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
     .name-since { font-size: 9px; color: rgba(255,255,255,0.2); }
@@ -611,15 +623,17 @@
     <!-- LEGEND -->
     <div class="legend">
       <span class="legend-label">Легенда:</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-morning)"></span>09–21 (9ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-evening)"></span>21–09 (9ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>12–00 (12ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super)"></span>Sup День (12ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super-night-color)"></span>Sup Ночь (12ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-morning)"></span>09–21 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-evening)"></span>21–09 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>12–00 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-vip-morning)"></span>VIP 09–21 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-vip-evening)"></span>VIP 21–09 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super)"></span>Sup День (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super-night-color)"></span>Sup Ночь (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>8ч (TL/QA)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Отпуск</span>
-      <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>Больничный</span>
-      <span class="legend-item"><span class="legend-dot" style="background:rgba(255,255,255,0.12)"></span>Выходной</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>✈ Отпуск</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>🤒 Больничный</span>
+      <span class="legend-item"><span style="font-size:13px;font-weight:700;color:var(--muted)">—</span> Выходной</span>
     </div>
 
     <!-- FILTERS -->
@@ -1224,8 +1238,8 @@ function renderSection(s) {
       { types: ['shift1200'], label: '12–00', color: '#f59e0b',              min: 2 },
     ];
     const shiftRowsVip = [
-      { types: ['vip_morning'], label: '09–21', color: 'var(--shift-vip-morning)', min: 4 },
-      { types: ['vip_evening'], label: '21–09', color: 'var(--shift-vip-evening)', min: 3 },
+      { types: ['vip_evening'], label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
+      { types: ['vip_morning'], label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
       { types: ['vip_1200','d12'], label: '12–00', color: '#f59e0b',              min: 2 },
     ];
     const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
@@ -1267,8 +1281,8 @@ function renderSection(s) {
     let redDot = '';
     if (isOpSection) {
       const ops = s.key === 'regular_support' ? regOps : vipOps;
-      const dayTypes = s.key === 'regular_support' ? ['morning'] : ['vip_morning'];
-      const nightTypes = s.key === 'regular_support' ? ['evening'] : ['vip_evening'];
+      const dayTypes = s.key === 'regular_support' ? ['morning'] : ['vip_evening'];
+      const nightTypes = s.key === 'regular_support' ? ['evening'] : ['vip_morning'];
       const dayCount = ops.filter(n => dayTypes.includes(getShift(n,di))).length;
       const nightCount = ops.filter(n => nightTypes.includes(getShift(n,di))).length;
       if (dayCount < 4 || nightCount < 3) {
@@ -1276,7 +1290,7 @@ function renderSection(s) {
       }
     }
 
-    thHTML += `<th class="${cls}" data-date="${ds}" style="cursor:pointer" onclick="showDayInfo('${ds}',${di})">${d}${redDot}<br><span style="font-size:8px;font-weight:300;opacity:.7">${day}</span></th>`;
+    thHTML += `<th class="${cls}" data-date="${ds}" style="cursor:pointer;padding:6px 2px" onclick="showDayInfo('${ds}',${di})"><span style="font-size:12px;font-weight:700">${d}</span>${redDot}<br><span style="font-size:9px;font-weight:500;opacity:.8">${day}</span></th>`;
   });
   thHTML += '</tr>';
 
@@ -1299,7 +1313,7 @@ function renderSection(s) {
     tr.dataset.name = name;
 
     const isDismissed = !!dismissedEmployees[name];
-    const nameClass = isDismissed ? 'dismissed-name' : '';
+    const nameClass = isDismissed ? 'name-nick dismissed-name' : 'name-nick';
     const dismissedTag = isDismissed
       ? `<div class="dismissed-badge">уволен с ${dismissedEmployees[name]}</div>`
       : '';
@@ -1432,8 +1446,8 @@ function showDayInfo(ds, di) {
   const regM  = REGULAR_OPS.filter(n => getShift(n, di) === 'morning').length;
   const regE  = REGULAR_OPS.filter(n => getShift(n, di) === 'evening').length;
   const reg12 = REGULAR_OPS.filter(n => getShift(n, di) === 'shift1200').length;
-  const vipM  = VIP_OPS.filter(n => getShift(n, di) === 'vip_morning').length;
-  const vipE  = VIP_OPS.filter(n => getShift(n, di) === 'vip_evening').length;
+  const vipM  = VIP_OPS.filter(n => getShift(n, di) === 'vip_evening').length;
+  const vipE  = VIP_OPS.filter(n => getShift(n, di) === 'vip_morning').length;
   const vip12 = VIP_OPS.filter(n => ['vip_1200','d12'].includes(getShift(n, di))).length;
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
@@ -1482,7 +1496,7 @@ function showDayInfo(ds, di) {
 
   document.getElementById('day-info-body').innerHTML = `
     ${countBlock('Regular Support', regM, regE, reg12, 'var(--shift-morning)', 'var(--shift-evening)', '#f59e0b')}
-    ${countBlock('VIP Support', vipM, vipE, vip12, 'var(--shift-vip-morning)', 'var(--shift-vip-evening)', '#f59e0b')}
+    ${countBlock('VIP Support', vipM, vipE, vip12, 'var(--shift-vip-evening)', 'var(--shift-vip-morning)', '#f59e0b')}
     <div class="day-info-block">
       <div class="day-info-block-title">Supervisors</div>
       <div class="day-info-names">

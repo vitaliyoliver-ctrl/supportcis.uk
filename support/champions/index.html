@@ -178,6 +178,7 @@
   #tab-feb table:not(.table-special),
   #tab-jan table:not(.table-special),
   #tab-mar table:not(.table-special),
+  #tab-apr table:not(.table-special),
   #tab-dec table:not(.table-special) {
     width: 100%;
     table-layout: fixed;
@@ -186,36 +187,43 @@
   #tab-feb table:not(.table-special) th:nth-child(1),
   #tab-jan table:not(.table-special) th:nth-child(1),
   #tab-mar table:not(.table-special) th:nth-child(1),
+  #tab-apr table:not(.table-special) th:nth-child(1),
   #tab-dec table:not(.table-special) th:nth-child(1) { width: 8%; }
 
   #tab-feb table:not(.table-special) th:nth-child(2),
   #tab-jan table:not(.table-special) th:nth-child(2),
   #tab-mar table:not(.table-special) th:nth-child(2),
+  #tab-apr table:not(.table-special) th:nth-child(2),
   #tab-dec table:not(.table-special) th:nth-child(2) { width: 15%; }
 
   #tab-feb table:not(.table-special) th:nth-child(3),
   #tab-jan table:not(.table-special) th:nth-child(3),
   #tab-mar table:not(.table-special) th:nth-child(3),
+  #tab-apr table:not(.table-special) th:nth-child(3),
   #tab-dec table:not(.table-special) th:nth-child(3) { width: 12%; }
 
   #tab-feb table:not(.table-special) th:nth-child(4),
   #tab-jan table:not(.table-special) th:nth-child(4),
   #tab-mar table:not(.table-special) th:nth-child(4),
+  #tab-apr table:not(.table-special) th:nth-child(4),
   #tab-dec table:not(.table-special) th:nth-child(4) { width: 12%; }
 
   #tab-feb table:not(.table-special) th:nth-child(5),
   #tab-jan table:not(.table-special) th:nth-child(5),
   #tab-mar table:not(.table-special) th:nth-child(5),
+  #tab-apr table:not(.table-special) th:nth-child(5),
   #tab-dec table:not(.table-special) th:nth-child(5) { width: 12%; }
 
   #tab-feb table:not(.table-special) th:nth-child(6),
   #tab-jan table:not(.table-special) th:nth-child(6),
   #tab-mar table:not(.table-special) th:nth-child(6),
+  #tab-apr table:not(.table-special) th:nth-child(6),
   #tab-dec table:not(.table-special) th:nth-child(6) { width: 20%; }
 
   #tab-feb table:not(.table-special) th:nth-child(7),
   #tab-jan table:not(.table-special) th:nth-child(7),
   #tab-mar table:not(.table-special) th:nth-child(7),
+  #tab-apr table:not(.table-special) th:nth-child(7),
   #tab-dec table:not(.table-special) th:nth-child(7) { width: 21%; }
 
   thead th {
@@ -283,11 +291,13 @@
   #tab-feb table:not(.table-special) thead th:nth-child(2),
   #tab-jan table:not(.table-special) thead th:nth-child(2),
   #tab-mar table:not(.table-special) thead th:nth-child(2),
+  #tab-apr table:not(.table-special) thead th:nth-child(2),
   #tab-dec table:not(.table-special) thead th:nth-child(2) { text-align: left; }
   
   #tab-feb table:not(.table-special) td:nth-child(2),
   #tab-jan table:not(.table-special) td:nth-child(2),
   #tab-mar table:not(.table-special) td:nth-child(2),
+  #tab-apr table:not(.table-special) td:nth-child(2),
   #tab-dec table:not(.table-special) td:nth-child(2) { text-align: left; font-family: 'Nunito', sans-serif; font-weight: 700; }
 
   .name { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; }
@@ -627,7 +637,8 @@
       <div class="tab" onclick="switchTab('dec')">Декабрь 2025</div>
       <div class="tab" onclick="switchTab('jan')">Январь 2026</div>
       <div class="tab" onclick="switchTab('feb')">Февраль 2026</div>
-      <div class="tab active" onclick="switchTab('mar')">Март 2026</div>
+      <div class="tab" onclick="switchTab('mar')">Март 2026</div>
+      <div class="tab active" onclick="switchTab('apr')">Апрель 2026</div>
     </div>
 
     <!-- ==================== ФЕВРАЛЬ ==================== -->
@@ -1076,7 +1087,7 @@
     </div>
 
     <!-- ==================== МАРТ ==================== -->
-    <div id="tab-mar" class="tab-content active">
+    <div id="tab-mar" class="tab-content">
 
       <div class="section-header section-material">
         <span class="icon">💰</span>
@@ -1210,6 +1221,141 @@
 
     </div>
 
+    <!-- ==================== АПРЕЛЬ ==================== -->
+    <div id="tab-apr" class="tab-content active">
+
+      <div class="section-header section-material">
+        <span class="icon">💰</span>
+        <span>Материальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-1">
+              <td><span class="medal">🥇</span></td>
+              <td><span class="name name-gold">Ashton</span></td>
+              <td>1 317 835 498</td>
+              <td><span class="prize-badge prize-money">3 000 грн</span></td>
+            </tr>
+            <tr class="row-2">
+              <td><span class="medal">🥈</span></td>
+              <td><span class="name name-silver">Kenzo</span></td>
+              <td>1 314 004 329</td>
+              <td><span class="prize-badge prize-money">2 000 грн</span></td>
+            </tr>
+            <tr class="row-3">
+              <td><span class="medal">🥉</span></td>
+              <td><span class="name name-bronze">Nolan</span></td>
+              <td>1 255 670 996</td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-nonmaterial">
+        <span class="icon">⭐</span>
+        <span>Нематериальные призы</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Оператор</th>
+              <th>Чемпионский балл</th>
+              <th>Приз</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="place-other">4</span></td>
+              <td><span class="name">Tom</span></td>
+              <td>1 239 253 247</td>
+              <td><span class="prize-badge prize-time">Уйти на 3 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">5</span></td>
+              <td><span class="name">Skylar</span></td>
+              <td>1 237 835 498</td>
+              <td><span class="prize-badge prize-food">2 обеда по 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">6</span></td>
+              <td><span class="name">Chadwick</span></td>
+              <td>1 223 127 706</td>
+              <td><span class="prize-badge prize-time">Уйти на 2 ч раньше</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">7</span></td>
+              <td><span class="name">Trinity</span></td>
+              <td>1 179 707 792</td>
+              <td><span class="prize-badge prize-food">1 обед 2 часа</span></td>
+            </tr>
+            <tr>
+              <td><span class="place-other">8</span></td>
+              <td><span class="name">Earl</span></td>
+              <td>1 172 725 108</td>
+              <td><span class="prize-badge prize-time">Уйти на 1 ч раньше</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-header section-special">
+        <span class="icon">🌟</span>
+        <span>Вне конкурса — за особые заслуги</span>
+        <span class="line"></span>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table-special">
+          <thead>
+            <tr>
+              <th>Оператор</th>
+              <th>Приз</th>
+              <th>За что</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Debra / Кира</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Лучшие показатели на НК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Warren</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Лучшая КК</td>
+            </tr>
+            <tr>
+              <td><span class="name">Adam</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Одни из лучших показателей команды, активное участие в работе, таски</td>
+            </tr>
+            <tr>
+              <td><span class="name">Nora</span></td>
+              <td><span class="prize-badge prize-money">1 000 грн</span></td>
+              <td>Топ показатель КСАТ в Chatwoot</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
   </div><!-- /mode-championship -->
 
   <div class="footer">✦ Поздравляем всех победителей ✦</div>
@@ -1288,7 +1434,7 @@ function switchTab(month) {
   document.querySelectorAll('#mode-championship .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('#mode-championship .tab-content').forEach(c => c.classList.remove('active'));
   const tabs = document.querySelectorAll('#mode-championship .tab');
-  const map = { dec: 0, jan: 1, feb: 2, mar: 3 };
+  const map = { dec: 0, jan: 1, feb: 2, mar: 3, apr: 4 };
   tabs[map[month]].classList.add('active');
   document.getElementById('tab-' + month).classList.add('active');
 }

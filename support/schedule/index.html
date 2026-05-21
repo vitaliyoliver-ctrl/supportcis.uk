@@ -709,9 +709,15 @@
       <div class="admin-divider"></div>
 
       <div class="admin-field">
-        <div class="admin-label">Доп события / часы</div>
-        <div class="extra-events-list" id="extra-events-list"></div>
-        <button class="add-extra-btn" onclick="addExtraEvent()">+ Добавить событие</button>
+        <div class="admin-label" style="color:var(--support)">+ Доп часы</div>
+        <div class="extra-events-list" id="extra-plus-list"></div>
+        <button class="add-extra-btn" onclick="addExtraEvent('plus')">+ Добавить</button>
+      </div>
+
+      <div class="admin-field">
+        <div class="admin-label" style="color:#f87171">− Потеря часов</div>
+        <div class="extra-events-list" id="extra-minus-list"></div>
+        <button class="add-extra-btn" onclick="addExtraEvent('minus')">+ Добавить</button>
       </div>
 
       <div class="admin-divider"></div>
@@ -1693,43 +1699,78 @@ const SHIFT_TYPES = {
 };
 
 // Типы доп событий
-const EXTRA_EVENT_TYPES = [
-  { value: 'extra_vacation_cover',  label: 'Доп: замена отпуска' },
-  { value: 'extra_sick_cover',      label: 'Доп: замена больничного' },
-  { value: 'extra_critical',        label: 'Доп: крит ситуация' },
-  { value: 'extra_dismissal',       label: 'Доп: увольнение' },
-  { value: 'extra_org',             label: 'Доп: орг моменты' },
-  { value: 'extra_swap_give',       label: 'Доп: обмен (отдал)' },
-  { value: 'extra_swap_take',       label: 'Доп: обмен (получил)' },
+const EXTRA_PLUS_TYPES = [
+  { value: 'extra_critical',       label: 'Крит ситуация' },
+  { value: 'extra_vacation_cover', label: 'Замена отпуска' },
+  { value: 'extra_sick_cover',     label: 'Замена больничного' },
+  { value: 'extra_swap_take',      label: 'Получение/Обмен' },
+  { value: 'extra_org_plus',       label: 'Орг моменты' },
 ];
 
-let extraEvents = []; // [{type, hours}]
+const EXTRA_MINUS_TYPES = [
+  { value: 'loss_sick',       label: 'Больничный' },
+  { value: 'loss_vacation',   label: 'Отпуск' },
+  { value: 'loss_org',        label: 'Орг моменты' },
+  { value: 'loss_swap_give',  label: 'Отдача/Обмен' },
+  { value: 'loss_dismissal',  label: 'Увольнение' },
+];
+
+// Для совместимости с Excel экспортом
+const ALL_EXTRA_LABELS = {
+  extra_critical:       'Крит ситуация',
+  extra_vacation_cover: 'Замена отпуска',
+  extra_sick_cover:     'Замена больничного',
+  extra_swap_take:      'Получение/Обмен',
+  extra_org_plus:       'Орг моменты (+)',
+  loss_sick:            'Больничный (-)',
+  loss_vacation:        'Отпуск (-)',
+  loss_org:             'Орг моменты (-)',
+  loss_swap_give:       'Отдача/Обмен (-)',
+  loss_dismissal:       'Увольнение (-)',
+  // старые типы для совместимости
+  extra_dismissal:      'Увольнение',
+  extra_org:            'Орг моменты',
+  extra_swap_give:      'Обмен (отдал)',
+};
+
+let extraPlusEvents = [];  // [{type, hours}]
+let extraMinusEvents = []; // [{type, hours}]
 
 function renderExtraEvents() {
-  const list = document.getElementById('extra-events-list');
+  renderExtraBlock('plus');
+  renderExtraBlock('minus');
+}
+
+function renderExtraBlock(kind) {
+  const types = kind === 'plus' ? EXTRA_PLUS_TYPES : EXTRA_MINUS_TYPES;
+  const events = kind === 'plus' ? extraPlusEvents : extraMinusEvents;
+  const list = document.getElementById(`extra-${kind}-list`);
   list.innerHTML = '';
-  extraEvents.forEach((ev, i) => {
+  events.forEach((ev, i) => {
     const row = document.createElement('div');
     row.className = 'extra-event-row';
     row.innerHTML = `
-      <select class="extra-event-select" onchange="extraEvents[${i}].type=this.value">
-        ${EXTRA_EVENT_TYPES.map(t => `<option value="${t.value}" ${ev.type===t.value?'selected':''}>${t.label}</option>`).join('')}
+      <select class="extra-event-select" onchange="extra${kind==='plus'?'Plus':'Minus'}Events[${i}].type=this.value">
+        ${types.map(t => `<option value="${t.value}" ${ev.type===t.value?'selected':''}>${t.label}</option>`).join('')}
       </select>
       <input type="number" class="extra-event-hours" placeholder="часы" min="0.5" max="24" step="0.5"
-        value="${ev.hours||''}" onchange="extraEvents[${i}].hours=parseFloat(this.value)||0" />
-      <button class="extra-event-remove" onclick="removeExtraEvent(${i})">✕</button>
+        value="${ev.hours||''}" onchange="extra${kind==='plus'?'Plus':'Minus'}Events[${i}].hours=parseFloat(this.value)||0" />
+      <button class="extra-event-remove" onclick="removeExtraEvent('${kind}',${i})">✕</button>
     `;
     list.appendChild(row);
   });
 }
 
-function addExtraEvent() {
-  extraEvents.push({ type: EXTRA_EVENT_TYPES[0].value, hours: 0 });
+function addExtraEvent(kind) {
+  const types = kind === 'plus' ? EXTRA_PLUS_TYPES : EXTRA_MINUS_TYPES;
+  if (kind === 'plus') extraPlusEvents.push({ type: types[0].value, hours: 0 });
+  else extraMinusEvents.push({ type: types[0].value, hours: 0 });
   renderExtraEvents();
 }
 
-function removeExtraEvent(i) {
-  extraEvents.splice(i, 1);
+function removeExtraEvent(kind, i) {
+  if (kind === 'plus') extraPlusEvents.splice(i, 1);
+  else extraMinusEvents.splice(i, 1);
   renderExtraEvents();
 }
 
@@ -1766,7 +1807,7 @@ function openAdmin() {
   document.getElementById('ap-custom-hours').value = '';
   document.getElementById('save-msg').className = 'save-msg';
   selectedShiftType = null;
-  extraEvents = [];
+  extraPlusEvents = []; extraMinusEvents = [];
   renderExtraEvents();
   const name = document.getElementById('ap-operator').value;
   renderShiftTypeGrid(getSectionForMember(name));
@@ -1776,7 +1817,7 @@ function openAdmin() {
 
 function closeAdmin() {
   document.getElementById('admin-overlay').classList.remove('open');
-  extraEvents = [];
+  extraPlusEvents = []; extraMinusEvents = [];
 }
 
 function overlayClick(e) {
@@ -1807,7 +1848,10 @@ function quickEdit(name, ds, di) {
     selectedShiftType && !['off','vacation','sick'].includes(selectedShiftType) ? 'flex' : 'none';
 
   // Загружаем доп события
-  extraEvents = override?.extraEvents ? [...override.extraEvents] : [];
+  const allEvents = override?.extraEvents ? [...override.extraEvents] : [];
+  const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus'];
+  extraPlusEvents = allEvents.filter(e => plusTypes.includes(e.type));
+  extraMinusEvents = allEvents.filter(e => !plusTypes.includes(e.type));
   renderExtraEvents();
 
   document.getElementById('ap-note').value = override?.note || '';
@@ -1860,7 +1904,7 @@ async function saveShift() {
       type: selectedShiftType,
       note,
       ...(customHours ? { customHours } : {}),
-      ...(extraEvents.length ? { extraEvents: extraEvents.filter(e => e.hours > 0) } : {}),
+      ...(([...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0)).length ? { extraEvents: [...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0) } : {}),
       editedBy: currentUser?.email,
       editedAt: new Date().toISOString()
     };
@@ -1897,15 +1941,7 @@ async function saveShift() {
 function exportToExcel() {
   const wb = XLSX.utils.book_new();
 
-  const EXTRA_LABELS = {
-    extra_vacation_cover: 'Замена отпуска',
-    extra_sick_cover:     'Замена больничного',
-    extra_critical:       'Крит ситуация',
-    extra_dismissal:      'Увольнение',
-    extra_org:            'Орг моменты',
-    extra_swap_give:      'Обмен (отдал)',
-    extra_swap_take:      'Обмен (получил)',
-  };
+  const EXTRA_LABELS = ALL_EXTRA_LABELS;
 
   const SHIFT_LABELS = {
     morning: 'Утро', evening: 'Вечер', night: 'Ночь',

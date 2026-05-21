@@ -249,6 +249,10 @@
 
   .section-header .icon { font-size: 18px; }
   .section-header .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,214,143,0.2), transparent); }
+  .date-label { font-family:'Barlow',sans-serif;font-size:11px;font-weight:500;color:var(--text-muted);white-space:nowrap; }
+  .upload-btn { display:none;align-items:center;gap:6px;padding:5px 12px;background:transparent;border:1px solid var(--green);color:var(--green);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s; }
+  .upload-btn:hover { background:var(--green);color:#000; }
+  .tl-only { display:none; }
 
   /* ─── Stats strip ─── */
   .stats-strip {
@@ -571,11 +575,18 @@
 
   <!-- ─── Tabs ─── -->
   <div class="tabs" id="sales-tabs">
-    <div class="tab" onclick="switchSalesTab('jan')">Январь 2026</div>
-    <div class="tab" onclick="switchSalesTab('feb')">Февраль 2026</div>
-    <div class="tab" onclick="switchSalesTab('mar')">Март 2026</div>
-    <div class="tab" onclick="switchSalesTab('apr')">Апрель 2026</div>
-    <div class="tab active" onclick="switchSalesTab('may')">Май 2026</div>
+    <div class="tab" onclick="switchSalesTab('jan')">Январь</div>
+    <div class="tab" onclick="switchSalesTab('feb')">Февраль</div>
+    <div class="tab" onclick="switchSalesTab('mar')">Март</div>
+    <div class="tab" onclick="switchSalesTab('apr')">Апрель</div>
+    <div class="tab active" onclick="switchSalesTab('may')">Май</div>
+    <div class="tab" onclick="switchSalesTab('jun')">Июнь</div>
+    <div class="tab" onclick="switchSalesTab('jul')">Июль</div>
+    <div class="tab" onclick="switchSalesTab('aug')">Август</div>
+    <div class="tab" onclick="switchSalesTab('sep')">Сентябрь</div>
+    <div class="tab" onclick="switchSalesTab('oct')">Октябрь</div>
+    <div class="tab" onclick="switchSalesTab('nov')">Ноябрь</div>
+    <div class="tab" onclick="switchSalesTab('dec')">Декабрь</div>
   </div>
 
   <!-- ─── Stats strip ─── -->
@@ -642,6 +653,8 @@
       <span class="icon">📈</span>
       <span>Рейтинг продаж — Апрель 2026</span>
       <span class="line"></span>
+      <span class="date-label" id="date-apr"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('apr')" title="Загрузить данные за апрель">⬆ Обновить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -669,6 +682,8 @@
       <span class="icon">📈</span>
       <span>Рейтинг продаж — Январь 2026</span>
       <span class="line"></span>
+      <span class="date-label" id="date-jan"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('jan')" title="Загрузить данные за январь">⬆ Обновить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -696,6 +711,8 @@
       <span class="icon">📈</span>
       <span>Рейтинг продаж — Февраль 2026</span>
       <span class="line"></span>
+      <span class="date-label" id="date-feb"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('feb')" title="Загрузить данные за февраль">⬆ Обновить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -723,6 +740,8 @@
       <span class="icon">📈</span>
       <span>Рейтинг продаж — Март 2026</span>
       <span class="line"></span>
+      <span class="date-label" id="date-mar"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('mar')" title="Загрузить данные за март">⬆ Обновить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -750,7 +769,8 @@
       <span class="icon">📈</span>
       <span>Рейтинг продаж — Май 2026</span>
       <span class="line"></span>
-      <span style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted);white-space:nowrap;">🕐 Данные с <span style="color:var(--green);font-weight:700;">27.04</span> по <span style="color:var(--green);font-weight:700;">10.05.2026</span></span>
+      <span class="date-label" id="date-may">🕐 Данные с <span style="color:var(--green);font-weight:700;">27.04</span> по <span style="color:var(--green);font-weight:700;">17.05.2026</span></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('may')" title="Загрузить данные за май">⬆ Обновить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -772,38 +792,377 @@
     </div>
   </div>
 
+  <!-- ==================== ИЮНЬ ==================== -->
+  <div id="stab-jun" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Июнь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-jun"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('jun')" title="Загрузить данные за июнь">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-jun-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ИЮЛЬ ==================== -->
+  <div id="stab-jul" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Июль 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-jul"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('jul')" title="Загрузить данные за июль">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-jul-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== АВГУСТ ==================== -->
+  <div id="stab-aug" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Август 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-aug"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('aug')" title="Загрузить данные за август">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-aug-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== СЕНТЯБРЬ ==================== -->
+  <div id="stab-sep" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Сентябрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-sep"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('sep')" title="Загрузить данные за сентябрь">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-sep-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ОКТЯБРЬ ==================== -->
+  <div id="stab-oct" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Октябрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-oct"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('oct')" title="Загрузить данные за октябрь">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-oct-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== НОЯБРЬ ==================== -->
+  <div id="stab-nov" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Ноябрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-nov"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('nov')" title="Загрузить данные за ноябрь">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-nov-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ДЕКАБРЬ ==================== -->
+  <div id="stab-dec" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Декабрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-dec"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('dec')" title="Загрузить данные за декабрь">⬆ Обновить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-dec-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Upload input (hidden) ── -->
+  <input type="file" id="xlsx-file-input" accept=".xlsx" style="display:none" onchange="handleFileUpload(event)">
+
+  <!-- ── Upload modal ── -->
+  <div id="upload-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:380px;width:90%;text-align:center;">
+      <div id="upload-icon" style="font-size:48px;margin-bottom:16px;">⏳</div>
+      <div id="upload-title" style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Загружаем данные...</div>
+      <div id="upload-msg" style="font-size:13px;color:var(--text-muted);"></div>
+      <button id="upload-close-btn" onclick="closeUploadModal()" style="display:none;margin-top:20px;padding:10px 24px;background:var(--green);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Готово</button>
+    </div>
+  </div>
+
   <div class="footer">✦ Support Sales Activations 2026 ✦</div>
 
 </div>
 
 <script>
-// ─── Sales tabs ───
-const PERIOD_LABELS = { jan: 'Январь', feb: 'Февраль', mar: 'Март', apr: 'Апрель', may: 'Май' };
+// ─── Config ───
+const API = '/api';
+const SALES_API = 'https://sales-worker.vitaliy-barkhanskiy.workers.dev';
+const ALL_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const PERIOD_LABELS = { jan:'Январь',feb:'Февраль',mar:'Март',apr:'Апрель',may:'Май',jun:'Июнь',jul:'Июль',aug:'Август',sep:'Сентябрь',oct:'Октябрь',nov:'Ноябрь',dec:'Декабрь' };
+const MONTH_MAP = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+const EXCLUDE_NAMES = ['oliver', 'ai'];
 
+// ─── State ───
+let currentUserRole = null;
+let uploadTargetMonth = null;
+
+// ─── Auth check + init ───
+(async () => {
+  try {
+    const res = await fetch(`${API}/check`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.ok) {
+      currentUserRole = data.role;
+      if (data.role === 'tl') {
+        document.querySelectorAll('.tl-only').forEach(el => el.style.display = 'inline-flex');
+      }
+    }
+  } catch {}
+  await loadAllSalesData();
+  ALL_MONTHS.forEach(m => initSortHeaders(m));
+  switchSalesTab('may');
+})();
+
+// ─── Load all sales data from Worker ───
+async function loadAllSalesData() {
+  try {
+    const res = await fetch(`${SALES_API}/data`, { credentials: 'include' });
+    const data = await res.json();
+    if (!data.ok) return;
+    for (const m of ALL_MONTHS) {
+      if (data.data[m]) {
+        const { rows, dateFrom, dateTo } = data.data[m];
+        salesData[m] = rows;
+        updateDateLabel(m, dateFrom, dateTo);
+      }
+    }
+    ALL_MONTHS.forEach(m => renderSalesTable(m));
+  } catch (e) {
+    console.error('Failed to load sales data:', e);
+    // Fallback: render with embedded data
+    ALL_MONTHS.forEach(m => renderSalesTable(m));
+  }
+}
+
+function updateDateLabel(month, dateFrom, dateTo) {
+  const el = document.getElementById('date-' + month);
+  if (!el) return;
+  if (dateFrom && dateTo) {
+    const fmt = s => { const d = new Date(s); return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`; };
+    el.innerHTML = `🕐 Данные с <span style="color:var(--green);font-weight:700;">${fmt(dateFrom)}</span> по <span style="color:var(--green);font-weight:700;">${fmt(dateTo)}</span>`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+// ─── Tab switching ───
 function switchSalesTab(month) {
   document.querySelectorAll('#sales-tabs .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const map = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4 };
-  document.querySelectorAll('#sales-tabs .tab')[map[month]].classList.add('active');
+  document.querySelectorAll('#sales-tabs .tab')[MONTH_MAP[month]].classList.add('active');
   document.getElementById('stab-' + month).classList.add('active');
   document.getElementById('period-label').textContent = PERIOD_LABELS[month];
   updateStats(month);
 }
 
 function updateStats(month) {
-  const data = salesData[month].filter(r => r.name && r.name !== '—');
-  const totalChats   = data.reduce((s, r) => s + (r.total    ?? 0), 0);
-  const totalPresales= data.reduce((s, r) => s + (r.presales ?? 0), 0);
-  const totalSales   = data.reduce((s, r) => s + (r.sales    ?? 0), 0);
-  const totalBonus   = data.reduce((s, r) => s + (r.bonus    ?? 0), 0);
+  const data = (salesData[month] || []).filter(r => r.name && r.name !== '—');
+  const totalChats    = data.reduce((s, r) => s + (r.total    ?? 0), 0);
+  const totalPresales = data.reduce((s, r) => s + (r.presales ?? 0), 0);
+  const totalSales    = data.reduce((s, r) => s + (r.sales    ?? 0), 0);
+  const totalBonus    = data.reduce((s, r) => s + (r.bonus    ?? 0), 0);
   const ppt = totalChats > 0 ? (totalPresales / totalChats * 100) : 0;
   const pst = totalChats > 0 ? (totalSales    / totalChats * 100) : 0;
-
-  document.getElementById('stat-sales').textContent    = totalSales.toLocaleString('ru');
-  document.getElementById('stat-presales').textContent = totalPresales.toLocaleString('ru');
+  document.getElementById('stat-sales').textContent    = totalSales;
+  document.getElementById('stat-presales').textContent = totalPresales;
   document.getElementById('stat-pt').textContent       = ppt.toFixed(2) + '%';
   document.getElementById('stat-st').textContent       = pst.toFixed(2) + '%';
-  document.getElementById('stat-bonus').textContent    = '$' + (Math.round(totalBonus * 100) / 100).toLocaleString('ru', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('stat-bonus').textContent    = '$' + totalBonus.toFixed(2);
+  document.getElementById('stat-chats').textContent    = totalChats.toLocaleString();
+}
+
+// ─── XLSX Upload ───
+function triggerUpload(month) {
+  uploadTargetMonth = month;
+  document.getElementById('xlsx-file-input').value = '';
+  document.getElementById('xlsx-file-input').click();
+}
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file || !uploadTargetMonth) return;
+  showUploadModal('⏳', 'Читаем файл...', '');
+
+  try {
+    const rows = await parseXlsx(file);
+    showUploadModal('📊', 'Обрабатываем данные...', `Найдено строк: ${rows.length}`);
+
+    const { filtered, dateFrom, dateTo } = processRows(rows);
+    showUploadModal('☁️', 'Сохраняем в облако...', `Операторов после фильтрации: ${filtered.length}`);
+
+    const res = await fetch(`${SALES_API}/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: uploadTargetMonth, rows: filtered, dateFrom, dateTo }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Ошибка сервера');
+
+    // Обновляем локально
+    salesData[uploadTargetMonth] = filtered;
+    updateDateLabel(uploadTargetMonth, dateFrom, dateTo);
+    renderSalesTable(uploadTargetMonth);
+    updateStats(uploadTargetMonth);
+
+    showUploadModal('✅', 'Данные обновлены!', `Загружено ${filtered.length} операторов за ${PERIOD_LABELS[uploadTargetMonth]}`, true);
+  } catch (e) {
+    showUploadModal('❌', 'Ошибка загрузки', e.message, true);
+  }
+}
+
+// ─── Parse XLSX (using SheetJS from CDN) ───
+async function parseXlsx(file) {
+  // Подгружаем SheetJS если ещё не загружен
+  if (!window.XLSX) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+}
+
+// ─── Process raw rows from xlsx ───
+function processRows(rawRows) {
+  // Найти строку с фильтрами для дат
+  let dateFrom = null, dateTo = null;
+  for (const row of rawRows) {
+    const cell = String(row[0] || '');
+    if (cell.includes('Примененные фильтры') || cell.includes('Date начиная с')) {
+      // Формат: "Date начиная с 27.04.2026 0:00:00 и до 04.05.2026 0:00:00"
+      const fromMatch = cell.match(/начиная с (\d{2}\.\d{2}\.\d{4})/);
+      const toMatch   = cell.match(/и до (\d{2}\.\d{2}\.\d{4})/);
+      if (fromMatch) {
+        const [d,m,y] = fromMatch[1].split('.');
+        dateFrom = `${y}-${m}-${d}T00:00:00`;
+      }
+      if (toMatch) {
+        // "до" дата — это начало следующего дня, берём -1 день
+        const [d,m,y] = toMatch[1].split('.');
+        const dt = new Date(`${y}-${m}-${d}`);
+        dt.setDate(dt.getDate() - 1);
+        dateTo = dt.toISOString().split('T')[0] + 'T23:59:59';
+      }
+      break;
+    }
+  }
+
+  // Найти заголовочную строку
+  let headerIdx = -1;
+  for (let i = 0; i < rawRows.length; i++) {
+    if (String(rawRows[i][0]).includes('Имя оператора') || String(rawRows[i][0]).toLowerCase().includes('оператор')) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) headerIdx = 0;
+
+  const headers = rawRows[headerIdx].map(h => String(h).trim());
+  const colIdx = {
+    name:     headers.findIndex(h => h.includes('оператор') || h.includes('Имя')),
+    total:    headers.findIndex(h => h.includes('Всего чатов') || h === 'Total'),
+    presales: headers.findIndex(h => h.includes('Предпродажи')),
+    sales:    headers.findIndex(h => h === 'Продажи' || h.includes('Продажи') && !h.includes('/')),
+    bonus:    headers.findIndex(h => h.includes('Bonus') || h.includes('Бонус')),
+  };
+
+  const rows = [];
+  for (let i = headerIdx + 1; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    const name = String(row[colIdx.name] || '').trim();
+    if (!name) continue;
+    if (name.toLowerCase() === 'total' || name.toLowerCase().includes('итог')) continue;
+    if (name.toLowerCase().includes('примен')) continue; // строка фильтров
+
+    // Фильтры
+    if (EXCLUDE_NAMES.includes(name.toLowerCase())) continue;
+
+    const total    = parseFloat(row[colIdx.total])    || 0;
+    const presales = parseFloat(row[colIdx.presales]) || 0;
+    const sales    = parseFloat(row[colIdx.sales])    || 0;
+    const bonus    = parseFloat(row[colIdx.bonus])    || 0;
+
+    if (total < 10) continue;
+
+    const p_sp = presales > 0 ? Math.round(sales / presales * 10000) / 100 : null;
+    const p_pt = total > 0    ? Math.round(presales / total * 10000) / 100 : 0;
+    const p_st = total > 0    ? Math.round(sales / total * 1000000) / 100 : 0;
+
+    rows.push({ name, total: Math.round(total), presales: Math.round(presales), sales: Math.round(sales), p_sp, p_pt, p_st, bonus: Math.round(bonus * 10000) / 10000 });
+  }
+
+  // Сортировка: по бонусу убыванием, потом по продажам
+  rows.sort((a, b) => b.bonus - a.bonus || b.sales - a.sales);
+
+  return { filtered: rows, dateFrom, dateTo };
+}
+
+// ─── Upload modal ───
+function showUploadModal(icon, title, msg, done = false) {
+  const overlay = document.getElementById('upload-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('upload-icon').textContent = icon;
+  document.getElementById('upload-title').textContent = title;
+  document.getElementById('upload-msg').textContent = msg;
+  document.getElementById('upload-close-btn').style.display = done ? 'inline-block' : 'none';
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-overlay').style.display = 'none';
+  uploadTargetMonth = null;
 }
 
 // ─── Color tiers ───
@@ -1074,7 +1433,7 @@ const salesData = {
 };
 
 // ─── Sort state ───
-const sortState = { jan: { col: 'bonus', dir: -1 }, feb: { col: 'bonus', dir: -1 }, mar: { col: 'bonus', dir: -1 }, apr: { col: 'bonus', dir: -1 }, may: { col: 'bonus', dir: -1 } };
+const sortState = { jan:{col:'bonus',dir:-1},feb:{col:'bonus',dir:-1},mar:{col:'bonus',dir:-1},apr:{col:'bonus',dir:-1},may:{col:'bonus',dir:-1},jun:{col:'bonus',dir:-1},jul:{col:'bonus',dir:-1},aug:{col:'bonus',dir:-1},sep:{col:'bonus',dir:-1},oct:{col:'bonus',dir:-1},nov:{col:'bonus',dir:-1},dec:{col:'bonus',dir:-1} };
 const COL_KEYS = ['rank', 'name', 'total', 'presales', 'sales', 'p_sp', 'p_pt', 'p_st', 'bonus'];
 
 function sortData(data, col, dir) {
@@ -1088,9 +1447,14 @@ function sortData(data, col, dir) {
 const TOP_ICONS = ['🥇', '🥈', '🥉'];
 
 function renderSalesTable(month) {
-  const data = salesData[month];
+  const data = salesData[month] || [];
   const tbody = document.getElementById('sales-' + month + '-body');
   if (!tbody) return;
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">Данные за этот месяц ещё не загружены</td></tr>';
+    return;
+  }
 
   const { col, dir } = sortState[month];
   const filtered = data.filter(r => r.name && r.name !== '—' && r.name.trim() !== '');
@@ -1166,12 +1530,6 @@ function initSortHeaders(month) {
   });
   updateSortHeaders(month);
 }
-
-['jan', 'feb', 'mar', 'apr', 'may'].forEach(m => {
-  renderSalesTable(m);
-  initSortHeaders(m);
-});
-updateStats('may');
 
 function toggleTheme() {
   const root = document.documentElement;

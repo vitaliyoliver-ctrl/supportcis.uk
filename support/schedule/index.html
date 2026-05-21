@@ -698,14 +698,6 @@
         </div>
       </div>
 
-      <div class="admin-field" id="custom-hours-field" style="display:none">
-        <div class="admin-label">Часы в эту смену</div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <input type="number" class="admin-input" id="ap-custom-hours" min="1" max="24" placeholder="по умолчанию" style="max-width:120px" />
-          <span style="font-size:12px;color:var(--muted)" id="ap-default-hours-hint"></span>
-        </div>
-      </div>
-
       <div class="admin-divider"></div>
 
       <div class="admin-field">
@@ -1165,20 +1157,45 @@ function shiftLabel(type, name, ds) {
   if (type === 'vacation') return '✈';
   if (type === 'sick') return '🤒';
   if (type === 'dismissed') return '🚫';
+
+  // Базовые часы
+  let baseHours;
   if (name && ds) {
     const key = `${name}:${ds}`;
     const override = scheduleOverrides[key];
     if (override?.customHours !== undefined && override.customHours === 0) return '🚫';
-    if (override?.customHours) return String(override.customHours);
+    if (override?.customHours) baseHours = override.customHours;
   }
-  // Адам работает как менеджмент — 8 часов
-  if (name === 'Adam') return '8';
-  const defaults = {
-    morning:11, evening:11, night:11,
-    vip_morning:11, vip_evening:11, vip_1200:11,
-    super_day:11, super_night:11, shift1200:11, work8:8
-  };
-  return String(defaults[type] || '');
+  if (!baseHours) {
+    if (name === 'Adam') baseHours = 8;
+    else {
+      const defaults = {
+        morning:11, evening:11, night:11,
+        vip_morning:11, vip_evening:11, vip_1200:11,
+        super_day:11, super_night:11, shift1200:11, work8:8
+      };
+      baseHours = defaults[type] || 0;
+    }
+  }
+
+  // Считаем дельту от доп событий
+  let delta = 0;
+  if (name && ds) {
+    const key = `${name}:${ds}`;
+    const override = scheduleOverrides[key];
+    if (override?.extraEvents?.length) {
+      const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus'];
+      override.extraEvents.forEach(ev => {
+        if (ev.hours > 0) {
+          if (plusTypes.includes(ev.type)) delta += ev.hours;
+          else delta -= ev.hours;
+        }
+      });
+    }
+  }
+
+  const total = baseHours + delta;
+  return total > 0 ? String(total) : '0';
 }
 
 function shiftClass(type) {
@@ -1778,8 +1795,6 @@ function onOperatorChange() {
   const name = document.getElementById('ap-operator').value;
   selectedShiftType = null;
   renderShiftTypeGrid(getSectionForMember(name));
-  document.getElementById('custom-hours-field').style.display = 'none';
-  document.getElementById('ap-custom-hours').value = '';
 }
 
 function getSectionForMember(name) {
@@ -1804,14 +1819,12 @@ function openAdmin() {
   document.getElementById('ap-date-from').value = ds;
   document.getElementById('ap-date-to').value = ds;
   document.getElementById('ap-note').value = '';
-  document.getElementById('ap-custom-hours').value = '';
   document.getElementById('save-msg').className = 'save-msg';
   selectedShiftType = null;
   extraPlusEvents = []; extraMinusEvents = [];
   renderExtraEvents();
   const name = document.getElementById('ap-operator').value;
   renderShiftTypeGrid(getSectionForMember(name));
-  document.getElementById('custom-hours-field').style.display = 'none';
   document.getElementById('admin-overlay').classList.add('open');
 }
 
@@ -1842,9 +1855,6 @@ function quickEdit(name, ds, di) {
   const key = `${name}:${ds}`;
   const override = scheduleOverrides[key];
   const customH = override?.customHours || '';
-  document.getElementById('ap-custom-hours').value = customH;
-  updateHoursHint(currentType);
-  document.getElementById('custom-hours-field').style.display =
     selectedShiftType && !['off','vacation','sick'].includes(selectedShiftType) ? 'flex' : 'none';
 
   // Загружаем доп события
@@ -1863,14 +1873,6 @@ function selectShiftType(btn) {
   btn.classList.add('selected');
   selectedShiftType = btn.dataset.type;
   const showHours = !['off','vacation','sick'].includes(selectedShiftType);
-  document.getElementById('custom-hours-field').style.display = showHours ? 'flex' : 'none';
-  updateHoursHint(selectedShiftType);
-}
-
-function updateHoursHint(type) {
-  const defaults = { morning:9, evening:9, night:10, super_day:12, super_night:12, work8:8 };
-  const h = defaults[type];
-  document.getElementById('ap-default-hours-hint').textContent = h ? `по умолчанию: ${h}ч` : '';
 }
 
 async function saveShift() {
@@ -1878,7 +1880,6 @@ async function saveShift() {
   const dateFrom = document.getElementById('ap-date-from').value;
   const dateTo = document.getElementById('ap-date-to').value;
   const note = document.getElementById('ap-note').value.trim();
-  const customHoursVal = document.getElementById('ap-custom-hours').value;
   const customHours = customHoursVal ? parseInt(customHoursVal) : null;
   const msgEl = document.getElementById('save-msg');
 

@@ -1992,11 +1992,11 @@ const SHIFT_TYPES_ALL = [
   { type: 'extra_evening',  label: '+ Доп Ночь',time: '21–09', group: 'Regular' },
   { type: 'extra_1200',     label: '+ Доп 12-12',time: '12–00',group: 'Regular' },
   // VIP
-  { type: 'vip_morning',       label: 'День',       time: '09–21', group: 'VIP' },
-  { type: 'vip_evening',       label: 'Ночь',       time: '21–09', group: 'VIP' },
+  { type: 'vip_evening',       label: 'День',       time: '09–21', group: 'VIP' },
+  { type: 'vip_morning',       label: 'Ночь',       time: '21–09', group: 'VIP' },
   { type: 'vip_1200',          label: '12-12',      time: '12–00', group: 'VIP' },
-  { type: 'extra_vip_morning', label: '+ Доп День', time: '09–21', group: 'VIP' },
-  { type: 'extra_vip_evening', label: '+ Доп Ночь', time: '21–09', group: 'VIP' },
+  { type: 'extra_vip_evening', label: '+ Доп День', time: '09–21', group: 'VIP' },
+  { type: 'extra_vip_morning', label: '+ Доп Ночь', time: '21–09', group: 'VIP' },
   { type: 'extra_vip_1200',    label: '+ Доп 12-12',time: '12–00', group: 'VIP' },
   // Supervisor
   { type: 'super_day',       label: 'День 11ч',   time: '09–21', group: 'Sup' },
@@ -2067,7 +2067,15 @@ function renderExtraEvents() {
 }
 
 function renderExtraBlock(kind) {
-  const types = kind === 'plus' ? EXTRA_PLUS_TYPES : EXTRA_MINUS_TYPES;
+  const isSick = selectedShiftType === 'sick';
+  const plusTypes = isSick
+    ? EXTRA_PLUS_TYPES.filter(t => t.value === 'extra_sick_paid')
+    : EXTRA_PLUS_TYPES.filter(t => t.value !== 'extra_sick_paid');
+  const minusTypes = isSick
+    ? EXTRA_MINUS_TYPES.filter(t => t.value === 'loss_sick')
+    : EXTRA_MINUS_TYPES;
+
+  const types = kind === 'plus' ? plusTypes : minusTypes;
   const events = kind === 'plus' ? extraPlusEvents : extraMinusEvents;
   const list = document.getElementById(`extra-${kind}-list`);
   list.innerHTML = '';
@@ -2210,6 +2218,8 @@ function selectShiftType(btn) {
   document.querySelectorAll('.shift-type-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   selectedShiftType = btn.dataset.type;
+
+  // Поле кастомных часов — только для доп смен
   const isExtra = selectedShiftType.startsWith('extra_');
   const hoursField = document.getElementById('custom-hours-field');
   const hint = document.getElementById('ap-default-hours-hint');
@@ -2220,6 +2230,39 @@ function selectShiftType(btn) {
       hint.textContent = `по умолчанию: ${defH}ч`;
     }
   }
+
+  // При выборе больничного — автоматически добавляем потерю часов
+  if (selectedShiftType === 'sick') {
+    // Берём часы предыдущей смены оператора или дефолт 11
+    const opName = document.getElementById('ap-operator').value;
+    const dateFrom = document.getElementById('ap-date-from').value;
+    let defaultH = 11;
+    if (opName && dateFrom) {
+      const dt = new Date(dateFrom);
+      const di = dt.getDate() - 1;
+      const prevType = OPERATOR_BASE_SHIFTS[opName] ? OPERATOR_BASE_SHIFTS[opName](di) : null;
+      if (prevType && DEFAULT_HOURS[prevType]) defaultH = DEFAULT_HOURS[prevType];
+    }
+    // Добавляем потерю если ещё нет
+    const alreadyHas = extraMinusEvents.some(e => e.type === 'loss_sick');
+    if (!alreadyHas) {
+      extraMinusEvents = [{ type: 'loss_sick', hours: defaultH }];
+      renderExtraEvents();
+    }
+    // Ограничиваем доп события — только больничный и оплачиваемый больничный
+    document.getElementById('ap-note').required = true;
+    document.getElementById('ap-note').placeholder = 'Заметка обязательна для больничного';
+  } else {
+    // Снимаем ограничения
+    document.getElementById('ap-note').required = false;
+    document.getElementById('ap-note').placeholder = 'например: замена Кена';
+    // Убираем авто-потерю если была добавлена автоматически
+    extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    renderExtraEvents();
+  }
+
+  // Показываем/скрываем оплачиваемый больничный в плюс событиях
+  renderExtraEvents();
 }
 
 async function saveShift() {
@@ -2232,6 +2275,13 @@ async function saveShift() {
   if (!operator || !dateFrom || !dateTo || !selectedShiftType) {
     msgEl.textContent = 'Выберите сотрудника, период и тип смены';
     msgEl.className = 'save-msg err';
+    return;
+  }
+
+  if (selectedShiftType === 'sick' && !note) {
+    msgEl.textContent = 'Заметка обязательна для больничного';
+    msgEl.className = 'save-msg err';
+    document.getElementById('ap-note').focus();
     return;
   }
 

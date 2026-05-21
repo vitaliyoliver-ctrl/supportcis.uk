@@ -1880,7 +1880,6 @@ async function saveShift() {
   const dateFrom = document.getElementById('ap-date-from').value;
   const dateTo = document.getElementById('ap-date-to').value;
   const note = document.getElementById('ap-note').value.trim();
-  const customHours = customHoursVal ? parseInt(customHoursVal) : null;
   const msgEl = document.getElementById('save-msg');
 
   if (!operator || !dateFrom || !dateTo || !selectedShiftType) {
@@ -1901,11 +1900,11 @@ async function saveShift() {
   for (let dt = new Date(from); dt <= to; dt.setDate(dt.getDate() + 1)) {
     if (dt.getMonth() !== MONTH - 1 || dt.getFullYear() !== YEAR) continue;
     const key = `${operator}:${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0);
     newOverrides[key] = {
       type: selectedShiftType,
       note,
-      ...(customHours ? { customHours } : {}),
-      ...(([...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0)).length ? { extraEvents: [...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0) } : {}),
+      ...(allExtraEvents.length ? { extraEvents: allExtraEvents } : {}),
       editedBy: currentUser?.email,
       editedAt: new Date().toISOString()
     };

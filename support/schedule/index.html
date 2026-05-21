@@ -1184,7 +1184,7 @@ function shiftLabel(type, name, ds) {
     const key = `${name}:${ds}`;
     const override = scheduleOverrides[key];
     if (override?.extraEvents?.length) {
-      const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus'];
+      const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
       override.extraEvents.forEach(ev => {
         if (ev.hours > 0) {
           if (plusTypes.includes(ev.type)) delta += ev.hours;
@@ -1325,9 +1325,14 @@ function renderSection(s) {
       }
     }
 
-    thHTML += `<th class="${cls}" data-date="${ds}" style="cursor:pointer;padding:6px 2px" onclick="showDayInfo('${ds}',${di})"><span style="font-size:12px;font-weight:700">${d}</span>${redDot}<br><span style="font-size:9px;font-weight:500;opacity:.8">${day}</span></th>`;
+    thHTML += `<th data-total-col style="background:var(--thead-bg);min-width:44px;padding:8px 4px;border-left:2px solid rgba(255,255,255,0.15);font-size:9px;letter-spacing:0.04em">ИТОГО<br><span style="font-size:8px;font-weight:300;opacity:.7">ч</span></th>`;
   });
   thHTML += '</tr>';
+
+  // Добавляем пустую ячейку в строки счётчиков
+  if (thCountHTML) {
+    thCountHTML = thCountHTML.replace(/<\/tr>/g, `<th style="background:var(--thead-count-bg);border-left:2px solid rgba(255,255,255,0.15)"></th></tr>`);
+  }
 
   thead.innerHTML = thCountHTML + thHTML;
 
@@ -1381,6 +1386,26 @@ function renderSection(s) {
       }
       tdHTML += `</td>`;
     });
+
+    // Считаем итого часов за месяц
+    let totalHours = 0;
+    const plusTypesSet = new Set(['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid']);
+    DAYS.forEach((d, di) => {
+      const ds2 = dateStr(d.d);
+      const type = getShift(name, di);
+      if (['off','vacation','sick','dismissed'].includes(type)) return;
+      const key = `${name}:${ds2}`;
+      const override = scheduleOverrides[key];
+      let h = override?.customHours || DEFAULT_HOURS[type] || 0;
+      if (override?.extraEvents?.length) {
+        override.extraEvents.forEach(ev => {
+          if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
+        });
+      }
+      totalHours += h;
+    });
+
+    tdHTML += `<td style="border-left:2px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
 
     tr.innerHTML = tdHTML;
     tbody.appendChild(tr);
@@ -1722,6 +1747,7 @@ const EXTRA_PLUS_TYPES = [
   { value: 'extra_sick_cover',     label: 'Замена больничного' },
   { value: 'extra_swap_take',      label: 'Получение/Обмен' },
   { value: 'extra_org_plus',       label: 'Орг моменты' },
+  { value: 'extra_sick_paid',      label: 'Оплачиваемый больничный' },
 ];
 
 const EXTRA_MINUS_TYPES = [
@@ -1739,12 +1765,12 @@ const ALL_EXTRA_LABELS = {
   extra_sick_cover:     'Замена больничного',
   extra_swap_take:      'Получение/Обмен',
   extra_org_plus:       'Орг моменты (+)',
+  extra_sick_paid:      'Оплачиваемый больничный',
   loss_sick:            'Больничный (-)',
   loss_vacation:        'Отпуск (-)',
   loss_org:             'Орг моменты (-)',
   loss_swap_give:       'Отдача/Обмен (-)',
   loss_dismissal:       'Увольнение (-)',
-  // старые типы для совместимости
   extra_dismissal:      'Увольнение',
   extra_org:            'Орг моменты',
   extra_swap_give:      'Обмен (отдал)',

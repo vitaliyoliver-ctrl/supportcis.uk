@@ -222,8 +222,8 @@
       color: var(--muted);
       font-weight: 400;
       text-align: center;
-      border-right: 1px solid var(--border);
-      border-bottom: 2px solid var(--border);
+      border-right: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     thead th:last-child { border-right: none; }
     thead th { min-width: 36px; }
@@ -234,11 +234,13 @@
     html.light thead th.weekend { color: var(--muted); background: none; }
     html.light thead th { border-right: 1px solid rgba(0,0,0,0.25) !important; border-bottom: 2px solid rgba(0,0,0,0.3) !important; }
     html.light td { border-right: 2px solid rgba(0,0,0,0.2) !important; }
-    html.light tbody tr { border-bottom: 2px solid rgba(0,0,0,0.2) !important; }
-    html.light .table-wrap { border: 1px solid rgba(0,0,0,0.15) !important; }
+    html.light tbody tr { border-bottom: 1px solid rgba(0,0,0,0.1) !important; }
+    html.light td { border-right: 1px solid rgba(0,0,0,0.1) !important; }
+    html.light thead th { border-right: 1px solid rgba(0,0,0,0.1) !important; border-bottom: 1px solid rgba(0,0,0,0.15) !important; }
+    html.light .table-wrap { border: 1px solid rgba(0,0,0,0.12) !important; }
 
     tbody tr {
-      border-bottom: 2px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
       transition: background .15s;
     }
     tbody tr:last-child { border-bottom: none; }
@@ -252,7 +254,7 @@
       font-size: 11px;
       color: var(--sub);
       vertical-align: middle;
-      border-right: 2px solid var(--border);
+      border-right: 1px solid rgba(255,255,255,0.1);
     }
     td:last-child { border-right: none; }
 
@@ -260,13 +262,13 @@
       text-align: left; padding: 6px 12px; font-weight: 600; color: var(--text);
       font-size: 12px; position: sticky; left: 0; z-index: 1;
       white-space: nowrap; overflow: hidden;
-      border-right: 1px solid var(--border) !important;
+      border-right: 1px solid rgba(255,255,255,0.15) !important;
     }
     td.col-info {
       text-align: left; padding: 4px 8px; position: sticky; left: 130px; z-index: 1;
       white-space: nowrap; overflow: hidden;
-      border-right: 2px solid rgba(128,128,128,0.2) !important;
-      box-shadow: 3px 0 10px rgba(0,0,0,0.15);
+      border-right: 1px solid rgba(255,255,255,0.15) !important;
+      box-shadow: none;
     }
     tbody tr:nth-child(odd)  td.col-name,
     tbody tr:nth-child(odd)  td.col-info { background: var(--row-odd); }
@@ -274,7 +276,7 @@
     tbody tr:nth-child(even) td.col-info { background: var(--row-even); }
     tbody tr:hover td.col-name,
     tbody tr:hover td.col-info { background: var(--row-hover) !important; }
-    td.is-today { background: var(--tl-glow) !important; border-right: 2px solid rgba(91,156,246,0.3) !important; }
+    td.is-today { background: var(--tl-glow) !important; border-right: 1px solid rgba(91,156,246,0.3) !important; }
     td.is-selected { background: rgba(91,156,246,0.13) !important; border-right: 2px solid rgba(91,156,246,0.5) !important; }
     thead th.is-selected { background: rgba(91,156,246,0.18) !important; color: var(--tl) !important; }
 
@@ -1331,7 +1333,7 @@ function renderSection(s) {
 
   // Добавляем пустую ячейку в строки счётчиков
   if (thCountHTML) {
-    thCountHTML = thCountHTML.replace(/<\/tr>/g, `<th style="background:var(--thead-count-bg);border-left:2px solid rgba(255,255,255,0.15)"></th></tr>`);
+    thCountHTML = thCountHTML.replace(/<\/tr>/g, `<th style="background:var(--thead-count-bg);border-left:1px solid rgba(255,255,255,0.15)"></th></tr>`);
   }
 
   thead.innerHTML = thCountHTML + thHTML;
@@ -1405,7 +1407,7 @@ function renderSection(s) {
       totalHours += h;
     });
 
-    tdHTML += `<td style="border-left:2px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
+    tdHTML += `<td style="border-left:1px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
 
     tr.innerHTML = tdHTML;
     tbody.appendChild(tr);
@@ -1885,7 +1887,7 @@ function quickEdit(name, ds, di) {
 
   // Загружаем доп события
   const allEvents = override?.extraEvents ? [...override.extraEvents] : [];
-  const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus'];
+  const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
   extraPlusEvents = allEvents.filter(e => plusTypes.includes(e.type));
   extraMinusEvents = allEvents.filter(e => !plusTypes.includes(e.type));
   renderExtraEvents();

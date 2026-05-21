@@ -549,6 +549,38 @@
       font-size: 9px; color: #f87171; opacity: 0.8;
       font-family: 'Unbounded', sans-serif; letter-spacing: 0.04em;
     }
+    /* Positions mode */
+    .positions-mode tbody tr { cursor: grab; user-select: none; }
+    .positions-mode tbody tr:active { cursor: grabbing; }
+    .drag-over-top td { box-shadow: inset 0 2px 0 var(--ops); }
+    .drag-over-bottom td { box-shadow: inset 0 -2px 0 var(--ops); }
+    .drag-source { opacity: 0.35; }
+    .drop-zone {
+      display: none; padding: 8px;
+      font-size: 10px; font-family: 'Unbounded', sans-serif;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ops); background: rgba(245,158,66,0.06);
+      border: 1px dashed rgba(245,158,66,0.3);
+      border-radius: 6px; margin-top: 4px; text-align: center;
+      cursor: pointer; transition: background .2s;
+    }
+    .drop-zone:hover { background: rgba(245,158,66,0.12); }
+    .positions-mode .drop-zone { display: block; }
+    .positions-mode-banner {
+      display: none; background: rgba(245,158,66,0.1);
+      border: 1px solid rgba(245,158,66,0.3); border-radius: 10px;
+      padding: 10px 16px; margin-bottom: 16px;
+      font-size: 12px; color: var(--ops);
+      align-items: center; gap: 10px;
+    }
+    .positions-mode-banner.visible { display: flex; }
+    .positions-mode-banner button {
+      margin-left: auto; padding: 5px 14px;
+      background: var(--ops); border: none; border-radius: 6px;
+      color: #111; font-size: 11px; font-weight: 700;
+      cursor: pointer; font-family: 'Mulish', sans-serif;
+    }
+
     .toast {
       position: fixed; bottom: 24px; right: 24px; z-index: 500;
       padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
@@ -605,6 +637,8 @@
       <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
       <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
+      <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
+      <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
     </div>
   </nav>
 
@@ -634,6 +668,12 @@
       </div>
     </div>
 
+
+    <!-- POSITIONS MODE BANNER -->
+    <div class="positions-mode-banner" id="positions-banner">
+      ⇅ Режим редактирования позиций — перетащите строки чтобы изменить порядок или перевести в другой отдел
+      <button onclick="savePositions()">Сохранить</button>
+    </div>
 
     <!-- DAY INFO PANEL -->
     <div class="day-info-panel" id="day-info-panel">
@@ -744,7 +784,6 @@
     </div>
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeAdmin()">Отмена</button>
-      <button class="btn-dismiss" onclick="openDismissModal()" title="Уволить сотрудника">🚫</button>
       <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
     </div>
   </div>
@@ -1121,7 +1160,11 @@ const collapsedSections = new Set();
     if (data.ok) {
       currentUser = data;
       isAdmin = data.role === 'tl';
-      if (isAdmin) document.getElementById('admin-btn').classList.add('visible');
+      if (isAdmin) {
+        document.getElementById('admin-btn').classList.add('visible');
+        document.getElementById('dismiss-nav-btn').style.display = 'flex';
+        document.getElementById('positions-btn').style.display = 'flex';
+      }
     }
   } catch {}
 
@@ -1131,6 +1174,15 @@ const collapsedSections = new Set();
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
       scheduleSettings = data.settings || { customHours: {} };
+      // Применяем кастомный порядок если есть
+      if (scheduleSettings.customOrder) {
+        SECTIONS.forEach(s => {
+          if (scheduleSettings.customOrder[s.key]) {
+            s.members = scheduleSettings.customOrder[s.key];
+          }
+        });
+        updateGroupsFromSections();
+      }
       dismissedEmployees = scheduleSettings.dismissed || {};
     }
   } catch {}
@@ -1466,6 +1518,7 @@ function renderSection(s) {
     tdHTML += `<td style="border-left:1px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
 
     tr.innerHTML = tdHTML;
+    if (positionsMode) enableDragOnRow(tr, name, s.key);
     tbody.appendChild(tr);
 
     // Разделитель после супервайзеров
@@ -1479,7 +1532,14 @@ function renderSection(s) {
 
   table.appendChild(tbody);
   wrap.appendChild(table);
+
+  // Drop zone для перетаскивания из других секций
+  const dropZone = document.createElement('div');
+  dropZone.className = 'drop-zone';
+  dropZone.textContent = `↓ Перенести сюда в ${s.label}`;
+  enableDropOnZone(dropZone, s.key);
   body.appendChild(wrap);
+  body.appendChild(dropZone);
   section.appendChild(body);
   return section;
 }
@@ -1539,6 +1599,172 @@ function toggleInfoColumn() {
   } else {
     container.classList.add('col-info-hidden');
     document.getElementById('toggle-info-btn').textContent = '⇔ Инфо ▸';
+  }
+}
+
+// ── Positions Mode ──
+let positionsMode = false;
+let dragSrcRow = null;
+let dragSrcSection = null;
+
+function togglePositionsMode() {
+  positionsMode = !positionsMode;
+  const btn = document.getElementById('positions-btn');
+  const banner = document.getElementById('positions-banner');
+  const container = document.getElementById('schedule-container');
+
+  if (positionsMode) {
+    btn.style.background = 'rgba(245,158,66,0.25)';
+    btn.style.borderColor = 'rgba(245,158,66,0.6)';
+    btn.textContent = '✓ Позиции вкл';
+    banner.classList.add('visible');
+    container.classList.add('positions-mode');
+    renderAll();
+    updateColumnHighlight();
+  } else {
+    btn.style.background = 'rgba(245,158,66,0.1)';
+    btn.style.borderColor = 'rgba(245,158,66,0.3)';
+    btn.textContent = '⇅ Позиции';
+    banner.classList.remove('visible');
+    container.classList.remove('positions-mode');
+  }
+}
+
+function enableDragOnRow(tr, name, sectionKey) {
+  tr.draggable = true;
+
+  tr.addEventListener('dragstart', e => {
+    dragSrcRow = tr;
+    dragSrcSection = sectionKey;
+    tr.classList.add('drag-source');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', name);
+  });
+
+  tr.addEventListener('dragend', () => {
+    tr.classList.remove('drag-source');
+    document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top','drag-over-bottom');
+    });
+  });
+
+  tr.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragSrcRow || dragSrcRow === tr) return;
+    document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    const rect = tr.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (e.clientY < mid) tr.classList.add('drag-over-top');
+    else tr.classList.add('drag-over-bottom');
+  });
+
+  tr.addEventListener('dragleave', () => {
+    tr.classList.remove('drag-over-top','drag-over-bottom');
+  });
+
+  tr.addEventListener('drop', e => {
+    e.preventDefault();
+    if (!dragSrcRow || dragSrcRow === tr) return;
+    const srcName = e.dataTransfer.getData('text/plain');
+    const tgtName = tr.dataset.name;
+    const isBottom = tr.classList.contains('drag-over-bottom');
+    tr.classList.remove('drag-over-top','drag-over-bottom');
+    moveOperator(srcName, dragSrcSection, sectionKey, tgtName, isBottom);
+  });
+}
+
+function enableDropOnZone(el, targetSection) {
+  el.addEventListener('dragover', e => { e.preventDefault(); el.style.background = 'rgba(245,158,66,0.2)'; });
+  el.addEventListener('dragleave', () => { el.style.background = ''; });
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    el.style.background = '';
+    const srcName = e.dataTransfer.getData('text/plain');
+    moveOperator(srcName, dragSrcSection, targetSection, null, false);
+  });
+}
+
+function moveOperator(srcName, fromKey, toKey, beforeName, insertAfter) {
+  // Убираем из старой секции
+  const fromSec = SECTIONS.find(s => s.key === fromKey);
+  const toSec = SECTIONS.find(s => s.key === toKey);
+  if (!fromSec || !toSec) return;
+
+  const fromIdx = fromSec.members.indexOf(srcName);
+  if (fromIdx === -1) return;
+  fromSec.members.splice(fromIdx, 1);
+
+  // Добавляем в новую секцию
+  if (!beforeName || fromKey !== toKey) {
+    // В другую секцию — в конец, или перед указанным
+    if (beforeName && toSec.members.includes(beforeName)) {
+      const tgtIdx = toSec.members.indexOf(beforeName);
+      toSec.members.splice(insertAfter ? tgtIdx + 1 : tgtIdx, 0, srcName);
+    } else {
+      toSec.members.push(srcName);
+    }
+  } else {
+    // Внутри одной секции
+    const tgtIdx = toSec.members.indexOf(beforeName);
+    toSec.members.splice(insertAfter ? tgtIdx + 1 : tgtIdx, 0, srcName);
+  }
+
+  // Обновляем GROUPS тоже
+  updateGroupsFromSections();
+  renderAll();
+  updateColumnHighlight();
+}
+
+function updateGroupsFromSections() {
+  SECTIONS.forEach(s => {
+    if (s.key === 'regular_support') {
+      GROUPS.regular.members = s.members.filter(n =>
+        !['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
+      );
+      GROUPS.supervisors.members = s.members.filter(n =>
+        ['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
+      );
+    }
+    if (s.key === 'vip_support') {
+      GROUPS.vip.members = s.members.filter(n =>
+        !['Adam','Amelia','Lucas'].includes(n)
+      );
+      GROUPS.vip_supervisors.members = s.members.filter(n =>
+        ['Adam','Amelia','Lucas'].includes(n)
+      );
+    }
+    if (s.key === 'management') GROUPS.management.members = [...s.members];
+    if (s.key === 'qa') GROUPS.qa.members = [...s.members];
+  });
+}
+
+async function savePositions() {
+  // Сохраняем кастомный порядок в KV
+  const customOrder = {};
+  SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
+
+  try {
+    const res = await fetch(`${API}/schedule`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        overrides: scheduleOverrides,
+        settings: { ...scheduleSettings, customOrder }
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      scheduleSettings.customOrder = customOrder;
+      showToast('Позиции сохранены', 'ok');
+      togglePositionsMode();
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
   }
 }
 

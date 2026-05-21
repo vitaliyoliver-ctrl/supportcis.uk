@@ -312,6 +312,16 @@
     .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
     .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
     .shift-work8       { background: rgba(139,92,246,0.50);    color: #111; }
+    .shift-extra-morning   { background: rgba(96,165,250,0.20);   color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
+    .shift-extra-evening   { background: rgba(67,56,202,0.30);    color: #fff; border: 2px dashed rgba(99,102,241,0.6); }
+    .shift-extra-1200      { background: rgba(251,146,60,0.22);   color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
+    .shift-extra-vip-morning { background: rgba(56,189,248,0.20); color: #fff; border: 2px dashed rgba(56,189,248,0.6); }
+    .shift-extra-vip-evening { background: rgba(109,40,217,0.30); color: #fff; border: 2px dashed rgba(139,92,246,0.6); }
+    .shift-extra-vip-1200    { background: rgba(251,146,60,0.22); color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
+    .shift-extra-sup-day   { background: rgba(245,158,66,0.22);   color: #fff; border: 2px dashed rgba(245,158,66,0.6); }
+    .shift-extra-sup-night { background: rgba(153,27,27,0.30);    color: #fff; border: 2px dashed rgba(239,68,68,0.6); }
+    .shift-extra-sup-day8  { background: rgba(245,158,66,0.15);   color: #fff; border: 2px dashed rgba(245,158,66,0.4); }
+    .shift-super-day8      { background: rgba(245,158,66,0.40);   color: #fff; }
     .shift-1200        { background: rgba(251,146,60,0.55);    color: #111; }
 
     td.col-name .name-nick { font-size: 14px; font-weight: 800; color: var(--text); }
@@ -697,6 +707,14 @@
         <div class="admin-label">Тип смены</div>
         <div class="shift-type-grid" id="shift-type-grid">
           <!-- заполняется динамически в зависимости от отдела -->
+        </div>
+      </div>
+
+      <div class="admin-field" id="custom-hours-field" style="display:none">
+        <div class="admin-label">Часы в эту смену</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="number" class="admin-input" id="ap-custom-hours" min="0.5" max="24" step="0.5" placeholder="по умолчанию" style="max-width:120px" />
+          <span style="font-size:12px;color:var(--muted)" id="ap-default-hours-hint"></span>
         </div>
       </div>
 
@@ -1142,9 +1160,12 @@ function getShift(name, dayIndex) {
 const DEFAULT_HOURS = {
   morning: 11, evening: 11, night: 11,
   vip_morning: 11, vip_evening: 11, vip_1200: 11,
-  super_day: 11, super_night: 11,
-  shift1200: 11,
-  work8: 8, vacation: 0, sick: 0, off: 0
+  super_day: 11, super_night: 11, super_day8: 8,
+  shift1200: 11, work8: 8,
+  extra_morning: 11, extra_evening: 11, extra_1200: 11,
+  extra_vip_morning: 11, extra_vip_evening: 11, extra_vip_1200: 11,
+  extra_sup_day: 11, extra_sup_night: 11, extra_sup_day8: 8,
+  vacation: 0, sick: 0, off: 0
 };
 
 function getHours(type) {
@@ -1215,9 +1236,20 @@ function shiftClass(type) {
     morning: 'shift-morning', evening: 'shift-evening', night: 'shift-night',
     vip_morning: 'shift-vip-morning', vip_evening: 'shift-vip-evening', vip_1200: 'shift-vip-1200',
     super_day: 'shift-super-day', super_night: 'shift-super-night',
-    shift1200: 'shift-1200',
-    work8: 'shift-work8', vacation: 'shift-vacation', sick: 'shift-sick',
-    dismissed: 'shift-vacation', off: 'shift-off'
+    super_day8: 'shift-super-day8',
+    shift1200: 'shift-1200', work8: 'shift-work8',
+    extra_morning:     'shift-extra-morning',
+    extra_evening:     'shift-extra-evening',
+    extra_1200:        'shift-extra-1200',
+    extra_vip_morning: 'shift-extra-vip-morning',
+    extra_vip_evening: 'shift-extra-vip-evening',
+    extra_vip_1200:    'shift-extra-vip-1200',
+    extra_sup_day:     'shift-extra-sup-day',
+    extra_sup_night:   'shift-extra-sup-night',
+    extra_sup_day8:    'shift-extra-sup-day8',
+    vacation: 'shift-vacation', sick: 'shift-sick',
+    dismissed: 'shift-super-night',
+    off: 'shift-off',
   };
   return map[type] || 'shift-off';
 }
@@ -1727,36 +1759,56 @@ function populateOperatorSelect() {
 // Типы смен по группам
 const SHIFT_TYPES = {
   regular_support: [
-    { type: 'morning',     label: 'Reg День',   time: '09–21' },
-    { type: 'evening',     label: 'Reg Ночь',   time: '21–09' },
-    { type: 'shift1200',   label: 'Reg 12-12',  time: '12–00' },
-    { type: 'vip_morning', label: 'VIP День',   time: '09–21' },
-    { type: 'vip_evening', label: 'VIP Ночь',   time: '21–09' },
-    { type: 'vip_1200',    label: 'VIP 12-12',  time: '12–00' },
-    { type: 'super_day',   label: 'Sup День',   time: '09–21' },
-    { type: 'super_night', label: 'Sup Ночь',   time: '21–09' },
-    { type: 'vacation',    label: 'Отпуск',     time: '✈' },
-    { type: 'sick',        label: 'Больничный', time: '🤒' },
-    { type: 'off',         label: 'Выходной',   time: '—' },
+    { type: 'morning',        label: 'Reg День',        time: '09–21' },
+    { type: 'evening',        label: 'Reg Ночь',        time: '21–09' },
+    { type: 'shift1200',      label: 'Reg 12-12',       time: '12–00' },
+    { type: 'extra_morning',  label: '+ Доп День',      time: '09–21' },
+    { type: 'extra_evening',  label: '+ Доп Ночь',      time: '21–09' },
+    { type: 'extra_1200',     label: '+ Доп 12-12',     time: '12–00' },
+    { type: 'super_day',      label: 'Sup День',        time: '09–21' },
+    { type: 'super_night',    label: 'Sup Ночь',        time: '21–09' },
+    { type: 'vacation',       label: 'Отпуск',          time: '✈' },
+    { type: 'sick',           label: 'Больничный',      time: '🤒' },
+    { type: 'off',            label: 'Выходной',        time: '—' },
   ],
   vip_support: [
-    { type: 'vip_morning', label: 'VIP День',   time: '09–21' },
-    { type: 'vip_evening', label: 'VIP Ночь',   time: '21–09' },
-    { type: 'vip_1200',    label: 'VIP 12-12',  time: '12–00' },
-    { type: 'morning',     label: 'Reg День',   time: '09–21' },
-    { type: 'evening',     label: 'Reg Ночь',   time: '21–09' },
-    { type: 'shift1200',   label: 'Reg 12-12',  time: '12–00' },
-    { type: 'super_day',   label: 'Sup День',   time: '09–21' },
-    { type: 'super_night', label: 'Sup Ночь',   time: '21–09' },
-    { type: 'vacation',    label: 'Отпуск',     time: '✈' },
-    { type: 'sick',        label: 'Больничный', time: '🤒' },
-    { type: 'off',         label: 'Выходной',   time: '—' },
+    { type: 'vip_morning',       label: 'VIP День',        time: '09–21' },
+    { type: 'vip_evening',       label: 'VIP Ночь',        time: '21–09' },
+    { type: 'vip_1200',          label: 'VIP 12-12',       time: '12–00' },
+    { type: 'extra_vip_morning', label: '+ Доп День',      time: '09–21' },
+    { type: 'extra_vip_evening', label: '+ Доп Ночь',      time: '21–09' },
+    { type: 'extra_vip_1200',    label: '+ Доп 12-12',     time: '12–00' },
+    { type: 'super_day',         label: 'Sup День',        time: '09–21' },
+    { type: 'super_night',       label: 'Sup Ночь',        time: '21–09' },
+    { type: 'vacation',          label: 'Отпуск',          time: '✈' },
+    { type: 'sick',              label: 'Больничный',      time: '🤒' },
+    { type: 'off',               label: 'Выходной',        time: '—' },
   ],
   management: [
-    { type: 'work8',    label: '8h',         time: '09–18' },
-    { type: 'vacation', label: 'Отпуск',     time: '✈' },
-    { type: 'sick',     label: 'Больничный', time: '🤒' },
-    { type: 'off',      label: 'Выходной',   time: '—' },
+    { type: 'work8',              label: '8h',             time: '09–18' },
+    { type: 'extra_sup_day',      label: '+ Доп День 11ч', time: '09–21' },
+    { type: 'extra_sup_day8',     label: '+ Доп День 8ч',  time: '09–18' },
+    { type: 'vacation',           label: 'Отпуск',         time: '✈' },
+    { type: 'sick',               label: 'Больничный',     time: '🤒' },
+    { type: 'off',                label: 'Выходной',       time: '—' },
+  ],
+  vip_supervisors: [
+    { type: 'super_day',          label: 'Sup День 11ч',   time: '09–21' },
+    { type: 'super_day8',         label: 'Sup День 8ч',    time: '09–18' },
+    { type: 'extra_sup_day',      label: '+ Доп День 11ч', time: '09–21' },
+    { type: 'extra_sup_day8',     label: '+ Доп День 8ч',  time: '09–18' },
+    { type: 'vacation',           label: 'Отпуск',         time: '✈' },
+    { type: 'sick',               label: 'Больничный',     time: '🤒' },
+    { type: 'off',                label: 'Выходной',       time: '—' },
+  ],
+  supervisors: [
+    { type: 'super_day',          label: 'Sup День',       time: '09–21' },
+    { type: 'super_night',        label: 'Sup Ночь',       time: '21–09' },
+    { type: 'extra_sup_day',      label: '+ Доп День',     time: '09–21' },
+    { type: 'extra_sup_night',    label: '+ Доп Ночь',     time: '21–09' },
+    { type: 'vacation',           label: 'Отпуск',         time: '✈' },
+    { type: 'sick',               label: 'Больничный',     time: '🤒' },
+    { type: 'off',                label: 'Выходной',       time: '—' },
   ],
   qa: [
     { type: 'work8',    label: '8h',         time: '09–18' },
@@ -1850,6 +1902,10 @@ function onOperatorChange() {
 }
 
 function getSectionForMember(name) {
+  // VIP supervisors
+  if (['Adam','Amelia','Lucas'].includes(name)) return 'vip_supervisors';
+  // Regular supervisors
+  if (['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(name)) return 'supervisors';
   for (const s of SECTIONS) {
     if (s.members.includes(name)) return s.key;
   }
@@ -1924,7 +1980,16 @@ function selectShiftType(btn) {
   document.querySelectorAll('.shift-type-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   selectedShiftType = btn.dataset.type;
-  const showHours = !['off','vacation','sick'].includes(selectedShiftType);
+  const isExtra = selectedShiftType.startsWith('extra_');
+  const hoursField = document.getElementById('custom-hours-field');
+  const hint = document.getElementById('ap-default-hours-hint');
+  if (hoursField) {
+    hoursField.style.display = isExtra ? 'flex' : 'none';
+    if (isExtra && hint) {
+      const defH = DEFAULT_HOURS[selectedShiftType] || 11;
+      hint.textContent = `по умолчанию: ${defH}ч`;
+    }
+  }
 }
 
 async function saveShift() {
@@ -1952,10 +2017,14 @@ async function saveShift() {
   for (let dt = new Date(from); dt <= to; dt.setDate(dt.getDate() + 1)) {
     if (dt.getMonth() !== MONTH - 1 || dt.getFullYear() !== YEAR) continue;
     const key = `${operator}:${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    const isExtra = selectedShiftType.startsWith('extra_');
+    const customHoursInput = document.getElementById('ap-custom-hours');
+    const customHours = isExtra && customHoursInput?.value ? parseFloat(customHoursInput.value) : null;
     const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0);
     newOverrides[key] = {
       type: selectedShiftType,
       note,
+      ...(customHours ? { customHours } : {}),
       ...(allExtraEvents.length ? { extraEvents: allExtraEvents } : {}),
       editedBy: currentUser?.email,
       editedAt: new Date().toISOString()

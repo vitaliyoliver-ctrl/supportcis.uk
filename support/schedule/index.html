@@ -468,7 +468,7 @@
 
     .admin-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    .shift-type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .shift-type-grid { display: flex; flex-direction: column; gap: 8px; }
     .shift-type-btn {
       padding: 8px 6px; border-radius: 8px; border: 1px solid var(--border);
       background: transparent; color: var(--muted); font-size: 10px; font-family: 'Mulish', sans-serif;
@@ -1756,66 +1756,44 @@ function populateOperatorSelect() {
   });
 }
 
-// Типы смен по группам
+// Единый список типов смен для всех
+const SHIFT_TYPES_ALL = [
+  // Regular
+  { type: 'morning',        label: 'День',      time: '09–21', group: 'Regular' },
+  { type: 'evening',        label: 'Ночь',      time: '21–09', group: 'Regular' },
+  { type: 'shift1200',      label: '12-12',     time: '12–00', group: 'Regular' },
+  { type: 'extra_morning',  label: '+ Доп День',time: '09–21', group: 'Regular' },
+  { type: 'extra_evening',  label: '+ Доп Ночь',time: '21–09', group: 'Regular' },
+  { type: 'extra_1200',     label: '+ Доп 12-12',time: '12–00',group: 'Regular' },
+  // VIP
+  { type: 'vip_morning',       label: 'День',       time: '09–21', group: 'VIP' },
+  { type: 'vip_evening',       label: 'Ночь',       time: '21–09', group: 'VIP' },
+  { type: 'vip_1200',          label: '12-12',      time: '12–00', group: 'VIP' },
+  { type: 'extra_vip_morning', label: '+ Доп День', time: '09–21', group: 'VIP' },
+  { type: 'extra_vip_evening', label: '+ Доп Ночь', time: '21–09', group: 'VIP' },
+  { type: 'extra_vip_1200',    label: '+ Доп 12-12',time: '12–00', group: 'VIP' },
+  // Supervisor
+  { type: 'super_day',       label: 'День 11ч',   time: '09–21', group: 'Sup' },
+  { type: 'super_night',     label: 'Ночь 11ч',   time: '21–09', group: 'Sup' },
+  { type: 'super_day8',      label: 'День 8ч',    time: '09–18', group: 'Sup' },
+  { type: 'extra_sup_day',   label: '+ Доп 11ч',  time: '09–21', group: 'Sup' },
+  { type: 'extra_sup_night', label: '+ Доп Ночь', time: '21–09', group: 'Sup' },
+  { type: 'extra_sup_day8',  label: '+ Доп 8ч',   time: '09–18', group: 'Sup' },
+  // Management/QA
+  { type: 'work8',    label: '8h офис',   time: '09–18', group: 'Mgmt' },
+  // Общие
+  { type: 'vacation', label: 'Отпуск',    time: '✈',    group: null },
+  { type: 'sick',     label: 'Больничный',time: '🤒',   group: null },
+  { type: 'off',      label: 'Выходной',  time: '—',    group: null },
+];
+
 const SHIFT_TYPES = {
-  regular_support: [
-    { type: 'morning',        label: 'Reg День',        time: '09–21' },
-    { type: 'evening',        label: 'Reg Ночь',        time: '21–09' },
-    { type: 'shift1200',      label: 'Reg 12-12',       time: '12–00' },
-    { type: 'extra_morning',  label: '+ Доп День',      time: '09–21' },
-    { type: 'extra_evening',  label: '+ Доп Ночь',      time: '21–09' },
-    { type: 'extra_1200',     label: '+ Доп 12-12',     time: '12–00' },
-    { type: 'super_day',      label: 'Sup День',        time: '09–21' },
-    { type: 'super_night',    label: 'Sup Ночь',        time: '21–09' },
-    { type: 'vacation',       label: 'Отпуск',          time: '✈' },
-    { type: 'sick',           label: 'Больничный',      time: '🤒' },
-    { type: 'off',            label: 'Выходной',        time: '—' },
-  ],
-  vip_support: [
-    { type: 'vip_morning',       label: 'VIP День',        time: '09–21' },
-    { type: 'vip_evening',       label: 'VIP Ночь',        time: '21–09' },
-    { type: 'vip_1200',          label: 'VIP 12-12',       time: '12–00' },
-    { type: 'extra_vip_morning', label: '+ Доп День',      time: '09–21' },
-    { type: 'extra_vip_evening', label: '+ Доп Ночь',      time: '21–09' },
-    { type: 'extra_vip_1200',    label: '+ Доп 12-12',     time: '12–00' },
-    { type: 'super_day',         label: 'Sup День',        time: '09–21' },
-    { type: 'super_night',       label: 'Sup Ночь',        time: '21–09' },
-    { type: 'vacation',          label: 'Отпуск',          time: '✈' },
-    { type: 'sick',              label: 'Больничный',      time: '🤒' },
-    { type: 'off',               label: 'Выходной',        time: '—' },
-  ],
-  management: [
-    { type: 'work8',              label: '8h',             time: '09–18' },
-    { type: 'extra_sup_day',      label: '+ Доп День 11ч', time: '09–21' },
-    { type: 'extra_sup_day8',     label: '+ Доп День 8ч',  time: '09–18' },
-    { type: 'vacation',           label: 'Отпуск',         time: '✈' },
-    { type: 'sick',               label: 'Больничный',     time: '🤒' },
-    { type: 'off',                label: 'Выходной',       time: '—' },
-  ],
-  vip_supervisors: [
-    { type: 'super_day',          label: 'Sup День 11ч',   time: '09–21' },
-    { type: 'super_day8',         label: 'Sup День 8ч',    time: '09–18' },
-    { type: 'extra_sup_day',      label: '+ Доп День 11ч', time: '09–21' },
-    { type: 'extra_sup_day8',     label: '+ Доп День 8ч',  time: '09–18' },
-    { type: 'vacation',           label: 'Отпуск',         time: '✈' },
-    { type: 'sick',               label: 'Больничный',     time: '🤒' },
-    { type: 'off',                label: 'Выходной',       time: '—' },
-  ],
-  supervisors: [
-    { type: 'super_day',          label: 'Sup День',       time: '09–21' },
-    { type: 'super_night',        label: 'Sup Ночь',       time: '21–09' },
-    { type: 'extra_sup_day',      label: '+ Доп День',     time: '09–21' },
-    { type: 'extra_sup_night',    label: '+ Доп Ночь',     time: '21–09' },
-    { type: 'vacation',           label: 'Отпуск',         time: '✈' },
-    { type: 'sick',               label: 'Больничный',     time: '🤒' },
-    { type: 'off',                label: 'Выходной',       time: '—' },
-  ],
-  qa: [
-    { type: 'work8',    label: '8h',         time: '09–18' },
-    { type: 'vacation', label: 'Отпуск',     time: '✈' },
-    { type: 'sick',     label: 'Больничный', time: '🤒' },
-    { type: 'off',      label: 'Выходной',   time: '—' },
-  ],
+  regular_support: SHIFT_TYPES_ALL,
+  vip_support: SHIFT_TYPES_ALL,
+  management: SHIFT_TYPES_ALL,
+  vip_supervisors: SHIFT_TYPES_ALL,
+  supervisors: SHIFT_TYPES_ALL,
+  qa: SHIFT_TYPES_ALL,
 };
 
 // Типы доп событий
@@ -1913,13 +1891,39 @@ function getSectionForMember(name) {
 }
 
 function renderShiftTypeGrid(sectionKey) {
-  const types = SHIFT_TYPES[sectionKey] || SHIFT_TYPES.regular_support;
+  const types = SHIFT_TYPES_ALL;
   const grid = document.getElementById('shift-type-grid');
-  grid.innerHTML = types.map(t => `
-    <button class="shift-type-btn" data-type="${t.type}" onclick="selectShiftType(this)">
-      <span class="stime">${t.time}</span>${t.label}
-    </button>
-  `).join('');
+  grid.style.display = 'flex';
+  grid.style.flexDirection = 'column';
+  grid.style.gap = '8px';
+  grid.innerHTML = '';
+
+  const groups = ['Regular', 'VIP', 'Sup', 'Mgmt', null];
+  const groupLabels = { Regular: 'Regular', VIP: 'VIP', Sup: 'Supervisor', Mgmt: 'Management', null: '' };
+
+  groups.forEach(group => {
+    const groupTypes = types.filter(t => t.group === group || (group === null && t.group === null));
+    if (!groupTypes.length) return;
+
+    if (group !== null) {
+      const divider = document.createElement('div');
+      divider.style.cssText = 'font-size:9px;font-family:Unbounded,sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:4px 0 2px;border-top:1px solid var(--border);margin-top:4px';
+      divider.textContent = groupLabels[group];
+      grid.appendChild(divider);
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px';
+    groupTypes.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'shift-type-btn';
+      btn.dataset.type = t.type;
+      btn.onclick = () => selectShiftType(btn);
+      btn.innerHTML = `<span class="stime">${t.time}</span>${t.label}`;
+      row.appendChild(btn);
+    });
+    grid.appendChild(row);
+  });
 }
 
 function openAdmin() {

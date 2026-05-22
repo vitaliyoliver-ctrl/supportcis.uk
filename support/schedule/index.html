@@ -2329,7 +2329,7 @@ function renderExtraBlock(kind) {
         ${types.map(t => `<option value="${t.value}" ${ev.type===t.value?'selected':''}>${t.label}</option>`).join('')}
       </select>
       <input type="number" class="extra-event-hours" placeholder="часы" min="0.5" max="24" step="0.5"
-        value="${ev.hours||''}" onchange="extra${kind==='plus'?'Plus':'Minus'}Events[${i}].hours=parseFloat(this.value)||0" />
+        value="${ev.hours||''}" oninput="extra${kind==='plus'?'Plus':'Minus'}Events[${i}].hours=parseFloat(this.value)||0" />
       <button class="extra-event-remove" onclick="removeExtraEvent('${kind}',${i})">✕</button>
     `;
     list.appendChild(row);

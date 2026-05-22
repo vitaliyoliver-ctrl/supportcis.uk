@@ -552,7 +552,11 @@
       font-family: 'Unbounded', sans-serif; letter-spacing: 0.04em;
     }
     /* Positions mode */
-    .btn-delete-row {
+    .note-dot {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #fbbf24; flex-shrink: 0;
+    }
       display: none; position: absolute; right: 4px; top: 50%;
       transform: translateY(-50%);
       width: 20px; height: 20px; border-radius: 50%;
@@ -791,8 +795,8 @@
       <div class="admin-divider"></div>
 
       <div class="admin-field">
-        <div class="admin-label">Заметка (необязательно)</div>
-        <input type="text" class="admin-input" id="ap-note" placeholder="например: замена Кена" maxlength="80" />
+        <div class="admin-label">Заметка</div>
+        <input type="text" class="admin-input" id="ap-note" placeholder="Укажите причину" maxlength="80" required />
       </div>
 
       <div class="save-msg" id="save-msg"></div>
@@ -1561,17 +1565,23 @@ function renderSection(s) {
       const label = shiftLabel(type, name, ds);
       const cls = shiftClass(type);
       const key = `${name}:${ds}`;
-      const note = scheduleOverrides[key]?.note || '';
+      const override = scheduleOverrides[key];
+      const note = override?.note || '';
+      const hasPaidSick = override?.extraEvents?.some(e => e.type === 'extra_sick_paid');
       const todayCls = isToday ? ' is-today' : '';
       const editAttr = isAdmin ? ` style="cursor:pointer" title="${note || 'Редактировать'}"` : (note ? ` title="${note}"` : '');
       const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
+      const noteDot = note ? `<span class="note-dot"></span>` : '';
 
-      tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr}>`;
+      tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
       if (type === 'off') {
         tdHTML += `<span class="shift-pill shift-off">—</span>`;
+      } else if (type === 'sick' && hasPaidSick) {
+        tdHTML += `<span class="shift-pill ${cls}">🤒💰</span>`;
       } else {
         tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
       }
+      tdHTML += noteDot;
       tdHTML += `</td>`;
     });
 
@@ -2500,8 +2510,7 @@ function selectShiftType(btn) {
     document.getElementById('ap-note').placeholder = 'Заметка обязательна для больничного';
   } else {
     // Снимаем ограничения
-    document.getElementById('ap-note').required = false;
-    document.getElementById('ap-note').placeholder = 'например: замена Кена';
+    document.getElementById('ap-note').placeholder = 'Укажите причину';
     // Убираем авто-потерю если была добавлена автоматически
     extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
     renderExtraEvents();
@@ -2524,8 +2533,8 @@ async function saveShift() {
     return;
   }
 
-  if (selectedShiftType === 'sick' && !note) {
-    msgEl.textContent = 'Заметка обязательна для больничного';
+  if (!note) {
+    msgEl.textContent = 'Заметка обязательна';
     msgEl.className = 'save-msg err';
     document.getElementById('ap-note').focus();
     return;

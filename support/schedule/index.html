@@ -555,7 +555,7 @@
     .note-dot {
       position: absolute; bottom: 2px; right: 2px;
       width: 5px; height: 5px; border-radius: 50%;
-      background: #fbbf24; flex-shrink: 0;
+      background: #fbbf24; pointer-events: none; z-index: 1;
     }
       display: none; position: absolute; right: 4px; top: 50%;
       transform: translateY(-50%);
@@ -1325,7 +1325,7 @@ function shiftLabel(type, name, ds) {
       const key = `${name}:${ds}`;
       const override = scheduleOverrides[key];
       const hasPaidSick = override?.extraEvents?.some(e => e.type === 'extra_sick_paid');
-      if (hasPaidSick) return '🤒💰';
+      if (hasPaidSick && hasPaidSick.hours > 0) return '🤒💰';
     }
     return '🤒';
   }
@@ -1567,7 +1567,7 @@ function renderSection(s) {
       const key = `${name}:${ds}`;
       const override = scheduleOverrides[key];
       const note = override?.note || '';
-      const hasPaidSick = override?.extraEvents?.some(e => e.type === 'extra_sick_paid');
+      const hasPaidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
       const todayCls = isToday ? ' is-today' : '';
       const editAttr = isAdmin ? ` style="cursor:pointer" title="${note || 'Редактировать'}"` : (note ? ` title="${note}"` : '');
       const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
@@ -1576,7 +1576,7 @@ function renderSection(s) {
       tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
       if (type === 'off') {
         tdHTML += `<span class="shift-pill shift-off">—</span>`;
-      } else if (type === 'sick' && hasPaidSick) {
+      } else if (type === 'sick' && hasPaidSick?.hours > 0) {
         tdHTML += `<span class="shift-pill ${cls}">🤒💰</span>`;
       } else {
         tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;

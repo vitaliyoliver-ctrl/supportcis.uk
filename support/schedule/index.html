@@ -1320,12 +1320,11 @@ function shiftLabel(type, name, ds) {
   if (type === 'nk') return 'НК';
   if (type === 'dismissed') return '🚫';
   if (type === 'sick') {
-    // Проверяем есть ли оплачиваемый больничный
     if (name && ds) {
       const key = `${name}:${ds}`;
       const override = scheduleOverrides[key];
-      const hasPaidSick = override?.extraEvents?.some(e => e.type === 'extra_sick_paid');
-      if (hasPaidSick && hasPaidSick.hours > 0) return '🤒💰';
+      const paidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
+      if (paidSick) return '🤒💰';
     }
     return '🤒';
   }
@@ -1547,9 +1546,10 @@ function renderSection(s) {
       ? `<div class="dismissed-badge">уволен с ${dismissedEmployees[name]}</div>`
       : '';
 
+    const deleteBtnStyle = positionsMode ? 'display:flex' : 'display:none';
     let tdHTML = `<td class="col-name" style="position:relative">
       <span class="${nameClass}">${name}</span>
-      <button class="btn-delete-row" onclick="deleteEmployee('${name}','${s.key}')" title="Удалить">✕</button>
+      <button class="btn-delete-row" style="${deleteBtnStyle}" onclick="deleteEmployee('${name}','${s.key}')" title="Удалить">✕</button>
     </td>`;
     tdHTML += `<td class="col-info">
       ${pos ? `<div class="name-pos">${pos}</div>` : ''}
@@ -1576,8 +1576,6 @@ function renderSection(s) {
       tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
       if (type === 'off') {
         tdHTML += `<span class="shift-pill shift-off">—</span>`;
-      } else if (type === 'sick' && hasPaidSick?.hours > 0) {
-        tdHTML += `<span class="shift-pill ${cls}">🤒💰</span>`;
       } else {
         tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
       }
@@ -2533,8 +2531,11 @@ async function saveShift() {
     return;
   }
 
-  if (!note) {
-    msgEl.textContent = 'Заметка обязательна';
+  const hasExtraEvents = [...extraPlusEvents, ...extraMinusEvents].some(e => e.hours > 0);
+  const isSick = selectedShiftType === 'sick';
+
+  if ((hasExtraEvents || isSick) && !note) {
+    msgEl.textContent = 'Заметка обязательна при доп событиях или больничном';
     msgEl.className = 'save-msg err';
     document.getElementById('ap-note').focus();
     return;

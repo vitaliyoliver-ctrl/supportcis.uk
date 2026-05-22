@@ -1408,24 +1408,22 @@ function renderSection(s) {
   const thead = document.createElement('thead');
   table.appendChild(thead);
 
-  // Предвычисляем счётчики для каждого дня (только для regular/vip секций)
+  // Все операторы для подсчёта (считаем по типу смены, не по группе)
+  const allOperators = SECTIONS.flatMap(s2 => s2.members);
   const isOpSection = ['regular_support', 'vip_support'].includes(s.key);
-  const regOps = GROUPS.regular.members;
-  const vipOps = GROUPS.vip.members;
 
   // 3 строки счётчиков: утро, вечер, ночь (только для operator секций)
   let thCountHTML = '';
   if (isOpSection) {
-    const ops = s.key === 'regular_support' ? regOps : vipOps;
     const shiftRowsReg = [
-      { types: ['morning'],   label: '09–21', color: 'var(--shift-morning)', min: 4 },
-      { types: ['evening'],   label: '21–09', color: 'var(--shift-evening)', min: 3 },
-      { types: ['shift1200'], label: '12–00', color: '#f59e0b',              min: 2 },
+      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
+      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: 3 },
+      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: 2 },
     ];
     const shiftRowsVip = [
-      { types: ['vip_evening'], label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
-      { types: ['vip_morning'], label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
-      { types: ['vip_1200','d12'], label: '12–00', color: '#f59e0b',              min: 2 },
+      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
+      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
+      { types: ['vip_1200','extra_vip_1200','d12'],    label: '12–00', color: '#f59e0b',                  min: 2 },
     ];
     const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
     shiftRows.forEach(({ types, label, color, min }) => {
@@ -1442,7 +1440,8 @@ function renderSection(s) {
         const isWeekend = dow === 0 || dow === 6;
         const isToday = dateStr(d) === TODAY_STR;
         const baseCls = isToday ? 'today' : isWeekend ? 'weekend' : '';
-        const count = ops.filter(n => types.includes(getShift(n, di))).length;
+        // Считаем по ВСЕМ операторам — кто работает эту смену
+        const count = allOperators.filter(n => types.includes(getShift(n, di))).length;
         const isLow = count < min;
         const bg = isLow ? 'background:rgba(248,113,113,0.2);' : '';
         const fg = isLow ? '#f87171' : color;
@@ -1465,11 +1464,14 @@ function renderSection(s) {
 
     let redDot = '';
     if (isOpSection) {
-      const ops = s.key === 'regular_support' ? regOps : vipOps;
-      const dayTypes = s.key === 'regular_support' ? ['morning'] : ['vip_evening'];
-      const nightTypes = s.key === 'regular_support' ? ['evening'] : ['vip_morning'];
-      const dayCount = ops.filter(n => dayTypes.includes(getShift(n,di))).length;
-      const nightCount = ops.filter(n => nightTypes.includes(getShift(n,di))).length;
+      const dayTypes = s.key === 'regular_support'
+        ? ['morning','extra_morning']
+        : ['vip_evening','extra_vip_evening'];
+      const nightTypes = s.key === 'regular_support'
+        ? ['evening','extra_evening']
+        : ['vip_morning','extra_vip_morning'];
+      const dayCount = allOperators.filter(n => dayTypes.includes(getShift(n,di))).length;
+      const nightCount = allOperators.filter(n => nightTypes.includes(getShift(n,di))).length;
       if (dayCount < 4 || nightCount < 3) {
         redDot = `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#f87171;margin-left:2px;vertical-align:middle"></span>`;
       }
@@ -1928,12 +1930,13 @@ function showDayInfo(ds, di) {
   const REG_SUPS = GROUPS.supervisors.members;
   const VIP_SUPS = GROUPS.vip_supervisors.members;
 
-  const regM  = REGULAR_OPS.filter(n => getShift(n, di) === 'morning').length;
-  const regE  = REGULAR_OPS.filter(n => getShift(n, di) === 'evening').length;
-  const reg12 = REGULAR_OPS.filter(n => getShift(n, di) === 'shift1200').length;
-  const vipM  = VIP_OPS.filter(n => getShift(n, di) === 'vip_evening').length;
-  const vipE  = VIP_OPS.filter(n => getShift(n, di) === 'vip_morning').length;
-  const vip12 = VIP_OPS.filter(n => ['vip_1200','d12'].includes(getShift(n, di))).length;
+  const ALL_OPS = SECTIONS.flatMap(s => s.members);
+  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di))).length;
+  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di))).length;
+  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di))).length;
+  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di))).length;
+  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di))).length;
+  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di))).length;
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
 

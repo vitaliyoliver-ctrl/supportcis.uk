@@ -550,7 +550,18 @@
       font-family: 'Unbounded', sans-serif; letter-spacing: 0.04em;
     }
     /* Positions mode */
-    .positions-mode tbody tr { cursor: grab; user-select: none; }
+    .btn-delete-row {
+      display: none; position: absolute; right: 4px; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(248,113,113,0.2); border: 1px solid rgba(248,113,113,0.4);
+      color: #f87171; font-size: 11px; cursor: pointer;
+      align-items: center; justify-content: center;
+      transition: all .2s; z-index: 3;
+    }
+    .btn-delete-row:hover { background: rgba(248,113,113,0.4); }
+    .positions-mode td.col-name { overflow: visible; }
+    .positions-mode .btn-delete-row { display: flex; }
     .positions-mode tbody tr:active { cursor: grabbing; }
     .drag-over-top td { box-shadow: inset 0 2px 0 var(--ops); }
     .drag-over-bottom td { box-shadow: inset 0 -2px 0 var(--ops); }
@@ -671,7 +682,8 @@
 
     <!-- POSITIONS MODE BANNER -->
     <div class="positions-mode-banner" id="positions-banner">
-      ⇅ Режим редактирования позиций — перетащите строки чтобы изменить порядок или перевести в другой отдел
+      <span>⇅ Режим редактирования — перетаскивайте строки, удаляйте или добавляйте сотрудников</span>
+      <button onclick="openAddEmployeeModal()" style="background:var(--support);margin-left:0">+ Добавить</button>
       <button onclick="savePositions()">Сохранить</button>
     </div>
 
@@ -811,6 +823,48 @@
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeDismissModal()">Отмена</button>
       <button class="btn-save" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 16px rgba(239,68,68,0.3)" onclick="applyDismissal()">Уволить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE MODAL -->
+<div class="admin-overlay" id="add-employee-overlay" onclick="if(event.target===this)closeAddEmployeeModal()">
+  <div class="admin-panel" style="width:380px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">Добавить сотрудника</div>
+      <button class="close-btn" onclick="closeAddEmployeeModal()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Ник (отображается в графике)</div>
+        <input type="text" class="admin-input" id="new-emp-name" placeholder="например: Alex" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Email</div>
+        <input type="email" class="admin-input" id="new-emp-email" placeholder="name@velvix.org" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Позиция</div>
+        <input type="text" class="admin-input" id="new-emp-position" placeholder="Support / VIP / Supervisor..." />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата начала работы</div>
+        <input type="date" class="admin-input" id="new-emp-since" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Отдел</div>
+        <select class="admin-select" id="new-emp-section">
+          <option value="regular_support">Regular Support</option>
+          <option value="vip_support">VIP Support</option>
+          <option value="management">Management</option>
+          <option value="qa">QA</option>
+        </select>
+      </div>
+      <div class="save-msg" id="add-emp-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeAddEmployeeModal()">Отмена</button>
+      <button class="btn-save" onclick="addEmployee()">Добавить</button>
     </div>
   </div>
 </div>
@@ -1456,7 +1510,10 @@ function renderSection(s) {
       ? `<div class="dismissed-badge">уволен с ${dismissedEmployees[name]}</div>`
       : '';
 
-    let tdHTML = `<td class="col-name"><span class="${nameClass}">${name}</span></td>`;
+    let tdHTML = `<td class="col-name" style="position:relative">
+      <span class="${nameClass}">${name}</span>
+      <button class="btn-delete-row" onclick="deleteEmployee('${name}','${s.key}')" title="Удалить">✕</button>
+    </td>`;
     tdHTML += `<td class="col-info">
       ${pos ? `<div class="name-pos">${pos}</div>` : ''}
       ${email ? `<div class="name-email">${email}</div>` : ''}
@@ -1766,6 +1823,90 @@ async function savePositions() {
   } catch {
     showToast('Ошибка сети', 'err');
   }
+}
+
+function openAddEmployeeModal() {
+  document.getElementById('new-emp-name').value = '';
+  document.getElementById('new-emp-email').value = '';
+  document.getElementById('new-emp-position').value = '';
+  document.getElementById('new-emp-since').value = '';
+  document.getElementById('add-emp-msg').className = 'save-msg';
+  document.getElementById('add-employee-overlay').classList.add('open');
+}
+
+function closeAddEmployeeModal() {
+  document.getElementById('add-employee-overlay').classList.remove('open');
+}
+
+function addEmployee() {
+  const name = document.getElementById('new-emp-name').value.trim();
+  const email = document.getElementById('new-emp-email').value.trim();
+  const position = document.getElementById('new-emp-position').value.trim();
+  const since = document.getElementById('new-emp-since').value;
+  const sectionKey = document.getElementById('new-emp-section').value;
+  const msgEl = document.getElementById('add-emp-msg');
+
+  if (!name) {
+    msgEl.textContent = 'Введите имя сотрудника';
+    msgEl.className = 'save-msg err';
+    return;
+  }
+  if (SECTIONS.some(s => s.members.includes(name))) {
+    msgEl.textContent = 'Сотрудник с таким ником уже существует';
+    msgEl.className = 'save-msg err';
+    return;
+  }
+
+  // Добавляем в EMPLOYEES
+  EMPLOYEES[name] = { email, position, since };
+
+  // Добавляем в секцию
+  const sec = SECTIONS.find(s => s.key === sectionKey);
+  if (sec) sec.members.push(name);
+
+  // Добавляем паттерн (пустой — всё будет через overrides)
+  OPERATOR_BASE_SHIFTS[name] = () => 'off';
+
+  updateGroupsFromSections();
+  closeAddEmployeeModal();
+  renderAll();
+  updateColumnHighlight();
+  showToast(`${name} добавлен`, 'ok');
+}
+
+function deleteEmployee(name, sectionKey) {
+  if (!confirm(`Удалить ${name} из графика?`)) return;
+  const sec = SECTIONS.find(s => s.key === sectionKey);
+  if (sec) {
+    const idx = sec.members.indexOf(name);
+    if (idx !== -1) sec.members.splice(idx, 1);
+  }
+  updateGroupsFromSections();
+  renderAll();
+  updateColumnHighlight();
+  showToast(`${name} удалён`, 'ok');
+}
+
+function restoreDismissed(name) {
+  // Убираем все dismissed overrides для этого оператора
+  const newOverrides = { ...scheduleOverrides };
+  Object.keys(newOverrides).forEach(key => {
+    if (key.startsWith(`${name}:`) && newOverrides[key].type === 'dismissed') {
+      delete newOverrides[key];
+    }
+  });
+  scheduleOverrides = newOverrides;
+  renderAll();
+  updateColumnHighlight();
+  closeAdmin();
+  showToast(`${name} восстановлен`, 'ok');
+
+  // Сохраняем
+  fetch(`${API}/schedule`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
+  });
 }
 
 function toggleSection(key) {
@@ -2200,8 +2341,20 @@ function quickEdit(name, ds, di) {
 
   const key = `${name}:${ds}`;
   const override = scheduleOverrides[key];
-  const customH = override?.customHours || '';
-    selectedShiftType && !['off','vacation','sick'].includes(selectedShiftType) ? 'flex' : 'none';
+
+  // Кнопка восстановления если уволен
+  const isDismissed = !!dismissedEmployees[name];
+  let restoreBtn = document.getElementById('restore-btn');
+  if (!restoreBtn) {
+    restoreBtn = document.createElement('button');
+    restoreBtn.id = 'restore-btn';
+    restoreBtn.className = 'btn-cancel';
+    restoreBtn.style.cssText = 'color:#34d399;border-color:rgba(52,211,153,0.3);display:none';
+    restoreBtn.textContent = '↩ Восстановить';
+    document.querySelector('.admin-panel-footer').prepend(restoreBtn);
+  }
+  restoreBtn.style.display = isDismissed ? 'block' : 'none';
+  restoreBtn.onclick = () => restoreDismissed(name);
 
   // Загружаем доп события
   const allEvents = override?.extraEvents ? [...override.extraEvents] : [];

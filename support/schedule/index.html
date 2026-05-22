@@ -312,6 +312,7 @@
     .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
     .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
     .shift-work8       { background: rgba(139,92,246,0.50);    color: #111; }
+    .shift-1200        { background: rgba(251,146,60,0.55);    color: #111; }
     .shift-extra-morning   { background: rgba(96,165,250,0.20);   color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
     .shift-extra-evening   { background: rgba(67,56,202,0.30);    color: #fff; border: 2px dashed rgba(99,102,241,0.6); }
     .shift-extra-1200      { background: rgba(251,146,60,0.22);   color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
@@ -1446,14 +1447,14 @@ function renderSection(s) {
   let thCountHTML = '';
   if (isOpSection) {
     const shiftRowsReg = [
-      { types: ['morning', 'extra_morning', 'extra_sup_day'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
-      { types: ['evening', 'extra_evening', 'extra_sup_night'],         label: '21–09', color: 'var(--shift-evening)', min: 3 },
-      { types: ['shift1200','extra_1200'],                               label: '12–00', color: '#f59e0b',              min: 2 },
+      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
+      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: 3 },
+      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: 2 },
     ];
     const shiftRowsVip = [
-      { types: ['vip_evening','extra_vip_evening','extra_sup_day','extra_sup_day8'], label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
-      { types: ['vip_morning','extra_vip_morning','extra_sup_night'],               label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
-      { types: ['vip_1200','extra_vip_1200','d12'],                                  label: '12–00', color: '#f59e0b',                  min: 2 },
+      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
+      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
+      { types: ['vip_1200','extra_vip_1200','d12'],    label: '12–00', color: '#f59e0b',                  min: 2 },
     ];
     const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
     shiftRows.forEach(({ types, label, color, min }) => {
@@ -2019,11 +2020,11 @@ function showDayInfo(ds, di) {
   const VIP_SUPS = GROUPS.vip_supervisors.members;
 
   const ALL_OPS = SECTIONS.flatMap(s => s.members);
-  const regM  = ALL_OPS.filter(n => ['morning','extra_morning','extra_sup_day'].includes(getShift(n, di))).length;
-  const regE  = ALL_OPS.filter(n => ['evening','extra_evening','extra_sup_night'].includes(getShift(n, di))).length;
+  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di))).length;
+  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di))).length;
   const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di))).length;
-  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening','extra_sup_day','extra_sup_day8'].includes(getShift(n, di))).length;
-  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning','extra_sup_night'].includes(getShift(n, di))).length;
+  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di))).length;
+  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di))).length;
   const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di))).length;
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
@@ -2054,11 +2055,11 @@ function showDayInfo(ds, di) {
   `;
 
   // Супервайзеры
-  const supDay   = REG_SUPS.filter(n => getShift(n, di) === 'super_day');
-  const supNight = REG_SUPS.filter(n => getShift(n, di) === 'super_night');
+  const supDay   = REG_SUPS.filter(n => ['super_day','extra_sup_day','extra_sup_day8'].includes(getShift(n, di)));
+  const supNight = REG_SUPS.filter(n => ['super_night','extra_sup_night'].includes(getShift(n, di)));
   const vipSup   = VIP_SUPS.filter(n => {
     const t = getShift(n, di);
-    return t === 'super_day' || t === 'super_night' || t === 'work8';
+    return ['super_day','super_day8','super_night','extra_sup_day','extra_sup_day8','extra_sup_night','work8'].includes(t);
   });
 
   // Форматируем дату

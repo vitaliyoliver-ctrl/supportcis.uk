@@ -1885,10 +1885,10 @@ async function clearShifts() {
 
   const newOverrides = { ...scheduleOverrides };
   // Удаляем все overrides для этого оператора за текущий месяц
-  Object.keys(newOverrides).forEach(key => {
-    if (key.startsWith(`${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-`)) {
-      delete newOverrides[key];
-    }
+  // и ставим off на каждый день чтобы перебить базовый паттерн
+  DAYS.forEach(d => {
+    const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    newOverrides[key] = { type: 'off', note: 'cleared', editedAt: new Date().toISOString() };
   });
 
   const msgEl = document.getElementById('clear-shifts-msg');

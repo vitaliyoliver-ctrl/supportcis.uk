@@ -1138,7 +1138,7 @@ function processRows(rawRows) {
 
     const p_sp = presales > 0 ? Math.round(sales / presales * 10000) / 100 : null;
     const p_pt = total > 0    ? Math.round(presales / total * 10000) / 100 : 0;
-    const p_st = total > 0    ? Math.round(sales / total * 1000000) / 100 : 0;
+    const p_st = total > 0    ? Math.round(sales / total * 10000) / 100 : 0;
 
     rows.push({ name, total: Math.round(total), presales: Math.round(presales), sales: Math.round(sales), p_sp, p_pt, p_st, bonus: Math.round(bonus * 10000) / 10000 });
   }

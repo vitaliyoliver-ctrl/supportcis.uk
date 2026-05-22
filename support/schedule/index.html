@@ -322,7 +322,8 @@
     .shift-extra-sup-night { background: rgba(153,27,27,0.30);    color: #fff; border: 2px dashed rgba(239,68,68,0.6); }
     .shift-extra-sup-day8  { background: rgba(245,158,66,0.15);   color: #fff; border: 2px dashed rgba(245,158,66,0.4); }
     .shift-super-day8      { background: rgba(245,158,66,0.40);   color: #fff; }
-    .shift-1200        { background: rgba(251,146,60,0.55);    color: #111; }
+    .shift-nk { background: rgba(148,163,184,0.20); color: #94a3b8; border: 1px dashed rgba(148,163,184,0.4); font-size: 10px; }
+    html.light .shift-nk { background: rgba(100,116,139,0.15); color: #475569; border: 1px dashed rgba(100,116,139,0.4); }
 
     td.col-name .name-nick { font-size: 14px; font-weight: 800; color: var(--text); }
 
@@ -684,6 +685,7 @@
     <div class="positions-mode-banner" id="positions-banner">
       <span>⇅ Режим редактирования — перетаскивайте строки, удаляйте или добавляйте сотрудников</span>
       <button onclick="openAddEmployeeModal()" style="background:var(--support);margin-left:0">+ Добавить</button>
+      <button onclick="openClearShiftsModal()" style="background:rgba(248,113,113,0.8)">🗑 Очистить смены</button>
       <button onclick="savePositions()">Сохранить</button>
     </div>
 
@@ -707,6 +709,7 @@
       <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super)"></span>Sup День (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super-night-color)"></span>Sup Ночь (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>8ч (TL/QA)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#94a3b8"></span>НК (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>✈ Отпуск</span>
       <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>🤒 Больничный</span>
       <span class="legend-item"><span style="font-size:13px;font-weight:700;color:var(--muted)">—</span> Выходной</span>
@@ -823,6 +826,30 @@
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeDismissModal()">Отмена</button>
       <button class="btn-save" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 16px rgba(239,68,68,0.3)" onclick="applyDismissal()">Уволить</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR SHIFTS MODAL -->
+<div class="admin-overlay" id="clear-shifts-overlay" onclick="if(event.target===this)closeClearShiftsModal()">
+  <div class="admin-panel" style="width:360px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">Очистить все смены</div>
+      <button class="close-btn" onclick="closeClearShiftsModal()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <select class="admin-select" id="clear-emp-select"></select>
+      </div>
+      <div style="font-size:12px;color:#f87171;margin-top:4px">
+        Все изменённые смены оператора за июнь будут удалены. Базовый паттерн останется.
+      </div>
+      <div class="save-msg" id="clear-shifts-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeClearShiftsModal()">Отмена</button>
+      <button class="btn-save" style="background:linear-gradient(135deg,#ef4444,#b91c1c)" onclick="clearShifts()">🗑 Очистить</button>
     </div>
   </div>
 </div>
@@ -1271,6 +1298,7 @@ const DEFAULT_HOURS = {
   extra_morning: 11, extra_evening: 11, extra_1200: 11,
   extra_vip_morning: 11, extra_vip_evening: 11, extra_vip_1200: 11,
   extra_sup_day: 11, extra_sup_night: 11, extra_sup_day8: 8,
+  nk: 11,
   vacation: 0, sick: 0, off: 0
 };
 
@@ -1284,6 +1312,7 @@ function getHours(type) {
 function shiftLabel(type, name, ds) {
   if (type === 'off') return '';
   if (type === 'vacation') return '✈';
+  if (type === 'nk') return 'НК';
   if (type === 'dismissed') return '🚫';
   if (type === 'sick') {
     // Проверяем есть ли оплачиваемый больничный
@@ -1355,6 +1384,7 @@ function shiftClass(type) {
     extra_sup_day8:    'shift-extra-sup-day8',
     vacation: 'shift-vacation', sick: 'shift-sick',
     dismissed: 'shift-super-night',
+    nk: 'shift-nk',
     off: 'shift-off',
   };
   return map[type] || 'shift-off';
@@ -1416,14 +1446,14 @@ function renderSection(s) {
   let thCountHTML = '';
   if (isOpSection) {
     const shiftRowsReg = [
-      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
-      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: 3 },
-      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: 2 },
+      { types: ['morning', 'extra_morning', 'extra_sup_day'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
+      { types: ['evening', 'extra_evening', 'extra_sup_night'],         label: '21–09', color: 'var(--shift-evening)', min: 3 },
+      { types: ['shift1200','extra_1200'],                               label: '12–00', color: '#f59e0b',              min: 2 },
     ];
     const shiftRowsVip = [
-      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
-      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
-      { types: ['vip_1200','extra_vip_1200','d12'],    label: '12–00', color: '#f59e0b',                  min: 2 },
+      { types: ['vip_evening','extra_vip_evening','extra_sup_day','extra_sup_day8'], label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
+      { types: ['vip_morning','extra_vip_morning','extra_sup_night'],               label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
+      { types: ['vip_1200','extra_vip_1200','d12'],                                  label: '12–00', color: '#f59e0b',                  min: 2 },
     ];
     const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
     shiftRows.forEach(({ types, label, color, min }) => {
@@ -1827,6 +1857,64 @@ async function savePositions() {
   }
 }
 
+function openClearShiftsModal() {
+  const sel = document.getElementById('clear-emp-select');
+  sel.innerHTML = '';
+  SECTIONS.forEach(s => {
+    const og = document.createElement('optgroup');
+    og.label = s.label;
+    s.members.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+  document.getElementById('clear-shifts-msg').className = 'save-msg';
+  document.getElementById('clear-shifts-overlay').classList.add('open');
+}
+
+function closeClearShiftsModal() {
+  document.getElementById('clear-shifts-overlay').classList.remove('open');
+}
+
+async function clearShifts() {
+  const name = document.getElementById('clear-emp-select').value;
+  if (!name) return;
+
+  const newOverrides = { ...scheduleOverrides };
+  // Удаляем все overrides для этого оператора за текущий месяц
+  Object.keys(newOverrides).forEach(key => {
+    if (key.startsWith(`${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-`)) {
+      delete newOverrides[key];
+    }
+  });
+
+  const msgEl = document.getElementById('clear-shifts-msg');
+  try {
+    const res = await fetch(`${API}/schedule`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      scheduleOverrides = newOverrides;
+      renderAll();
+      updateColumnHighlight();
+      closeClearShiftsModal();
+      showToast(`Смены ${name} очищены`, 'ok');
+    } else {
+      msgEl.textContent = 'Ошибка сохранения';
+      msgEl.className = 'save-msg err';
+    }
+  } catch {
+    msgEl.textContent = 'Ошибка сети';
+    msgEl.className = 'save-msg err';
+  }
+}
+
 function openAddEmployeeModal() {
   document.getElementById('new-emp-name').value = '';
   document.getElementById('new-emp-email').value = '';
@@ -1931,11 +2019,11 @@ function showDayInfo(ds, di) {
   const VIP_SUPS = GROUPS.vip_supervisors.members;
 
   const ALL_OPS = SECTIONS.flatMap(s => s.members);
-  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di))).length;
-  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di))).length;
+  const regM  = ALL_OPS.filter(n => ['morning','extra_morning','extra_sup_day'].includes(getShift(n, di))).length;
+  const regE  = ALL_OPS.filter(n => ['evening','extra_evening','extra_sup_night'].includes(getShift(n, di))).length;
   const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di))).length;
-  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di))).length;
-  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di))).length;
+  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening','extra_sup_day','extra_sup_day8'].includes(getShift(n, di))).length;
+  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning','extra_sup_night'].includes(getShift(n, di))).length;
   const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di))).length;
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
@@ -2152,9 +2240,10 @@ const SHIFT_TYPES_ALL = [
   // Management/QA
   { type: 'work8',    label: '8h офис',   time: '09–18', group: 'Mgmt' },
   // Общие
-  { type: 'vacation', label: 'Отпуск',    time: '✈',    group: null },
-  { type: 'sick',     label: 'Больничный',time: '🤒',   group: null },
-  { type: 'off',      label: 'Выходной',  time: '—',    group: null },
+  { type: 'nk',       label: 'НК',         time: 'НК',  group: null },
+  { type: 'vacation', label: 'Отпуск',     time: '✈',   group: null },
+  { type: 'sick',     label: 'Больничный', time: '🤒',  group: null },
+  { type: 'off',      label: 'Выходной',   time: '—',   group: null },
 ];
 
 const SHIFT_TYPES = {

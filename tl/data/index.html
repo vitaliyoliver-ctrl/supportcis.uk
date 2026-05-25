@@ -332,29 +332,26 @@ function buildColMap(header) {
 // =====================================================================
 // ПРОЕКТЫ И КЛАССИФИКАЦИЯ ИСТОЧНИКОВ
 //
-// VIP     = просто имя проекта: "Gama", "Cat", "R7" ...
-// Regular = "Gama Support", "Cat Support" ... (проект + Support)
-//           + все TG-каналы: "Gama TG", "Cat TG" ...
-// Privip  = "Support Gama", "Support Cat" ... (Support + проект)
-// TG      = любой источник с "TG" в конце
+// Формат источника: "<Проект> <тип>", например "Cat vip", "Cat regular", "Cat TG"
+// VIP     = "Cat vip", "Gama vip" ...
+// Regular = "Cat regular", "Gama regular" ...
+// Privip  = "Cat privip", "Gama privip" ...
+// TG      = "Cat TG", "Gama TG" ...
 // =====================================================================
 const PROJECTS = ['Cat', 'Gama', 'Daddy', 'Mers', 'Kent', 'R7', 'Kometa', 'Arkada', 'Highroll', 'Atom', 'Motor'];
 
 // Возвращает 'vip' | 'regular' | 'privip' | 'tg' | 'unknown'
+// Формат источника: "<Проект> <тип>", например "Cat vip", "Cat regular", "Cat TG"
 function classifySource(src) {
   if (!src) return 'unknown';
   src = src.toString().trim();
   const lo = src.toLowerCase();
-  // TG-каналы
-  if (lo.endsWith(' tg') || src === 'TG') return 'tg';
-  // Privip: "Support Gama" — Support идёт первым
-  if (src.startsWith('Support ')) return 'privip';
-  // Regular: "Gama Support" — Support идёт последним
-  if (src.endsWith(' Support')) return 'regular';
-  // VIP: строго имя проекта
-  for (const p of PROJECTS) {
-    if (src === p) return 'vip';
-  }
+
+  if (lo.endsWith(' tg'))      return 'tg';
+  if (lo.endsWith(' vip'))     return 'vip';
+  if (lo.endsWith(' privip'))  return 'privip';
+  if (lo.endsWith(' regular')) return 'regular';
+
   return 'unknown';
 }
 

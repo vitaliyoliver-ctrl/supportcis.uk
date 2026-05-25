@@ -1170,9 +1170,71 @@ function getMgmtShift(dayIndex) {
 
 const OPERATOR_BASE_SHIFTS = {};
 
-// Назначаем паттерны: операторы из EXACT_SHIFTS, остальные через getMgmtShift
-Object.keys(EXACT_SHIFTS).forEach(name => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => EXACT_SHIFTS[name][di] || 'off';
+// Базовые циклы операторов (вычислены из EXACT_SHIFTS июня, первые N дней = один цикл)
+// cycleStart = 2026-06-01 (день 0)
+const BASE_PATTERNS = {
+  'Will':      ['shift1200','off','off','shift1200'],
+  'Bridget':   ['shift1200','off','off','shift1200'],
+  'Fletcher':  ['shift1200','off','off','shift1200'],
+  'Kenzo':     ['off','shift1200','shift1200','off'],
+  'Nora':      ['off','shift1200','shift1200','off'],
+  'Robert':    ['off','shift1200','shift1200','off'],
+  'Florence':  ['morning','off','off','evening','evening','off','off','morning'],
+  'Charles':   ['off','evening','evening','off','off','morning','morning','off'],
+  'Earl':      ['off','evening','evening','off','off','morning','morning','off'],
+  'Rudy':      ['off','evening','evening','off','off','morning','morning','off'],
+  'Balfour':   ['off','morning','morning','off','off','evening','evening','off'],
+  'Jonathan':  ['off','morning','morning','off','off','evening','evening','off'],
+  'Bill':      ['off','morning','morning','off','off','evening','evening','off'],
+  'Gross':     ['off','morning','morning','off','off','evening','evening','off'],
+  'Meadow':    ['off','morning','morning','off','off','evening','evening','off'],
+  'Robin':     ['evening','off','off','morning','morning','off','off','evening'],
+  'Bob':       ['evening','off','off','morning','morning','off','off','evening'],
+  'Lex':       ['evening','off','off','morning','morning','off','off','evening'],
+  'Calvin':    ['morning','off','off','evening','evening','off','off','morning'],
+  'Mike':      ['evening','off','off','morning','morning','off','off','evening'],
+  'Hardy':     ['morning','off','off','evening','evening','off','off','morning'],
+  'Murphy':    ['morning','off','off','evening','evening','off','off','morning'],
+  'Joseph':    ['morning','off','off','evening','evening','off','off','morning'],
+  'Bowen':     ['off','evening','evening','off','off','morning','morning','off'],
+  'Scott':     ['off','off','vip_1200','vip_1200'],
+  'Tom':       ['off','vip_1200','vip_1200','off'],
+  'Simon':     ['off','vip_1200','vip_1200','off'],
+  'Skylar':    ['vip_1200','off','off','vip_1200'],
+  'Felicia':   ['vip_1200','off','off','vip_1200'],
+  'Nolan':     ['vip_1200','off','off','vip_1200'],
+  'Casper':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Elijah':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Holly':     ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'River':     ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Chadwick':  ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Fabio':     ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Plover':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Morgan':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Reggie':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Wade':      ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Ashton':    ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Trinity':   ['off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning'],
+  'Christine': ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Isaac':     ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Warren':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Alexia':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Kiana':     ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Denzel':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+};
+
+// Назначаем паттерны через цикл от CYCLE_START
+Object.keys(BASE_PATTERNS).forEach(name => {
+  const pattern = BASE_PATTERNS[name];
+  const cycleLen = pattern.length;
+  OPERATOR_BASE_SHIFTS[name] = (di) => {
+    // di = индекс дня в текущем месяце (0 = 1е число)
+    // Нужно вычислить глобальный dayIndex от CYCLE_START
+    const date = DAYS[di].date;
+    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+    const pos = ((globalDi % cycleLen) + cycleLen) % cycleLen;
+    return pattern[pos];
+  };
 });
 // Команда 1: Irma, Solomon, Toby
 // Команда 2: Curtis, Manuel, Richard
@@ -1228,10 +1290,18 @@ const TEAM1 = ['Irma', 'Solomon', 'Toby'];
 const TEAM2 = ['Curtis', 'Manuel', 'Richard'];
 
 TEAM1.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => getSuperTeamShift(di, 0, i);
+  OPERATOR_BASE_SHIFTS[name] = (di) => {
+    const date = DAYS[di].date;
+    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+    return getSuperTeamShift(globalDi, 0, i);
+  };
 });
 TEAM2.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => getSuperTeamShift(di, 1, i);
+  OPERATOR_BASE_SHIFTS[name] = (di) => {
+    const date = DAYS[di].date;
+    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+    return getSuperTeamShift(globalDi, 1, i);
+  };
 });
 // VIP Supervisors:
 // Adam: 5/2 по будням, 09-21
@@ -1258,11 +1328,15 @@ OPERATOR_BASE_SHIFTS['Adam'] = (di) => {
   return (dow === 0 || dow === 6) ? 'off' : 'super_day';
 };
 OPERATOR_BASE_SHIFTS['Amelia'] = (di) => {
-  const pos = di % 4;
+  const date = DAYS[di].date;
+  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  const pos = ((globalDi % 4) + 4) % 4;
   return (pos === 0 || pos === 3) ? 'super_day' : 'off';
 };
 OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
-  const pos = di % 4;
+  const date = DAYS[di].date;
+  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  const pos = ((globalDi % 4) + 4) % 4;
   return (pos === 1 || pos === 2) ? 'super_day' : 'off';
 };
 

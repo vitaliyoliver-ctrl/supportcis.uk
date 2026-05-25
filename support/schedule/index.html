@@ -566,8 +566,37 @@
       transition: all .2s; z-index: 3;
     }
     .btn-delete-row:hover { background: rgba(248,113,113,0.4); }
+    .btn-pattern-row {
+      display: none; position: absolute; right: 28px; top: 50%;
+      transform: translateY(-50%);
+      padding: 2px 6px; border-radius: 4px;
+      background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+      color: #818cf8; font-size: 10px; cursor: pointer;
+      align-items: center; justify-content: center;
+      transition: all .2s; z-index: 3; white-space: nowrap;
+    }
+    .btn-pattern-row:hover { background: rgba(99,102,241,0.4); }
     .positions-mode td.col-name { overflow: visible; }
     .positions-mode .btn-delete-row { display: flex; }
+    .positions-mode .btn-pattern-row { display: flex; }
+    .pattern-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .pattern-modal-overlay.open { display: flex; }
+    .pattern-modal {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; width: 380px; max-width: 95vw;
+    }
+    .pattern-modal h3 { margin: 0 0 16px; color: var(--text); font-size: 15px; }
+    .pattern-modal label { display: block; color: var(--text-sub); font-size: 12px; margin-bottom: 4px; margin-top: 12px; }
+    .pattern-modal select, .pattern-modal input {
+      width: 100%; padding: 8px 10px; border-radius: 6px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; box-sizing: border-box;
+    }
+    .pattern-modal-footer { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
     .positions-mode tbody tr:active { cursor: grabbing; }
     .drag-over-top td { box-shadow: inset 0 2px 0 var(--ops); }
     .drag-over-bottom td { box-shadow: inset 0 -2px 0 var(--ops); }
@@ -646,7 +675,13 @@
       <div class="nav-title">Support<span>CIS</span> — График</div>
     </div>
     <div class="nav-right">
-      <div class="month-badge" id="month-badge">Июнь 2026</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="filter-btn" id="btn-prev-month" onclick="prevMonth()" style="padding:4px 10px;font-size:14px">&#8592;</button>
+        <div class="month-badge" id="month-badge">
+          <span id="month-label">Июнь 2026</span>
+        </div>
+        <button class="filter-btn" id="btn-next-month" onclick="nextMonth()" style="padding:4px 10px;font-size:14px">&#8594;</button>
+      </div>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle-btn">
         <span class="theme-toggle-icon" id="theme-icon">🌙</span>
         <span class="theme-toggle-label" id="theme-label">Светлая</span>
@@ -905,8 +940,24 @@
 
 <script>
 const API = '/api';
-const MONTH = 6; // июнь
-const YEAR = 2026;
+
+// ── Навигация по месяцам ──
+const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
+const AVAILABLE_MONTHS = [
+  { year: 2026, month: 6,  label: 'Июнь 2026' },
+  { year: 2026, month: 7,  label: 'Июль 2026' },
+  { year: 2026, month: 8,  label: 'Август 2026' },
+  { year: 2026, month: 9,  label: 'Сентябрь 2026' },
+  { year: 2026, month: 10, label: 'Октябрь 2026' },
+  { year: 2026, month: 11, label: 'Ноябрь 2026' },
+  { year: 2026, month: 12, label: 'Декабрь 2026' },
+];
+
+const TODAY_REAL = new Date();
+let MONTH = TODAY_REAL.getFullYear() === 2026 ? TODAY_REAL.getMonth() + 1 : 6;
+if (MONTH < 6) MONTH = 6;
+if (MONTH > 12) MONTH = 12;
+let YEAR = 2026;
 
 // ── Данные сотрудников: email, дата, позиция ──
 const EMPLOYEES = {
@@ -1047,10 +1098,16 @@ function getDaysInMonth(year, month) {
   return days;
 }
 
-const DAYS = getDaysInMonth(YEAR, MONTH);
-const TODAY = new Date();
-const TODAY_STR = `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(TODAY.getDate()).padStart(2,'0')}`;
-let selectedDateStr = TODAY_STR;
+let DAYS = getDaysInMonth(YEAR, MONTH);
+const TODAY_REAL_DATE = new Date();
+function getTodayStr() {
+  if (TODAY_REAL_DATE.getFullYear() === YEAR && TODAY_REAL_DATE.getMonth() + 1 === MONTH) {
+    return `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(TODAY_REAL_DATE.getDate()).padStart(2,'0')}`;
+  }
+  return null; // не текущий месяц — нет "сегодня"
+}
+let TODAY_STR = getTodayStr();
+let selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
 
 // ── Точные паттерны смен из графика (июнь 2026) ──
 const EXACT_SHIFTS = {
@@ -1255,7 +1312,8 @@ const collapsedSections = new Set();
   } catch {}
 
   try {
-    const res = await fetch(`${API}/schedule`, { credentials: 'include' });
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
@@ -1273,6 +1331,11 @@ const collapsedSections = new Set();
     }
   } catch {}
 
+  // Инициализируем навигацию по месяцам
+  const initMonthObj = AVAILABLE_MONTHS.find(m => m.year === YEAR && m.month === MONTH);
+  document.getElementById('month-label').textContent = initMonthObj ? initMonthObj.label : `${YEAR}-${MONTH}`;
+  updateMonthNav();
+
   renderAll();
   updateStats();
   populateOperatorSelect();
@@ -1282,14 +1345,94 @@ const collapsedSections = new Set();
   document.getElementById('app').style.display = 'flex';
 })();
 
+// ── Переключение месяца ──
+async function switchMonth(year, month) {
+  YEAR = year;
+  MONTH = month;
+  DAYS = getDaysInMonth(YEAR, MONTH);
+  TODAY_STR = getTodayStr();
+  selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  scheduleOverrides = {};
+
+  // Обновляем заголовок
+  const monthObj = AVAILABLE_MONTHS.find(m => m.year === year && m.month === month);
+  document.getElementById('month-label').textContent = monthObj ? monthObj.label : `${year}-${month}`;
+
+  // Обновляем состояние кнопок навигации
+  updateMonthNav();
+
+  // Загружаем данные нового месяца
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      scheduleOverrides = data.overrides || {};
+      // Settings глобальные — не перезаписываем customOrder, только mergeим
+      if (data.settings) {
+        scheduleSettings = { ...scheduleSettings, ...data.settings };
+      }
+      dismissedEmployees = scheduleSettings.dismissed || {};
+    }
+  } catch {}
+
+  renderAll();
+  updateStats();
+  updateColumnHighlight();
+}
+
+function updateMonthNav() {
+  const idx = AVAILABLE_MONTHS.findIndex(m => m.year === YEAR && m.month === MONTH);
+  document.getElementById('btn-prev-month').disabled = idx <= 0;
+  document.getElementById('btn-next-month').disabled = idx >= AVAILABLE_MONTHS.length - 1;
+}
+
+function prevMonth() {
+  const idx = AVAILABLE_MONTHS.findIndex(m => m.year === YEAR && m.month === MONTH);
+  if (idx > 0) switchMonth(AVAILABLE_MONTHS[idx - 1].year, AVAILABLE_MONTHS[idx - 1].month);
+}
+
+function nextMonth() {
+  const idx = AVAILABLE_MONTHS.findIndex(m => m.year === YEAR && m.month === MONTH);
+  if (idx < AVAILABLE_MONTHS.length - 1) switchMonth(AVAILABLE_MONTHS[idx + 1].year, AVAILABLE_MONTHS[idx + 1].month);
+}
+
 // ── Helpers ──
 function dateStr(d) {
   return `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 
+// ── Паттерны операторов (хранятся в settings.operatorPatterns) ──
+// { pattern: ['morning','off',...], cycleStart: '2026-06-01' }
+// Стандартные паттерны:
+const PATTERN_PRESETS = {
+  'morning_evening': ['morning','off','off','evening','evening','off','off','morning'],
+  'evening_morning': ['evening','off','off','morning','morning','off','off','evening'],
+  'shift1200':       ['shift1200','off','off','shift1200'],
+  'vip_day_night':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'vip_night_day':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'vip_1200':        ['vip_1200','off','off','vip_1200'],
+  'off':             ['off'],
+};
+
+function getPatternShift(name, date) {
+  const patterns = scheduleSettings.operatorPatterns || {};
+  const op = patterns[name];
+  if (!op || !op.pattern || !op.cycleStart) return null;
+  const start = new Date(op.cycleStart);
+  const diffDays = Math.floor((date - start) / 86400000);
+  const cycle = op.pattern.length;
+  const pos = ((diffDays % cycle) + cycle) % cycle;
+  return op.pattern[pos];
+}
+
 function getShift(name, dayIndex) {
   const key = `${name}:${dateStr(DAYS[dayIndex].d)}`;
   if (scheduleOverrides[key]) return scheduleOverrides[key].type;
+  // Сначала проверяем operatorPatterns из settings
+  const patternShift = getPatternShift(name, DAYS[dayIndex].date);
+  if (patternShift !== null) return patternShift;
+  // Fallback на захардкоженные паттерны июня
   const fn = OPERATOR_BASE_SHIFTS[name];
   return fn ? fn(dayIndex) : 'off';
 }
@@ -1549,6 +1692,7 @@ function renderSection(s) {
     const deleteBtnStyle = positionsMode ? 'display:flex' : 'display:none';
     let tdHTML = `<td class="col-name" style="position:relative">
       <span class="${nameClass}">${name}</span>
+      <button class="btn-pattern-row" onclick="openPatternModal('${name}')" title="Паттерн">⟳ Паттерн</button>
       <button class="btn-delete-row" style="${deleteBtnStyle}" onclick="deleteEmployee('${name}','${s.key}')" title="Удалить">✕</button>
     </td>`;
     tdHTML += `<td class="col-info">
@@ -1647,8 +1791,8 @@ function updateStats() {
   const now = new Date();
   const h = now.getHours();
   let online = 0;
-  const todayDi = TODAY.getMonth() === (MONTH - 1) && TODAY.getFullYear() === YEAR
-    ? TODAY.getDate() - 1 : -1;
+  const todayDi = TODAY_REAL_DATE.getMonth() === (MONTH - 1) && TODAY_REAL_DATE.getFullYear() === YEAR
+    ? TODAY_REAL_DATE.getDate() - 1 : -1;
 
   if (todayDi >= 0) {
     const allMembers = SECTIONS.flatMap(s => s.members);
@@ -1844,7 +1988,7 @@ async function savePositions() {
   SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
 
   try {
-    const res = await fetch(`${API}/schedule`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -1902,7 +2046,7 @@ async function clearShifts() {
 
   const msgEl = document.getElementById('clear-shifts-msg');
   try {
-    const res = await fetch(`${API}/schedule`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings })
@@ -2001,7 +2145,7 @@ function restoreDismissed(name) {
   showToast(`${name} восстановлен`, 'ok');
 
   // Сохраняем
-  fetch(`${API}/schedule`, {
+  fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
@@ -2175,7 +2319,7 @@ async function applyDismissal() {
   const newSettings = { ...scheduleSettings, dismissed: newDismissed };
 
   try {
-    const res = await fetch(`${API}/schedule`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ overrides: newOverrides, settings: newSettings })
@@ -2569,7 +2713,7 @@ async function saveShift() {
   }
 
   try {
-    const res = await fetch(`${API}/schedule`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -2751,7 +2895,117 @@ function showToast(msg, type) {
   t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove('show'), 3000);
 }
+
+// ── Pattern Modal ──
+let patternModalName = null;
+
+const PATTERN_PRESET_LABELS = {
+  'morning_evening': '09-21 / 21-09 (день первый)',
+  'evening_morning': '21-09 / 09-21 (ночь первой)',
+  'shift1200':       '12-00 / выходной 2/2',
+  'vip_day_night':   'VIP день/ночь (день первый)',
+  'vip_night_day':   'VIP ночь/день (ночь первой)',
+  'vip_1200':        'VIP 12-00 / выходной 2/2',
+  'off':             'Выходной (нет смен)',
+  'custom':          'Кастомный (не менять)',
+};
+
+function openPatternModal(name) {
+  patternModalName = name;
+  document.getElementById('pattern-modal-title').textContent = `Паттерн: ${name}`;
+  
+  const patterns = scheduleSettings.operatorPatterns || {};
+  const existing = patterns[name];
+  
+  const presetSel = document.getElementById('pattern-preset-select');
+  presetSel.value = existing ? (PATTERN_PRESETS[existing.pattern?.join(',')] ? Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(',')) : 'custom') : 'morning_evening';
+  
+  document.getElementById('pattern-cycle-start').value = existing ? existing.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  
+  document.getElementById('pattern-modal-overlay').classList.add('open');
+}
+
+function closePatternModal() {
+  document.getElementById('pattern-modal-overlay').classList.remove('open');
+  patternModalName = null;
+}
+
+async function savePattern() {
+  if (!patternModalName) return;
+  
+  const presetKey = document.getElementById('pattern-preset-select').value;
+  const cycleStart = document.getElementById('pattern-cycle-start').value;
+  
+  if (!cycleStart) {
+    alert('Укажите дату начала цикла');
+    return;
+  }
+  
+  if (presetKey === 'custom') {
+    closePatternModal();
+    return;
+  }
+  
+  const pattern = PATTERN_PRESETS[presetKey];
+  if (!pattern) return;
+  
+  const newSettings = {
+    ...scheduleSettings,
+    operatorPatterns: {
+      ...(scheduleSettings.operatorPatterns || {}),
+      [patternModalName]: { pattern, cycleStart }
+    }
+  };
+  
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      scheduleSettings = newSettings;
+      renderAll();
+      closePatternModal();
+      showToast(`Паттерн ${patternModalName} сохранён`, 'ok');
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
+  }
+}
 </script>
+
+<!-- Pattern Modal -->
+<div class="pattern-modal-overlay" id="pattern-modal-overlay">
+  <div class="pattern-modal">
+    <h3 id="pattern-modal-title">Паттерн</h3>
+    <label>Тип паттерна</label>
+    <select id="pattern-preset-select">
+      <option value="morning_evening">09-21 / 21-09 (день первый)</option>
+      <option value="evening_morning">21-09 / 09-21 (ночь первой)</option>
+      <option value="shift1200">12-00 / выходной 2/2</option>
+      <option value="vip_day_night">VIP день/ночь (день первый)</option>
+      <option value="vip_night_day">VIP ночь/день (ночь первой)</option>
+      <option value="vip_1200">VIP 12-00 / выходной 2/2</option>
+      <option value="off">Выходной (нет смен)</option>
+      <option value="custom">Кастомный (не менять)</option>
+    </select>
+    <label>Дата начала цикла</label>
+    <input type="date" id="pattern-cycle-start" />
+    <div style="font-size:11px;color:var(--text-sub);margin-top:6px">
+      День 0 цикла = эта дата. Паттерн продолжается бесконечно.
+    </div>
+    <div class="pattern-modal-footer">
+      <button class="btn-cancel" onclick="closePatternModal()">Отмена</button>
+      <button class="btn-save" onclick="savePattern()">Сохранить</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

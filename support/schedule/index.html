@@ -2322,6 +2322,7 @@ function renderExtraBlock(kind) {
   const list = document.getElementById(`extra-${kind}-list`);
   list.innerHTML = '';
   events.forEach((ev, i) => {
+    if (!types.find(t => t.value === ev.type)) ev.type = types[0].value;
     const row = document.createElement('div');
     row.className = 'extra-event-row';
     row.innerHTML = `

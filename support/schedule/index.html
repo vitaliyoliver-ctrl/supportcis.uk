@@ -596,10 +596,6 @@
       background: var(--input-bg); border: 1px solid var(--border);
       color: var(--text); font-size: 13px; box-sizing: border-box;
     }
-    .pattern-modal select option {
-      background: var(--panel-bg, #1e2130);
-      color: var(--text, #e2e8f0);
-    }
     .pattern-modal-footer { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
     .positions-mode tbody tr:active { cursor: grabbing; }
     .drag-over-top td { box-shadow: inset 0 2px 0 var(--ops); }
@@ -2143,6 +2139,13 @@ function restoreDismissed(name) {
     }
   });
   scheduleOverrides = newOverrides;
+
+  // Убираем флаг уволенного из settings
+  const newDismissed = { ...dismissedEmployees };
+  delete newDismissed[name];
+  dismissedEmployees = newDismissed;
+  scheduleSettings = { ...scheduleSettings, dismissed: newDismissed };
+
   renderAll();
   updateColumnHighlight();
   closeAdmin();

@@ -3045,7 +3045,7 @@ function openPatternModal(name) {
   }
   // Устанавливаем значение кастомного селекта
   document.getElementById('pattern-preset-select').value = currentPreset;
-  const optEl = document.querySelector(\`#pattern-select-dropdown [data-value="\${currentPreset}"]\`);
+  const optEl = document.querySelector(`#pattern-select-dropdown [data-value="${currentPreset}"]`);
   if (optEl) {
     document.getElementById('pattern-select-display').textContent = optEl.textContent;
     document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));

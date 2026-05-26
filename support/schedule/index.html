@@ -676,6 +676,67 @@
       .nav { padding: 12px 16px; }
       .main { padding: 16px 12px 40px; }
     }
+  /* ── Project Select Screen ── */
+  .project-select-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .project-select-overlay.hidden { display: none; }
+  .project-select-box {
+    text-align: center; padding: 0 24px; width: 100%; max-width: 560px;
+  }
+  .ps-logo {
+    font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-sub); margin-bottom: 12px;
+  }
+  .ps-subtitle {
+    font-size: 28px; font-weight: 700; color: var(--text);
+    margin-bottom: 40px; letter-spacing: -0.5px;
+  }
+  .project-cards { display: flex; gap: 20px; justify-content: center; }
+  .project-card {
+    flex: 1; max-width: 240px; border-radius: 16px;
+    border: 1px solid var(--border); background: var(--panel-bg);
+    cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s;
+    position: relative; overflow: hidden; padding: 32px 24px 28px;
+  }
+  .project-card:hover { transform: translateY(-4px); }
+  .project-card-sg:hover { border-color: rgba(91,156,246,0.6); box-shadow: 0 8px 32px rgba(91,156,246,0.12); }
+  .project-card-nk:hover { border-color: rgba(167,139,250,0.6); box-shadow: 0 8px 32px rgba(167,139,250,0.12); }
+  .pc-glow {
+    position: absolute; top: -40px; right: -40px;
+    width: 120px; height: 120px; border-radius: 50%; opacity: 0.15; pointer-events: none;
+  }
+  .pc-glow-sg { background: radial-gradient(circle, #5b9cf6 0%, transparent 70%); }
+  .pc-glow-nk { background: radial-gradient(circle, #a78bfa 0%, transparent 70%); }
+  .pc-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .pc-abbr {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; letter-spacing: 1px;
+  }
+  .project-card-sg .pc-abbr { background: rgba(91,156,246,0.15); color: #5b9cf6; border: 1px solid rgba(91,156,246,0.3); }
+  .project-card-nk .pc-abbr { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+  .pc-name { font-size: 17px; font-weight: 700; color: var(--text); }
+  .pc-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .pc-tags span {
+    font-size: 11px; padding: 3px 8px; border-radius: 20px;
+    background: var(--input-bg); border: 1px solid var(--border);
+    color: var(--text-sub);
+  }
+  .btn-switch-project {
+    display: none; padding: 5px 12px; font-size: 11px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-sub); border-radius: 6px; cursor: pointer; transition: all .2s;
+  }
+  .btn-switch-project:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .project-badge {
+    display: none; padding: 3px 10px; border-radius: 12px; font-size: 11px;
+    font-weight: 600; letter-spacing: .5px;
+  }
+  .project-badge.sg { background: rgba(91,156,246,0.15); color: var(--ops); border: 1px solid rgba(91,156,246,0.3); }
+  .project-badge.nk { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -684,6 +745,36 @@
 <div class="bg-grid"></div>
 <div class="bg-glow bg-glow-1"></div>
 <div class="bg-glow bg-glow-2"></div>
+
+<!-- PROJECT SELECT SCREEN -->
+<div class="project-select-overlay" id="project-select-screen">
+  <div class="project-select-box">
+    <div class="ps-logo">График смен</div>
+    <div class="ps-subtitle">Выберите команду</div>
+    <div class="project-cards">
+      <div class="project-card project-card-sg" onclick="selectProject('sg')">
+        <div class="pc-glow pc-glow-sg"></div>
+        <div class="pc-inner">
+          <div class="pc-abbr">SG</div>
+          <div class="pc-name">SupportCIS</div>
+          <div class="pc-tags">
+            <span>Regular</span><span>VIP</span><span>Management</span>
+          </div>
+        </div>
+      </div>
+      <div class="project-card project-card-nk" onclick="selectProject('nk')">
+        <div class="pc-glow pc-glow-nk"></div>
+        <div class="pc-inner">
+          <div class="pc-abbr">NK</div>
+          <div class="pc-name">NextCode</div>
+          <div class="pc-tags">
+            <span>Support</span><span>Supervisors</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
@@ -696,7 +787,9 @@
   <nav class="nav">
     <div class="nav-left">
       <a href="/support/" class="back-btn">← Support</a>
-      <div class="nav-title">Support<span>CIS</span> — График</div>
+      <div class="nav-title" id="nav-title">Support<span>CIS</span> — График</div>
+      <span class="project-badge" id="project-badge"></span>
+      <button class="btn-switch-project" id="btn-switch-project" onclick="switchProject()">⇄ Сменить</button>
     </div>
     <div class="nav-right">
       <div style="display:flex;align-items:center;gap:6px">
@@ -964,6 +1057,7 @@
 
 <script>
 const API = '/api';
+let CURRENT_PROJECT = localStorage.getItem('selectedProject') || null;
 
 // ── Навигация по месяцам ──
 const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
@@ -1379,19 +1473,40 @@ let selectedShiftType = null;
 let isDark = true;
 const collapsedSections = new Set();
 
-// ── Init ──
-(async () => {
-  // Загружаем тему
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    isDark = false;
-    document.documentElement.classList.add('light');
-    document.getElementById('theme-icon').textContent = '☀️';
-    document.getElementById('theme-label').textContent = 'Светлая';
+// ── Project Selection ──
+function selectProject(project) {
+  CURRENT_PROJECT = project;
+  localStorage.setItem('selectedProject', project);
+  document.getElementById('project-select-screen').classList.add('hidden');
+  initApp();
+}
+
+function switchProject() {
+  localStorage.removeItem('selectedProject');
+  CURRENT_PROJECT = null;
+  document.getElementById('project-select-screen').classList.remove('hidden');
+  document.getElementById('app').style.display = 'none';
+}
+
+function applyProjectUI(project) {
+  const badge = document.getElementById('project-badge');
+  const btn = document.getElementById('btn-switch-project');
+  const title = document.getElementById('nav-title');
+  badge.style.display = 'inline-flex';
+  btn.style.display = 'flex';
+  if (project === 'sg') {
+    badge.textContent = 'SG';
+    badge.className = 'project-badge sg';
+    title.innerHTML = 'Support<span>CIS</span> — График';
   } else {
-    document.getElementById('theme-icon').textContent = '🌙';
-    document.getElementById('theme-label').textContent = 'Тёмная';
+    badge.textContent = 'NK';
+    badge.className = 'project-badge nk';
+    title.innerHTML = 'Next<span>Code</span> — График';
   }
+}
+
+// ── Init ──
+async function initApp() {
 
   try {
     const res = await fetch(`${API}/check`, { credentials: 'include' });
@@ -1409,7 +1524,7 @@ const collapsedSections = new Set();
 
   try {
     const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=${CURRENT_PROJECT}`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
@@ -1437,8 +1552,31 @@ const collapsedSections = new Set();
   populateOperatorSelect();
   updateColumnHighlight();
 
+  applyProjectUI(CURRENT_PROJECT);
+
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+}
+
+// ── Запуск ──
+(async () => {
+  // Загружаем тему сразу (до выбора проекта)
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    isDark = false;
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-icon').textContent = '☀️';
+    document.getElementById('theme-label').textContent = 'Светлая';
+  }
+
+  if (CURRENT_PROJECT) {
+    // Проект уже выбран — сразу инициализируем
+    document.getElementById('project-select-screen').classList.add('hidden');
+    await initApp();
+  } else {
+    // Показываем экран выбора
+    document.getElementById('project-select-screen').classList.remove('hidden');
+  }
 })();
 
 // ── Переключение месяца ──
@@ -1460,7 +1598,7 @@ async function switchMonth(year, month) {
   // Загружаем данные нового месяца
   try {
     const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=${CURRENT_PROJECT}`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
@@ -2086,7 +2224,7 @@ async function savePositions() {
   SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
 
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=${CURRENT_PROJECT}`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -2144,7 +2282,7 @@ async function clearShifts() {
 
   const msgEl = document.getElementById('clear-shifts-msg');
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=${CURRENT_PROJECT}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings })
@@ -2243,7 +2381,7 @@ function restoreDismissed(name) {
   showToast(`${name} восстановлен`, 'ok');
 
   // Сохраняем
-  fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+  fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=${CURRENT_PROJECT}`, {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
@@ -2417,7 +2555,7 @@ async function applyDismissal() {
   const newSettings = { ...scheduleSettings, dismissed: newDismissed };
 
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=${CURRENT_PROJECT}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ overrides: newOverrides, settings: newSettings })
@@ -2811,7 +2949,7 @@ async function saveShift() {
   }
 
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=${CURRENT_PROJECT}`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -3091,7 +3229,7 @@ async function savePattern() {
   
   try {
     const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=${CURRENT_PROJECT}`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

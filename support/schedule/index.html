@@ -591,6 +591,30 @@
     }
     .pattern-modal h3 { margin: 0 0 16px; color: var(--text); font-size: 15px; }
     .pattern-modal label { display: block; color: var(--text-sub); font-size: 12px; margin-bottom: 4px; margin-top: 12px; }
+    .custom-select-wrapper { position: relative; }
+    .custom-select-selected {
+      width: 100%; padding: 8px 32px 8px 10px; border-radius: 6px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; box-sizing: border-box;
+      cursor: pointer; user-select: none; position: relative;
+    }
+    .custom-select-selected::after {
+      content: '▾'; position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%); color: var(--text-sub);
+    }
+    .custom-select-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 6px; z-index: 300; margin-top: 2px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden;
+    }
+    .custom-select-dropdown.open { display: block; }
+    .custom-select-option {
+      padding: 9px 12px; font-size: 13px; color: var(--text);
+      cursor: pointer; transition: background .15s;
+    }
+    .custom-select-option:hover { background: var(--hover-bg, rgba(255,255,255,0.06)); }
+    .custom-select-option.selected { background: rgba(99,102,241,0.2); color: #818cf8; }
     .pattern-modal select, .pattern-modal input {
       width: 100%; padding: 8px 10px; border-radius: 6px;
       background: var(--input-bg); border: 1px solid var(--border);
@@ -690,7 +714,6 @@
       <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
       <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
-      <button class="admin-btn" id="vacation-nav-btn" onclick="openVacationModal()" style="display:none;background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);color:#818cf8">✈ Отпуск</button>
       <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
     </div>
   </nav>
@@ -846,36 +869,6 @@
 </div>
 
 <!-- DISMISS MODAL -->
-<!-- VACATION MODAL -->
-<div class="dismiss-overlay" id="vacation-overlay" onclick="if(event.target===this)closeVacationModal()">
-  <div class="dismiss-modal">
-    <div class="admin-panel-header">
-      <div class="admin-panel-title" style="color:#818cf8">✈ Отпуск</div>
-      <button class="close-btn" onclick="closeVacationModal()">✕</button>
-    </div>
-    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
-      <div class="admin-field">
-        <div class="admin-label">Сотрудник</div>
-        <select class="admin-select" id="vac-operator"></select>
-      </div>
-      <div class="admin-field">
-        <div class="admin-label">Дата начала</div>
-        <input type="date" class="admin-input" id="vac-date-from" />
-      </div>
-      <div class="admin-field">
-        <div class="admin-label">Дата окончания</div>
-        <input type="date" class="admin-input" id="vac-date-to" />
-        <div style="font-size:11px;color:var(--muted);margin-top:6px">Все дни в диапазоне будут проставлены как отпуск (✈)</div>
-      </div>
-      <div class="save-msg" id="vac-msg"></div>
-    </div>
-    <div class="admin-panel-footer">
-      <button class="btn-cancel" onclick="closeVacationModal()">Отмена</button>
-      <button class="btn-save" onclick="applyVacation()">Применить</button>
-    </div>
-  </div>
-</div>
-
 <div class="dismiss-overlay" id="dismiss-overlay" onclick="dismissOverlayClick(event)">
   <div class="dismiss-modal">
     <div class="admin-panel-header">
@@ -1337,7 +1330,6 @@ const collapsedSections = new Set();
       if (isAdmin) {
         document.getElementById('admin-btn').classList.add('visible');
         document.getElementById('dismiss-nav-btn').style.display = 'flex';
-        document.getElementById('vacation-nav-btn').style.display = 'flex';
         document.getElementById('positions-btn').style.display = 'flex';
       }
     }
@@ -2298,78 +2290,6 @@ function closeDayInfo() {
 // ── Dismissal ──
 let dismissedEmployees = {}; // { name: 'YYYY-MM-DD' } — дата последней смены
 
-// ── Vacation Modal ──
-function openVacationModal() {
-  const sel = document.getElementById('vac-operator');
-  sel.innerHTML = '';
-  SECTIONS.flatMap(s => s.members).forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    sel.appendChild(opt);
-  });
-  const today = `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
-  document.getElementById('vac-date-from').value = today;
-  document.getElementById('vac-date-to').value = today;
-  document.getElementById('vac-msg').className = 'save-msg';
-  document.getElementById('vacation-overlay').classList.add('open');
-}
-
-function closeVacationModal() {
-  document.getElementById('vacation-overlay').classList.remove('open');
-}
-
-async function applyVacation() {
-  const name = document.getElementById('vac-operator').value;
-  const dateFrom = document.getElementById('vac-date-from').value;
-  const dateTo = document.getElementById('vac-date-to').value;
-  const msg = document.getElementById('vac-msg');
-
-  if (!name || !dateFrom || !dateTo) {
-    msg.textContent = 'Заполните все поля';
-    msg.className = 'save-msg err show';
-    return;
-  }
-  if (dateTo < dateFrom) {
-    msg.textContent = 'Дата окончания раньше даты начала';
-    msg.className = 'save-msg err show';
-    return;
-  }
-
-  const newOverrides = { ...scheduleOverrides };
-  const from = new Date(dateFrom);
-  const to = new Date(dateTo);
-
-  for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const key = `${name}:${ds}`;
-    newOverrides[key] = { ...(newOverrides[key] || {}), type: 'vacation', editedAt: new Date().toISOString() };
-  }
-
-  scheduleOverrides = newOverrides;
-  renderAll();
-  updateColumnHighlight();
-
-  try {
-    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
-    });
-    const data = await res.json();
-    if (res.ok && data.ok) {
-      showToast(`Отпуск ${name} применён`, 'ok');
-      closeVacationModal();
-    } else {
-      msg.textContent = 'Ошибка сохранения';
-      msg.className = 'save-msg err show';
-    }
-  } catch {
-    msg.textContent = 'Ошибка сети';
-    msg.className = 'save-msg err show';
-  }
-}
-
 function openDismissModal() {
   const sel = document.getElementById('dm-operator');
   sel.innerHTML = '';
@@ -3003,6 +2923,28 @@ function showToast(msg, type) {
 // ── Pattern Modal ──
 let patternModalName = null;
 
+function togglePatternDropdown() {
+  document.getElementById('pattern-select-dropdown').classList.toggle('open');
+}
+
+function selectPatternOption(el) {
+  const value = el.dataset.value;
+  const label = el.textContent;
+  document.getElementById('pattern-preset-select').value = value;
+  document.getElementById('pattern-select-display').textContent = label;
+  document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('pattern-select-dropdown').classList.remove('open');
+}
+
+// Закрываем дропдаун при клике вне
+document.addEventListener('click', (e) => {
+  const wrapper = document.getElementById('pattern-select-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    document.getElementById('pattern-select-dropdown')?.classList.remove('open');
+  }
+});
+
 const PATTERN_PRESET_LABELS = {
   'morning_evening': '09-21 / 21-09 (день первый)',
   'evening_morning': '21-09 / 09-21 (ночь первой)',
@@ -3021,8 +2963,20 @@ function openPatternModal(name) {
   const patterns = scheduleSettings.operatorPatterns || {};
   const existing = patterns[name];
   
-  const presetSel = document.getElementById('pattern-preset-select');
-  presetSel.value = existing ? (PATTERN_PRESETS[existing.pattern?.join(',')] ? Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(',')) : 'custom') : 'morning_evening';
+  // Определяем текущий пресет
+  let currentPreset = 'morning_evening';
+  if (existing?.pattern) {
+    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(','));
+    currentPreset = found || 'custom';
+  }
+  // Устанавливаем значение кастомного селекта
+  document.getElementById('pattern-preset-select').value = currentPreset;
+  const optEl = document.querySelector(\`#pattern-select-dropdown [data-value="\${currentPreset}"]\`);
+  if (optEl) {
+    document.getElementById('pattern-select-display').textContent = optEl.textContent;
+    document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
+    optEl.classList.add('selected');
+  }
   
   document.getElementById('pattern-cycle-start').value = existing ? existing.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
   
@@ -3089,16 +3043,20 @@ async function savePattern() {
   <div class="pattern-modal">
     <h3 id="pattern-modal-title">Паттерн</h3>
     <label>Тип паттерна</label>
-    <select id="pattern-preset-select">
-      <option value="morning_evening">09-21 / 21-09 (день первый)</option>
-      <option value="evening_morning">21-09 / 09-21 (ночь первой)</option>
-      <option value="shift1200">12-00 / выходной 2/2</option>
-      <option value="vip_day_night">VIP день/ночь (день первый)</option>
-      <option value="vip_night_day">VIP ночь/день (ночь первой)</option>
-      <option value="vip_1200">VIP 12-00 / выходной 2/2</option>
-      <option value="off">Выходной (нет смен)</option>
-      <option value="custom">Кастомный (не менять)</option>
-    </select>
+    <div class="custom-select-wrapper" id="pattern-select-wrapper">
+      <div class="custom-select-selected" id="pattern-select-display" onclick="togglePatternDropdown()">09-21 / 21-09 (день первый)</div>
+      <div class="custom-select-dropdown" id="pattern-select-dropdown">
+        <div class="custom-select-option selected" data-value="morning_evening" onclick="selectPatternOption(this)">09-21 / 21-09 (день первый)</div>
+        <div class="custom-select-option" data-value="evening_morning" onclick="selectPatternOption(this)">21-09 / 09-21 (ночь первой)</div>
+        <div class="custom-select-option" data-value="shift1200" onclick="selectPatternOption(this)">12-00 / выходной 2/2</div>
+        <div class="custom-select-option" data-value="vip_day_night" onclick="selectPatternOption(this)">VIP день/ночь (день первый)</div>
+        <div class="custom-select-option" data-value="vip_night_day" onclick="selectPatternOption(this)">VIP ночь/день (ночь первой)</div>
+        <div class="custom-select-option" data-value="vip_1200" onclick="selectPatternOption(this)">VIP 12-00 / выходной 2/2</div>
+        <div class="custom-select-option" data-value="off" onclick="selectPatternOption(this)">Выходной (нет смен)</div>
+        <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
+      </div>
+      <input type="hidden" id="pattern-preset-select" value="morning_evening" />
+    </div>
     <label>Дата начала цикла</label>
     <input type="date" id="pattern-cycle-start" />
     <div style="font-size:11px;color:var(--text-sub);margin-top:6px">

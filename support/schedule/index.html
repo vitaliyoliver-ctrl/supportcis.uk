@@ -690,6 +690,7 @@
       <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
       <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
+      <button class="admin-btn" id="vacation-nav-btn" onclick="openVacationModal()" style="display:none;background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);color:#818cf8">✈ Отпуск</button>
       <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
     </div>
   </nav>
@@ -845,6 +846,36 @@
 </div>
 
 <!-- DISMISS MODAL -->
+<!-- VACATION MODAL -->
+<div class="dismiss-overlay" id="vacation-overlay" onclick="if(event.target===this)closeVacationModal()">
+  <div class="dismiss-modal">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title" style="color:#818cf8">✈ Отпуск</div>
+      <button class="close-btn" onclick="closeVacationModal()">✕</button>
+    </div>
+    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <select class="admin-select" id="vac-operator"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата начала</div>
+        <input type="date" class="admin-input" id="vac-date-from" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата окончания</div>
+        <input type="date" class="admin-input" id="vac-date-to" />
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Все дни в диапазоне будут проставлены как отпуск (✈)</div>
+      </div>
+      <div class="save-msg" id="vac-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeVacationModal()">Отмена</button>
+      <button class="btn-save" onclick="applyVacation()">Применить</button>
+    </div>
+  </div>
+</div>
+
 <div class="dismiss-overlay" id="dismiss-overlay" onclick="dismissOverlayClick(event)">
   <div class="dismiss-modal">
     <div class="admin-panel-header">
@@ -1306,6 +1337,7 @@ const collapsedSections = new Set();
       if (isAdmin) {
         document.getElementById('admin-btn').classList.add('visible');
         document.getElementById('dismiss-nav-btn').style.display = 'flex';
+        document.getElementById('vacation-nav-btn').style.display = 'flex';
         document.getElementById('positions-btn').style.display = 'flex';
       }
     }
@@ -2139,13 +2171,6 @@ function restoreDismissed(name) {
     }
   });
   scheduleOverrides = newOverrides;
-
-  // Убираем флаг уволенного из settings
-  const newDismissed = { ...dismissedEmployees };
-  delete newDismissed[name];
-  dismissedEmployees = newDismissed;
-  scheduleSettings = { ...scheduleSettings, dismissed: newDismissed };
-
   renderAll();
   updateColumnHighlight();
   closeAdmin();
@@ -2272,6 +2297,78 @@ function closeDayInfo() {
 
 // ── Dismissal ──
 let dismissedEmployees = {}; // { name: 'YYYY-MM-DD' } — дата последней смены
+
+// ── Vacation Modal ──
+function openVacationModal() {
+  const sel = document.getElementById('vac-operator');
+  sel.innerHTML = '';
+  SECTIONS.flatMap(s => s.members).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  const today = `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  document.getElementById('vac-date-from').value = today;
+  document.getElementById('vac-date-to').value = today;
+  document.getElementById('vac-msg').className = 'save-msg';
+  document.getElementById('vacation-overlay').classList.add('open');
+}
+
+function closeVacationModal() {
+  document.getElementById('vacation-overlay').classList.remove('open');
+}
+
+async function applyVacation() {
+  const name = document.getElementById('vac-operator').value;
+  const dateFrom = document.getElementById('vac-date-from').value;
+  const dateTo = document.getElementById('vac-date-to').value;
+  const msg = document.getElementById('vac-msg');
+
+  if (!name || !dateFrom || !dateTo) {
+    msg.textContent = 'Заполните все поля';
+    msg.className = 'save-msg err show';
+    return;
+  }
+  if (dateTo < dateFrom) {
+    msg.textContent = 'Дата окончания раньше даты начала';
+    msg.className = 'save-msg err show';
+    return;
+  }
+
+  const newOverrides = { ...scheduleOverrides };
+  const from = new Date(dateFrom);
+  const to = new Date(dateTo);
+
+  for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const key = `${name}:${ds}`;
+    newOverrides[key] = { ...(newOverrides[key] || {}), type: 'vacation', editedAt: new Date().toISOString() };
+  }
+
+  scheduleOverrides = newOverrides;
+  renderAll();
+  updateColumnHighlight();
+
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast(`Отпуск ${name} применён`, 'ok');
+      closeVacationModal();
+    } else {
+      msg.textContent = 'Ошибка сохранения';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  }
+}
 
 function openDismissModal() {
   const sel = document.getElementById('dm-operator');

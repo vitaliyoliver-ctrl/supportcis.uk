@@ -1516,6 +1516,8 @@ function getPatternShift(name, date) {
   const op = patterns[name];
   if (!op || !op.pattern || !op.cycleStart) return null;
   const start = new Date(op.cycleStart);
+  // До даты начала — паттерн не применяется, fallback на BASE_PATTERNS
+  if (date < start) return null;
   const diffDays = Math.floor((date - start) / 86400000);
   const cycle = op.pattern.length;
   const pos = ((diffDays % cycle) + cycle) % cycle;

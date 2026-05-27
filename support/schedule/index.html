@@ -108,7 +108,7 @@
     .theme-toggle-label { font-size: 11px; color: var(--muted); font-family: 'Mulish', sans-serif; }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: clip; }
-    @media (max-width: 900px) { html, body { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+    @media (max-width: 900px) { html, body { overflow-x: hidden; } }
 
     .bg-grid {
       position: fixed; inset: 0;
@@ -243,11 +243,11 @@
       vertical-align: middle;
     }
     .section-body { overflow: hidden; }
-    @media (max-width: 900px) { .section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+    /* section-body не скроллим — скроллим table-wrap */
     .section-body.collapsed { display: none; }
 
     .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
-    @media (max-width: 900px) { .table-wrap { overflow: visible; border-radius: 0; } }
+    @media (max-width: 900px) { .table-wrap { overflow-x: auto; overflow-y: visible; border-radius: 6px; -webkit-overflow-scrolling: touch; } }
     table { width: 100%; border-collapse: collapse; }
 
     thead th {

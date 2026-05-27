@@ -125,6 +125,37 @@
       position: sticky; top: 0; z-index: 100;
     }
     .nav-left { display: flex; align-items: center; gap: 16px; }
+    .sticky-dates-bar {
+      position: sticky; top: 57px; z-index: 90;
+      background: var(--nav-bg); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      overflow-x: hidden; display: none;
+    }
+    .sticky-dates-inner {
+      display: flex; align-items: stretch;
+      min-width: max-content; overflow: hidden;
+    }
+    .sticky-dates-label {
+      min-width: 320px; width: 320px; flex-shrink: 0;
+      padding: 6px 12px; font-size: 10px; color: var(--muted);
+      display: flex; align-items: center;
+      border-right: 2px solid rgba(128,128,128,0.2);
+      position: sticky; left: 0; background: var(--nav-bg); z-index: 2;
+    }
+    .sticky-date-cell {
+      min-width: 44px; width: 44px; flex-shrink: 0;
+      padding: 5px 2px; text-align: center;
+      font-size: 11px; font-weight: 700; color: var(--text-sub);
+      border-right: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+    }
+    .sticky-date-cell:hover { background: rgba(255,255,255,0.05); }
+    .sticky-date-cell.today { color: var(--ops); }
+    .sticky-date-cell.selected { background: var(--tl-glow); color: var(--ops); }
+    .sticky-date-cell.weekend { color: var(--muted); }
+    .sticky-date-cell .sdc-day { font-size: 9px; font-weight: 400; opacity: .6; }
+    .sticky-dates-total { min-width: 44px; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.15); }
     .back-btn {
       display: flex; align-items: center; gap: 6px;
       color: var(--muted); font-size: 13px; text-decoration: none;
@@ -718,6 +749,15 @@
       <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
     </div>
   </nav>
+
+  <!-- STICKY DATES BAR -->
+  <div class="sticky-dates-bar" id="sticky-dates-bar">
+    <div class="sticky-dates-inner" id="sticky-dates-inner">
+      <div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>
+      <!-- заполняется динамически -->
+      <div class="sticky-dates-total"></div>
+    </div>
+  </div>
 
   <div class="main">
 
@@ -1437,6 +1477,7 @@ const collapsedSections = new Set();
   updateStats();
   populateOperatorSelect();
   updateColumnHighlight();
+  setTimeout(initStickyDatesBar, 0);
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -1476,6 +1517,7 @@ async function switchMonth(year, month) {
   renderAll();
   updateStats();
   updateColumnHighlight();
+  setTimeout(initStickyDatesBar, 0);
 }
 
 function updateMonthNav() {
@@ -2361,12 +2403,79 @@ function showDayInfo(ds, di) {
   document.getElementById('day-info-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// ── Sticky Dates Bar ──
+function renderStickyDatesBar() {
+  const bar = document.getElementById('sticky-dates-bar');
+  const inner = document.getElementById('sticky-dates-inner');
+  if (!bar || !inner) return;
+
+  // Строим ячейки дат
+  let html = `<div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>`;
+  DAYS.forEach(({ d, date }, di) => {
+    const ds = dateStr(d);
+    const isToday = ds === TODAY_STR;
+    const isSelected = ds === selectedDateStr;
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const dayName = date.toLocaleDateString('ru', { weekday: 'short' });
+    let cls = 'sticky-date-cell';
+    if (isToday) cls += ' today';
+    if (isSelected) cls += ' selected';
+    if (isWeekend && !isToday && !isSelected) cls += ' weekend';
+    html += `<div class="${cls}" data-date="${ds}" onclick="showDayInfo('${ds}',${di})">
+      <span>${d}</span>
+      <span class="sdc-day">${dayName}</span>
+    </div>`;
+  });
+  html += `<div class="sticky-dates-total"></div>`;
+  inner.innerHTML = html;
+}
+
+function syncStickyBarScroll() {
+  const inner = document.getElementById('sticky-dates-inner');
+  if (!inner) return;
+  // Скролл идёт по window (горизонтальный) — синхронизируем
+  const scrollX = window.scrollX || document.documentElement.scrollLeft;
+  inner.scrollLeft = scrollX;
+}
+
+function initStickyDatesBar() {
+  renderStickyDatesBar();
+  const bar = document.getElementById('sticky-dates-bar');
+  const inner = document.getElementById('sticky-dates-inner');
+
+  // Показываем бар только когда первая секция уходит за навбар
+  const navHeight = (document.querySelector('.nav')?.offsetHeight || 57) + (bar.offsetHeight || 0);
+  const observer = new IntersectionObserver(
+    ([entry]) => { bar.style.display = entry.isIntersecting ? 'none' : 'block'; },
+    { threshold: 0, rootMargin: `-${navHeight}px 0px 0px 0px` }
+  );
+  const firstSection = document.querySelector('.schedule-section');
+  if (firstSection) observer.observe(firstSection);
+
+  // Горизонтальный скролл страницы → синхронизируем inner
+  window.addEventListener('scroll', syncStickyBarScroll, { passive: true });
+
+  // Клик по дате в баре тоже должен подсвечивать колонку
+  inner.addEventListener('click', (e) => {
+    const cell = e.target.closest('.sticky-date-cell');
+    if (!cell) return;
+    const ds = cell.dataset.date;
+    const di = DAYS.findIndex(d => dateStr(d.d) === ds);
+    if (di >= 0) showDayInfo(ds, di);
+  });
+}
+
 function updateColumnHighlight() {
   // Снимаем старое выделение
   document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
   if (!selectedDateStr) return;
   // Выделяем все ячейки выбранного столбца
   document.querySelectorAll(`[data-date="${selectedDateStr}"]`).forEach(el => el.classList.add('is-selected'));
+  // Обновляем выделение в sticky bar
+  document.querySelectorAll('.sticky-date-cell').forEach(el => {
+    el.classList.toggle('selected', el.dataset.date === selectedDateStr);
+  });
 }
 
 function closeDayInfo() {

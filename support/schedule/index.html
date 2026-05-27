@@ -309,6 +309,7 @@
     .shift-super-day   { background: rgba(245,158,66,0.55);    color: #111; }
     .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff; }
     .shift-off         { background: transparent; color: rgba(150,150,150,0.35); font-size: 16px; font-weight: 400; text-shadow: none; }
+    .shift-birthday    { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); font-size: 14px; }
     .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
     .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
     .shift-work8       { background: rgba(139,92,246,0.50);    color: #111; }
@@ -1555,7 +1556,7 @@ const DEFAULT_HOURS = {
   extra_vip_morning: 11, extra_vip_evening: 11, extra_vip_1200: 11,
   extra_sup_day: 11, extra_sup_night: 11, extra_sup_day8: 8,
   nk: 11,
-  vacation: 0, sick: 0, off: 0
+  vacation: 0, sick: 0, off: 0, birthday: 0
 };
 
 function getHours(type) {
@@ -1567,6 +1568,7 @@ function getHours(type) {
 
 function shiftLabel(type, name, ds) {
   if (type === 'off') return '';
+  if (type === 'birthday') return '🎂';
   if (type === 'vacation') return '✈';
   if (type === 'nk') return 'НК';
   if (type === 'dismissed') return '🚫';
@@ -1637,7 +1639,7 @@ function shiftClass(type) {
     extra_sup_day:     'shift-extra-sup-day',
     extra_sup_night:   'shift-extra-sup-night',
     extra_sup_day8:    'shift-extra-sup-day8',
-    vacation: 'shift-vacation', sick: 'shift-sick',
+    vacation: 'shift-vacation', sick: 'shift-sick', birthday: 'shift-birthday',
     dismissed: 'shift-super-night',
     nk: 'shift-nk',
     off: 'shift-off',
@@ -2504,6 +2506,7 @@ const SHIFT_TYPES_ALL = [
   { type: 'nk',       label: 'НК',         time: 'НК',  group: null },
   { type: 'vacation', label: 'Отпуск',     time: '✈',   group: null },
   { type: 'sick',     label: 'Больничный', time: '🤒',  group: null },
+  { type: 'birthday', label: 'Выходной ДР', time: '🎂',  group: null },
   { type: 'off',      label: 'Выходной',   time: '—',   group: null },
 ];
 
@@ -2756,14 +2759,29 @@ function selectShiftType(btn) {
       extraMinusEvents = [{ type: 'loss_sick', hours: defaultH }];
       renderExtraEvents();
     }
-    // Ограничиваем доп события — только больничный и оплачиваемый больничный
+    // Убираем авто ДР если было
+    extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
     document.getElementById('ap-note').required = true;
     document.getElementById('ap-note').placeholder = 'Заметка обязательна для больничного';
+  } else if (selectedShiftType === 'birthday') {
+    // Авто: +11ч орг моменты
+    const alreadyHasBday = extraPlusEvents.some(e => e._autoBirthday);
+    if (!alreadyHasBday) {
+      extraPlusEvents = [{ type: 'extra_org_plus', hours: 11, _autoBirthday: true }];
+      renderExtraEvents();
+    }
+    // Убираем авто-потерю больничного если была
+    extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    document.getElementById('ap-note').placeholder = 'Укажите причину';
+    document.getElementById('ap-note').required = false;
   } else {
     // Снимаем ограничения
     document.getElementById('ap-note').placeholder = 'Укажите причину';
+    document.getElementById('ap-note').required = false;
     // Убираем авто-потерю если была добавлена автоматически
     extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    // Убираем авто ДР если было
+    extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
     renderExtraEvents();
   }
 
@@ -2809,7 +2827,9 @@ async function saveShift() {
     const isExtra = selectedShiftType.startsWith('extra_');
     const customHoursInput = document.getElementById('ap-custom-hours');
     const customHours = isExtra && customHoursInput?.value ? parseFloat(customHoursInput.value) : null;
-    const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0);
+    const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents]
+      .filter(e => e.hours > 0)
+      .map(({ _autoBirthday, ...e }) => e); // убираем служебное поле
     newOverrides[key] = {
       type: selectedShiftType,
       note,

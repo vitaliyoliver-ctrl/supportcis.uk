@@ -2413,7 +2413,10 @@ function renderStickyDatesBar() {
   const inner = document.getElementById('sticky-dates-inner');
   if (!bar || !inner) return;
 
-  // Строим ячейки дат
+  // Получаем реальную ширину ячеек из таблицы
+  const sampleTh = document.querySelector('thead th[data-date]');
+  const cellW = sampleTh ? sampleTh.offsetWidth : 44;
+
   let html = `<div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>`;
   DAYS.forEach(({ d, date }, di) => {
     const ds = dateStr(d);
@@ -2426,12 +2429,12 @@ function renderStickyDatesBar() {
     if (isToday) cls += ' today';
     if (isSelected) cls += ' selected';
     if (isWeekend && !isToday && !isSelected) cls += ' weekend';
-    html += `<div class="${cls}" data-date="${ds}" onclick="showDayInfo('${ds}',${di})">
+    html += `<div class="${cls}" data-date="${ds}" style="min-width:${cellW}px;width:${cellW}px" onclick="showDayInfo('${ds}',${di})">
       <span>${d}</span>
       <span class="sdc-day">${dayName}</span>
     </div>`;
   });
-  html += `<div class="sticky-dates-total"></div>`;
+  html += `<div class="sticky-dates-total" style="min-width:${cellW}px"></div>`;
   inner.innerHTML = html;
 }
 
@@ -2486,7 +2489,7 @@ function initStickyDatesBar() {
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', () => { labelAligned = false; alignStickyLabel(); }, { passive: true });
+  window.addEventListener('resize', () => { labelAligned = false; alignStickyLabel(); renderStickyDatesBar(); }, { passive: true });
 
   // Клик по дате в баре
   inner.addEventListener('click', (e) => {

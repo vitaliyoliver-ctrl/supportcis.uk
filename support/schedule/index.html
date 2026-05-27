@@ -133,8 +133,11 @@
     }
     .sticky-dates-inner {
       display: flex; align-items: stretch;
-      min-width: max-content; overflow: hidden;
+      min-width: max-content;
+      overflow-x: scroll; overflow-y: hidden;
+      scrollbar-width: none; /* Firefox */
     }
+    .sticky-dates-inner::-webkit-scrollbar { display: none; } /* Chrome/Safari */
     .sticky-dates-label {
       min-width: 320px; width: 320px; flex-shrink: 0;
       padding: 6px 12px; font-size: 10px; color: var(--muted);
@@ -2445,11 +2448,15 @@ function syncStickyBarScroll() {
 function alignStickyLabel() {
   const label = document.getElementById('sticky-dates-label');
   if (!label) return;
-  // Берём реальную ширину из первой ячейки таблицы (col-name + col-info)
-  const colName = document.querySelector('thead th.col-name');
-  const colInfo = document.querySelector('thead th.col-info');
-  if (colName && colInfo) {
-    const w = colName.offsetWidth + colInfo.offsetWidth;
+  // Берём реальный offsetLeft первой ячейки даты в таблице
+  // offsetLeft считается от родителя, поэтому берём разницу с левым краем страницы
+  const firstDateTh = document.querySelector('thead th[data-date]');
+  if (!firstDateTh) return;
+  const thRect = firstDateTh.getBoundingClientRect();
+  // thRect.left = расстояние от левого края viewport до начала первой ячейки с датой
+  // Это и есть нужная ширина label (бар всегда прибит к левому краю viewport)
+  const w = thRect.left + (window.scrollX || 0);
+  if (w > 0) {
     label.style.minWidth = w + 'px';
     label.style.width = w + 'px';
   }
@@ -2461,20 +2468,25 @@ function initStickyDatesBar() {
   const inner = document.getElementById('sticky-dates-inner');
 
   // Показываем бар при вертикальном скролле > высоты навбара + statsRow
+  let labelAligned = false;
+
   function onScroll() {
     const nav = document.querySelector('.nav');
     const statsRow = document.querySelector('.stats-row');
     const threshold = (nav?.offsetHeight || 57) + (statsRow?.offsetHeight || 0) + 20;
-    bar.style.display = window.scrollY > threshold ? 'block' : 'none';
+    const shouldShow = window.scrollY > threshold;
+    bar.style.display = shouldShow ? 'block' : 'none';
 
-    // Синхронизируем горизонтальный скролл
-    const scrollX = window.scrollX || document.documentElement.scrollLeft;
-    inner.scrollLeft = scrollX;
-    alignStickyLabel();
+    if (shouldShow) {
+      // Выравниваем label только при первом показе или после resize
+      if (!labelAligned) { alignStickyLabel(); labelAligned = true; }
+      // Синхронизируем горизонтальный скролл
+      inner.scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+    }
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', alignStickyLabel, { passive: true });
+  window.addEventListener('resize', () => { labelAligned = false; alignStickyLabel(); }, { passive: true });
 
   // Клик по дате в баре
   inner.addEventListener('click', (e) => {

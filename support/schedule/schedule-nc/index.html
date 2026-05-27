@@ -309,6 +309,7 @@
     .shift-super-day   { background: rgba(245,158,66,0.55);    color: #111; }
     .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff; }
     .shift-off         { background: transparent; color: rgba(150,150,150,0.35); font-size: 16px; font-weight: 400; text-shadow: none; }
+    .shift-birthday    { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); font-size: 14px; }
     .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
     .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
     .shift-work8       { background: rgba(139,92,246,0.50);    color: #111; }
@@ -859,6 +860,7 @@
     </div>
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeAdmin()">Отмена</button>
+      <button class="filter-btn" onclick="openProfilePanel()" style="margin-right:auto;font-size:11px;padding:5px 10px">✏ Профиль</button>
       <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
     </div>
   </div>
@@ -1222,6 +1224,15 @@ const PATTERN_PRESETS = {
   'vip_night_day':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
   'vip_1200':        ['vip_1200','off','off','vip_1200'],
   'off':             ['off'],
+  // Supervisor пресеты
+  'super_day_only':   ['super_day','super_day','off','off'],
+  'super_night_only': ['super_night','super_night','off','off'],
+  'team1_0': ['super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night','off','off'],
+  'team1_1': ['super_day','super_day','off','off','super_night','super_night','off','off','super_day','super_day','off','off'],
+  'team1_2': ['super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day','off','off'],
+  'team2_0': ['off','off','super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night'],
+  'team2_1': ['off','off','super_day','super_day','off','off','super_night','super_night','off','off','super_day','super_day'],
+  'team2_2': ['off','off','super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day'],
 };
 
 function getPatternShift(name, date) {
@@ -1258,7 +1269,7 @@ const DEFAULT_HOURS = {
   extra_vip_morning: 11, extra_vip_evening: 11, extra_vip_1200: 11,
   extra_sup_day: 11, extra_sup_night: 11, extra_sup_day8: 8,
   nk: 11,
-  vacation: 0, sick: 0, off: 0
+  vacation: 0, sick: 0, off: 0, birthday: 0
 };
 
 function getHours(type) {
@@ -1270,6 +1281,7 @@ function getHours(type) {
 
 function shiftLabel(type, name, ds) {
   if (type === 'off') return '';
+  if (type === 'birthday') return '🎂';
   if (type === 'vacation') return '✈';
   if (type === 'nk') return 'НК';
   if (type === 'dismissed') return '🚫';
@@ -1339,7 +1351,7 @@ function shiftClass(type) {
     extra_sup_day:     'shift-extra-sup-day',
     extra_sup_night:   'shift-extra-sup-night',
     extra_sup_day8:    'shift-extra-sup-day8',
-    vacation: 'shift-vacation', sick: 'shift-sick',
+    vacation: 'shift-vacation', sick: 'shift-sick', birthday: 'shift-birthday',
     dismissed: 'shift-super-night',
     nk: 'shift-nk',
     off: 'shift-off',
@@ -1477,8 +1489,9 @@ function renderSection(s) {
   const tbody = document.createElement('tbody');
   s.members.forEach(name => {
     const emp = EMPLOYEES[name] || {};
-    const pos = emp.position || '';
-    const email = emp.email || '';
+    const empOv = (scheduleSettings.employeeOverrides || {})[name] || {};
+    const pos   = empOv.position || emp.position || '';
+    const email = empOv.email    || emp.email    || '';
     const since = emp.since ? emp.since.slice(0,10) : '';
 
     const tr = document.createElement('tr');
@@ -2158,6 +2171,7 @@ const SHIFT_TYPES_ALL = [
   { type: 'nk',       label: 'НК',         time: 'НК',  group: null },
   { type: 'vacation', label: 'Отпуск',     time: '✈',   group: null },
   { type: 'sick',     label: 'Больничный', time: '🤒',  group: null },
+  { type: 'birthday', label: 'Выходной ДР', time: '🎂',  group: null },
   { type: 'off',      label: 'Выходной',   time: '—',   group: null },
 ];
 
@@ -2406,11 +2420,23 @@ function selectShiftType(btn) {
     // Ограничиваем доп события — только больничный и оплачиваемый больничный
     document.getElementById('ap-note').required = true;
     document.getElementById('ap-note').placeholder = 'Заметка обязательна для больничного';
+  } else if (selectedShiftType === 'birthday') {
+    // Авто: +11ч орг моменты
+    const alreadyHasBday = extraPlusEvents.some(e => e._autoBirthday);
+    if (!alreadyHasBday) {
+      extraPlusEvents = [{ type: 'extra_org_plus', hours: 11, _autoBirthday: true }];
+      renderExtraEvents();
+    }
+    // Убираем авто-потерю больничного если была
+    extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    document.getElementById('ap-note').placeholder = 'Укажите причину';
+    document.getElementById('ap-note').required = false;
   } else {
     // Снимаем ограничения
     document.getElementById('ap-note').placeholder = 'Укажите причину';
-    // Убираем авто-потерю если была добавлена автоматически
+    document.getElementById('ap-note').required = false;
     extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
     renderExtraEvents();
   }
 
@@ -2456,7 +2482,9 @@ async function saveShift() {
     const isExtra = selectedShiftType.startsWith('extra_');
     const customHoursInput = document.getElementById('ap-custom-hours');
     const customHours = isExtra && customHoursInput?.value ? parseFloat(customHoursInput.value) : null;
-    const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents].filter(e => e.hours > 0);
+    const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents]
+      .filter(e => e.hours > 0)
+      .map(({ _autoBirthday, ...e }) => e);
     newOverrides[key] = {
       type: selectedShiftType,
       note,
@@ -2651,6 +2679,8 @@ function showToast(msg, type) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+
+
 // ── Pattern Modal ──
 let patternModalName = null;
 
@@ -2734,7 +2764,29 @@ async function savePattern() {
     closePatternModal();
     return;
   }
-  
+
+  if (presetKey === 'supervisor_auto') {
+    const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
+    delete newPatterns[patternModalName];
+    const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
+    try {
+      const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+      const res = await fetch(`${API}/schedule?month=${monthStr}&project=nk`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        scheduleSettings = newSettings;
+        renderAll();
+        closePatternModal();
+        showToast(`Паттерн ${patternModalName} сброшен`, 'ok');
+      } else { showToast('Ошибка сохранения', 'err'); }
+    } catch { showToast('Ошибка сети', 'err'); }
+    return;
+  }
+
   const pattern = PATTERN_PRESETS[presetKey];
   if (!pattern) return;
   
@@ -2769,6 +2821,8 @@ async function savePattern() {
 }
 </script>
 
+
+
 <!-- Pattern Modal -->
 <div class="pattern-modal-overlay" id="pattern-modal-overlay">
   <div class="pattern-modal">
@@ -2780,6 +2834,13 @@ async function savePattern() {
         <div class="custom-select-option selected" data-value="morning_evening" onclick="selectPatternOption(this)">09-21 / 21-09 (день первый)</div>
         <div class="custom-select-option" data-value="evening_morning" onclick="selectPatternOption(this)">21-09 / 09-21 (ночь первой)</div>
         <div class="custom-select-option" data-value="off" onclick="selectPatternOption(this)">Выходной (нет смен)</div>
+        <div class="custom-select-option" data-value="supervisor_auto" onclick="selectPatternOption(this)">Supervisor (авто, сбросить)</div>
+        <div class="custom-select-option" data-value="super_day_only" onclick="selectPatternOption(this)">Sup день 2/2 (фиксированный)</div>
+        <div class="custom-select-option" data-value="super_night_only" onclick="selectPatternOption(this)">Sup ночь 2/2 (фиксированный)</div>
+        <div class="custom-select-option" data-value="team1_0" onclick="selectPatternOption(this)">Team1 позиция 0 (как Irving)</div>
+        <div class="custom-select-option" data-value="team1_1" onclick="selectPatternOption(this)">Team1 позиция 1</div>
+        <div class="custom-select-option" data-value="team2_0" onclick="selectPatternOption(this)">Team2 позиция 0 (как Max)</div>
+        <div class="custom-select-option" data-value="team2_1" onclick="selectPatternOption(this)">Team2 позиция 1</div>
         <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
       </div>
       <input type="hidden" id="pattern-preset-select" value="morning_evening" />

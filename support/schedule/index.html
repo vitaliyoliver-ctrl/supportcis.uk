@@ -208,9 +208,11 @@
       vertical-align: middle;
     }
     .section-body { overflow: hidden; }
+    @media (max-width: 900px) { .section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
     .section-body.collapsed { display: none; }
 
     .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
+    @media (max-width: 900px) { .table-wrap { overflow: visible; border-radius: 0; } }
     table { width: 100%; border-collapse: collapse; }
 
     thead th {

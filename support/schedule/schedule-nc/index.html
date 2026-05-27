@@ -1395,7 +1395,10 @@ function renderSection(s) {
   table.appendChild(thead);
 
   // Все операторы для подсчёта (считаем по типу смены, не по группе)
-  const allOperators = (SECTIONS.find(s2 => s2.key === 'support_nk')?.members || []);
+  const allOperators = [
+    ...(SECTIONS.find(s2 => s2.key === 'support_nk')?.members || []),
+    ...(SECTIONS.find(s2 => s2.key === 'temp_support')?.members || []),
+  ];
   const isOpSection = ['support_nk'].includes(s.key);
 
   // 2 строки счётчиков: день и ночь (только для support_nk)

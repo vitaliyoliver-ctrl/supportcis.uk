@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SupportCIS — График смен</title>
+  <title>NextCode — График смен</title>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -108,6 +108,7 @@
     .theme-toggle-label { font-size: 11px; color: var(--muted); font-family: 'Mulish', sans-serif; }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: clip; }
+    @media (max-width: 900px) { html, body { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
 
     .bg-grid {
       position: fixed; inset: 0;
@@ -125,41 +126,6 @@
       position: sticky; top: 0; z-index: 100;
     }
     .nav-left { display: flex; align-items: center; gap: 16px; }
-    .sticky-dates-bar {
-      position: sticky; top: 57px; z-index: 90;
-      background: var(--nav-bg); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      overflow-x: hidden; display: none;
-    }
-    .sticky-dates-inner {
-      display: flex; align-items: stretch;
-      min-width: max-content;
-      overflow-x: scroll; overflow-y: hidden;
-      scrollbar-width: none; /* Firefox */
-    }
-    .sticky-dates-inner::-webkit-scrollbar { display: none; } /* Chrome/Safari */
-    .sticky-dates-label {
-      min-width: 320px; width: 320px; flex-shrink: 0;
-      padding: 6px 12px; font-size: 10px; color: var(--muted);
-      display: flex; align-items: center;
-      border-right: 2px solid rgba(128,128,128,0.2);
-      position: sticky; left: 0; background: var(--nav-bg); z-index: 2;
-      transition: width 0.1s;
-    }
-    .sticky-date-cell {
-      min-width: 44px; width: 44px; flex-shrink: 0;
-      padding: 5px 2px; text-align: center;
-      font-size: 11px; font-weight: 700; color: var(--text-sub);
-      border-right: 1px solid var(--border);
-      cursor: pointer; transition: background .15s;
-      display: flex; flex-direction: column; align-items: center; gap: 1px;
-    }
-    .sticky-date-cell:hover { background: rgba(255,255,255,0.05); }
-    .sticky-date-cell.today { color: var(--ops); }
-    .sticky-date-cell.selected { background: var(--tl-glow); color: var(--ops); }
-    .sticky-date-cell.weekend { color: var(--muted); }
-    .sticky-date-cell .sdc-day { font-size: 9px; font-weight: 400; opacity: .6; }
-    .sticky-dates-total { min-width: 44px; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.15); }
     .back-btn {
       display: flex; align-items: center; gap: 6px;
       color: var(--muted); font-size: 13px; text-decoration: none;
@@ -731,8 +697,8 @@
   <!-- NAV -->
   <nav class="nav">
     <div class="nav-left">
-      <a href="/support/" class="back-btn">← Support</a>
-      <div class="nav-title">Support<span>CIS</span> — График</div>
+      <a href="/support/schedule/" class="back-btn">← SupportCIS</a>
+      <div class="nav-title">Next<span>Code</span> — График</div>
     </div>
     <div class="nav-right">
       <div style="display:flex;align-items:center;gap:6px">
@@ -754,15 +720,6 @@
     </div>
   </nav>
 
-  <!-- STICKY DATES BAR -->
-  <div class="sticky-dates-bar" id="sticky-dates-bar">
-    <div class="sticky-dates-inner" id="sticky-dates-inner">
-      <div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>
-      <!-- заполняется динамически -->
-      <div class="sticky-dates-total"></div>
-    </div>
-  </div>
-
   <div class="main">
 
     <!-- STATS -->
@@ -773,12 +730,12 @@
         <div class="stat-sub">сейчас на смене</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Regular Support</div>
+        <div class="stat-label">Supervisors</div>
         <div class="stat-val" id="stat-regular">—</div>
-        <div class="stat-sub">операторов в отделе</div>
+        <div class="stat-sub">супервайзеров</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">VIP Support</div>
+        <div class="stat-label">Support NC</div>
         <div class="stat-val" id="stat-vip">—</div>
         <div class="stat-sub">операторов в отделе</div>
       </div>
@@ -812,9 +769,6 @@
       <span class="legend-label">Легенда:</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--shift-morning)"></span>09–21 (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--shift-evening)"></span>21–09 (11ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>12–00 (11ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-vip-morning)"></span>VIP 09–21 (11ч)</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-vip-evening)"></span>VIP 21–09 (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super)"></span>Sup День (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super-night-color)"></span>Sup Ночь (11ч)</span>
       <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>8ч (TL/QA)</span>
@@ -827,10 +781,9 @@
     <!-- FILTERS -->
     <div class="filters">
       <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
-      <button class="filter-btn" onclick="setFilter('regular',this)">Regular</button>
-      <button class="filter-btn" onclick="setFilter('vip',this)">VIP</button>
       <button class="filter-btn" onclick="setFilter('supervisors',this)">Supervisors</button>
-      <button class="filter-btn" onclick="setFilter('management',this)">Management</button>
+      <button class="filter-btn" onclick="setFilter('regular',this)">Support NC</button>
+      <button class="filter-btn" onclick="setFilter('temp',this)">Временные (SG)</button>
     </div>
 
     <!-- SCHEDULE TABLES -->
@@ -908,6 +861,7 @@
     </div>
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeAdmin()">Отмена</button>
+      <button class="filter-btn" onclick="openProfilePanel()" style="margin-right:auto;font-size:11px;padding:5px 10px">✏ Профиль</button>
       <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
     </div>
   </div>
@@ -1009,6 +963,7 @@
 
 <script>
 const API = '/api';
+const PROJECT = 'nk';
 
 // ── Навигация по месяцам ──
 const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
@@ -1030,131 +985,48 @@ let YEAR = 2026;
 
 // ── Данные сотрудников: email, дата, позиция ──
 const EMPLOYEES = {
-  'Oliver':    { email: 'vitaliy.oliver@velvix.org',        position: 'Head',        since: '2022-10-24' },
-  'Jordan':    { email: 'ayman.jordan@velvix.org',          position: 'TL',          since: '2021-08-24' },
-  'Naomi':     { email: 'nataliia.naomi@velvix.org',        position: 'TL',          since: '2023-04-27' },
-  'Matthew':   { email: 'Viktor.Matthew@velvix.org',        position: 'TL',          since: '2023-03-30' },
-  'Robert':    { email: 'Adil.Ab@velvix.org',             position: 'Support',     since: '2026-01-12' },
-  'Reed':      { email: 'vladyslav.reed@velvix.org',         position: 'Complaints',       since: '2024-03-25' },
-  'Jayden':    { email: 'ilia.jayden@velvix.org',            position: 'Coach',            since: '2023-03-30' },
-  'Anna':      { email: 'anna.carrot@velvix.org',            position: 'Coach',            since: '2023-11-24' },
-  'Nikita':    { email: 'nikita.lanaya@velvix.org',          position: 'Analyst',          since: '2025-03-01' },
-  'Curtis':    { email: 'kirill.curtis@velvix.org',         position: 'Supervisor',  since: '2024-03-25' },
-  'Manuel':    { email: 'ruslan.manuel@velvix.org',         position: 'Supervisor',  since: '2024-04-08' },
-  'Irma':      { email: 'janelle.irma@velvix.org',          position: 'Supervisor',  since: '2024-06-24' },
-  'Solomon':   { email: 'ilia.solomon@velvix.org',          position: 'Supervisor',  since: '2023-06-30' },
-  'Richard':   { email: 'ivan.richard@velvix.org',          position: 'Supervisor',  since: '2022-06-23' },
-  'Toby':      { email: 'osman.toby@velvix.org',            position: 'Supervisor',  since: '2024-04-15' },
-  'Will':      { email: 'Rovshan.Will@velvix.org',          position: 'Support',     since: '2025-07-29' },
-  'Bridget':   { email: 'Elvira.As@velvix.org',             position: 'Support',     since: '2025-12-08' },
-  'Kenzo':     { email: 'Nijat.Kenzo@velvix.org',           position: 'Support',     since: '2025-07-22' },
-  'Nora':      { email: 'Alina.Ja@velvix.org',              position: 'Support',     since: '2025-10-20' },
-  'Florence':  { email: 'banovsha.florence@velvix.org',     position: 'Support',     since: '2024-01-29' },
-  'Fletcher':  { email: 'Sherzodjon.Fletcher@velvix.org',   position: 'Support',     since: '2025-07-22' },
-  'Charles':   { email: 'Teymur.Ab@velvix.org',             position: 'Support',     since: '2026-01-26' },
-  'Earl':      { email: 'Rashad.Go@velvix.org',             position: 'Support',     since: '2026-01-12' },
-  'Rudy':      { email: 'rufat.rudy@velvix.org',            position: 'Support',     since: '2024-06-10' },
-  'Balfour':   { email: 'Emin.Nu@velvix.org',               position: 'Support',     since: '2025-10-20' },
-  'Jonathan':  { email: 'Dmitriy.Be@velvix.org',            position: 'Support',     since: '2025-11-17' },
-  'Bill':      { email: 'Artsiom.Pu@velvix.org',            position: 'Support',     since: '2026-01-12' },
-  'Gross':     { email: 'Ruslan.Mi@velvix.org',             position: 'Support',     since: '2026-03-02' },
-  'Meadow':    { email: 'assel.meadow@velvix.org',          position: 'Support',     since: '2024-08-08' },
-  'Norman':    { email: 'elvin.norman@velvix.org',          position: 'Support',     since: '2024-01-29' },
-  'Robin':     { email: 'Mikita.Ma@velvix.org',             position: 'Support',     since: '2025-12-08' },
-  'Bob':       { email: 'Maksym.K@velvix.org',              position: 'Support',     since: '2025-10-20' },
-  'Lex':       { email: 'Vladyslav.Bi@velvix.org',          position: 'Support',     since: '2026-01-12' },
-  'Calvin':    { email: 'Radik.Mu@velvix.org',              position: 'Support',     since: '2026-03-02' },
-  'Mike':      { email: 'stanislav.mike@velvix.org',        position: 'Support',     since: '2023-08-28' },
-  'Hardy':     { email: 'Teymur.Hardy@velvix.org',          position: 'Support',     since: '2025-07-29' },
-  'Murphy':    { email: 'Viktor.Bo@velvix.org',             position: 'Support',     since: '2025-11-17' },
-  'Joseph':    { email: 'Oleh.Vy@velvix.org',              position: 'Support',     since: '2025-10-20' },
-  'Bowen':     { email: 'ivan.bowen@velvix.org',            position: 'Support',     since: '2024-05-27' },
-  'Adam':      { email: 'vadym.adam@velvix.org',            position: 'VIP Sup',     since: '2023-08-17' },
-  'Amelia':    { email: 'tamila.amelia@velvix.org',         position: 'VIP Sup',     since: '2023-10-23' },
-  'Lucas':     { email: 'vladimir.lucas@velvix.org',        position: 'VIP Sup',     since: '2023-07-22' },
-  'Scott':     { email: 'serghei.scott@velvix.org',         position: 'VIP',         since: '2023-04-25' },
-  'Tom':       { email: 'fuad.tom@velvix.org',              position: 'VIP',         since: '2024-04-08' },
-  'Simon':     { email: 'nurdaulet.simon@velvix.org',       position: 'VIP',         since: '2023-12-04' },
-  'Casper':    { email: 'Ruslan.Casper@velvix.org',         position: 'VIP',         since: '2025-07-22' },
-  'Elijah':    { email: 'alisher.elijah@velvix.org',        position: 'VIP',         since: '2024-05-27' },
-  'Holly':     { email: 'lolita.holly@velvix.org',          position: 'VIP',         since: '2024-11-11' },
-  'River':     { email: 'vladyslav.river@velvix.org',       position: 'VIP',         since: '2024-03-25' },
-  'Chadwick':  { email: 'temirlan.chadwick@velvix.org',     position: 'VIP',         since: '2024-06-24' },
-  'Fabio':     { email: 'daniil.fabio@velvix.org',          position: 'VIP',         since: '2024-11-25' },
-  'Plover':    { email: 'timur.plover@velvix.org',          position: 'VIP',         since: '2024-09-16' },
-  'Morgan':    { email: 'vladislav.morgan@velvix.org',      position: 'VIP',         since: '2024-05-13' },
-  'Reggie':    { email: 'maksym.reggie@velvix.org',         position: 'VIP',         since: '2024-03-25' },
-  'Nolan':     { email: 'Aliyar.Ko@velvix.org',             position: 'VIP',         since: '2025-10-20' },
-  'Skylar':    { email: 'elnur.skylar@velvix.org',          position: 'VIP',         since: '2024-11-11' },
-  'Wade':      { email: 'teymur.wade@velvix.org',           position: 'VIP',         since: '2024-03-25' },
-  'Denzel':    { email: 'emil.denzel@velvix.org',           position: 'VIP',         since: '2024-02-26' },
-  'Ashton':    { email: 'matsvei.ashton@velvix.org',        position: 'VIP',         since: '2024-11-25' },
-  'Christine': { email: 'zuleykha.christine@velvix.org',    position: 'VIP',         since: '2024-06-24' },
-  'Isaac':     { email: 'azim.isaac@velvix.org',            position: 'VIP',         since: '2024-01-15' },
-  'Felicia':   { email: 'nigar.felicia@velvix.org',         position: 'VIP',         since: '2024-11-25' },
-  'Warren':    { email: 'Vladimir.Warren@velvix.org',       position: 'VIP',         since: '2025-07-22' },
-  'Alexia':    { email: 'sabina.ib@velvix.org',             position: 'VIP',         since: '2024-01-29' },
-  'Kiana':     { email: 'kateryna.kiana@velvix.org',        position: 'VIP',         since: '2023-12-04' },
-  'Trinity':   { email: 'Muslmat.Trinity@velvix.org',       position: 'VIP',         since: '2025-07-22' },
-  'Оксана':    { email: 'oksana.qa@velvix.org',       position: 'QA Team Lead',   since: '2023-03-20' },
-  'Аня':       { email: 'anna.va@velvix.org',          position: 'QA Supervisor',  since: '2023-04-04' },
-  'Айгерим':   { email: 'aigerim.qa@velvix.org',       position: 'QA Manager',     since: '2023-04-17' },
-  'Анастасия': { email: 'anastasia.qa@velvix.org',     position: 'QA Manager',     since: '2023-01-18' },
-  'Натия':     { email: 'natia.qa@velvix.org',         position: 'QA Manager',     since: '2024-05-01' },
-  'Сарвар':    { email: 'sarvar.qa@velvix.org',        position: 'QA Manager',     since: '2024-07-08' },
-  'Зумруд':    { email: 'zumrud.qa@velvix.org',        position: 'QA Manager',     since: '2024-06-19' },
-  'Roger':     { email: 'aliaksandr.roger@velvix.org', position: 'QA AI',          since: '2023-08-28' },
+  'Irving':  { email: 'ruslan.irving@velvix.org',       position: 'Supervisor NC',  since: '2024-07-22' },
+  'Max':     { email: 'maksym.max@velvix.org',           position: 'Supervisor NC',  since: '2023-03-30' },
+  'Joseph':  { email: 'Oleh.Vy@velvix.org',              position: 'Support NC',     since: '2025-10-20' },
+  'Meadow':  { email: 'assel.meadow@velvix.org',         position: 'Support NC',     since: '2024-08-08' },
+  'Frey':    { email: 'Alexandra.Frey@velvix.org',       position: 'Support NC',     since: '2025-07-29' },
+  'Luciana': { email: 'ludmila.luciana@velvix.org',      position: 'Support NC',     since: '2024-04-15' },
+  'Debra':   { email: 'Katsiaryna.Yo@velvix.org',        position: 'Support NC',     since: '2026-01-26' },
+  'Evelyn':  { email: 'olga.evelyn@velvix.org',          position: 'Support NC',     since: '2024-04-08' },
+  'Mike':    { email: 'stanislav.mike@velvix.org',       position: 'Support (SG)',   since: '2023-08-28' },
 };
 
-// ── Секции графика ──
 const SECTIONS = [
   {
-    key: 'regular_support',
-    label: 'Regular Support',
+    key: 'supervisors_nk',
+    label: 'Supervisors',
     color: 'blue',
-    members: [
-      'Curtis','Manuel','Richard','Irma','Solomon','Toby',
-      'Will','Bridget','Fletcher','Kenzo','Nora','Robert',
-      'Charles','Earl','Rudy','Bowen','Balfour','Jonathan',
-      'Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike',
-      'Florence','Hardy','Murphy','Joseph'
-    ]
+    members: ['Irving', 'Max']
   },
   {
-    key: 'vip_support',
-    label: 'VIP Support',
+    key: 'support_nk',
+    label: 'Support NC',
     color: 'green',
-    members: [
-      'Adam','Amelia','Lucas',
-      'Scott','Tom','Simon','Skylar','Felicia','Nolan',
-      'Casper','Elijah','Holly','River','Chadwick','Fabio','Plover','Morgan','Reggie',
-      'Wade','Ashton','Trinity','Christine','Isaac','Warren','Alexia','Kiana','Denzel'
-    ]
+    members: ['Joseph', 'Meadow', 'Frey', 'Luciana', 'Debra', 'Evelyn']
   },
   {
-    key: 'management',
-    label: 'Management',
-    color: 'blue',
-    members: ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita']
-  },
-  {
-    key: 'qa',
-    label: 'QA',
+    key: 'temp_support',
+    label: 'Временные (SG)',
     color: 'orange',
-    members: ['Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger']
+    members: ['Mike']
   }
 ];
 
-// Для совместимости со старым кодом (populateOperatorSelect, updateStats)
+// Для совместимости
 const GROUPS = {
-  management: { label: 'Management', members: ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita'] },
-  supervisors: { label: 'Supervisors', members: ['Curtis','Manuel','Irma','Solomon','Richard','Toby'] },
-  regular: { label: 'Regular Support', members: ['Will','Bridget','Fletcher','Kenzo','Nora','Robert','Charles','Earl','Rudy','Bowen','Balfour','Jonathan','Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike','Florence','Hardy','Murphy','Joseph'] },
-  vip_supervisors: { label: 'VIP Supervisors', members: ['Adam','Amelia','Lucas'] },
-  vip: { label: 'VIP Support', members: ['Scott','Tom','Simon','Skylar','Felicia','Nolan','Casper','Elijah','Holly','River','Chadwick','Fabio','Plover','Morgan','Reggie','Wade','Ashton','Trinity','Christine','Isaac','Warren','Alexia','Kiana','Denzel'] },
-  qa: { label: 'QA', members: ['Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'] }
+  supervisors: { label: 'Supervisors', members: ['Irving', 'Max'] },
+  regular:     { label: 'Support NC',  members: ['Joseph', 'Meadow', 'Frey', 'Luciana', 'Debra', 'Evelyn'] },
+  temp:        { label: 'Временные',   members: ['Mike'] },
 };
-const GROUP_ORDER = ['management','supervisors','regular','vip_supervisors','vip','qa'];
+const GROUP_ORDER = ['supervisors', 'regular', 'temp'];
+
+// Временные сотрудники — часы не считаются
+const TEMP_MEMBERS = new Set(['Mike']);
 
 // Дни июня 2026
 function getDaysInMonth(year, month) {
@@ -1178,119 +1050,26 @@ function getTodayStr() {
 let TODAY_STR = getTodayStr();
 let selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
 
-// ── Точные паттерны смен из графика (июнь 2026) ──
-const EXACT_SHIFTS = {
-  'Will':     ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
-  'Bridget':  ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
-  'Fletcher': ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
-  'Kenzo':    ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
-  'Nora':     ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
-  'Robert':   ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
-  'Florence': ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Charles':  ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','evening'],
-  'Earl':     ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
-  'Rudy':     ['off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
-  'Balfour':  ['off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
-  'Jonathan': ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','vacation','vacation','vacation','vacation','vacation'],
-  'Bill':     ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
-  'Gross':    ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
-  'Meadow':   ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
-  'Robin':    ['evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Bob':      ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Lex':      ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off'],
-  'Calvin':   ['morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Mike':     ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Hardy':    ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Murphy':   ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Joseph':   ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Bowen':    ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning'],
-  'Scott':    ['vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
-  'Tom':      ['off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
-  'Simon':    ['off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
-  'Skylar':   ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off'],
-  'Felicia':  ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off'],
-  'Nolan':    ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off'],
-  'Casper':   ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Elijah':   ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Holly':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'River':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vip_evening'],
-  'Chadwick': ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Fabio':    ['off','vip_evening','vip_evening','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Plover':   ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Morgan':   ['vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_morning'],
-  'Reggie':   ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening'],
-  'Wade':     ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Ashton':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Trinity':  ['vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Christine':['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Isaac':    ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Warren':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Alexia':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off'],
-  'Kiana':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_morning','vip_morning','off'],
-  'Denzel':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-};
+// ── Паттерны НК операторов ──
+// CYCLE_START = 2026-06-01 (день 0)
+// Типы смен: morning=09-21(день), evening=21-09(ночь)
 
-// Management / QA: 8h пн-пт
-function getMgmtShift(dayIndex) {
-  const date = DAYS[dayIndex].date;
-  const dow = date.getDay();
-  return (dow === 0 || dow === 6) ? 'off' : 'work8';
-}
+const BASE_PATTERNS = {
+  // Супервайзеры: 2/2, ночная смена (21-09 = evening)
+  'Irving':  ['evening','evening','off','off'],
+  'Max':     ['off','off','evening','evening'],
+  // Операторы: 2/2/2/2 чередование день/ночь
+  'Joseph':  ['evening','off','off','morning','morning','off','off','evening'],
+  'Meadow':  ['off','morning','morning','off','off','evening','evening','off'],
+  'Frey':    ['off','morning','morning','off','off','evening','evening','off'],
+  'Luciana': ['off','morning','morning','off','off','morning','morning','off'],
+  'Debra':   ['morning','off','off','evening','evening','off','off','morning'],
+  'Evelyn':  ['off','off','morning','morning','off','off','evening','evening'],
+  // Временные — паттерн как в СГ (evening)
+  'Mike':    ['evening','off','off','morning','morning','off','off','evening'],
+};
 
 const OPERATOR_BASE_SHIFTS = {};
-
-// Базовые циклы операторов, вычислены из EXACT_SHIFTS июня
-// CYCLE_START = 2026-06-01 (день 0)
-const BASE_PATTERNS = {
-  'Will':      ['shift1200','off','off','shift1200'],
-  'Bridget':   ['shift1200','off','off','shift1200'],
-  'Fletcher':  ['shift1200','off','off','shift1200'],
-  'Kenzo':     ['off','shift1200','shift1200','off'],
-  'Nora':      ['off','shift1200','shift1200','off'],
-  'Robert':    ['off','shift1200','shift1200','off'],
-  'Florence':  ['morning','off','off','evening','evening','off','off','morning'],
-  'Charles':   ['off','evening','evening','off','off','morning','morning','off'],
-  'Earl':      ['off','evening','evening','off','off','morning','morning','off'],
-  'Rudy':      ['off','evening','evening','off','off','morning','morning','off'],
-  'Balfour':   ['off','morning','morning','off','off','evening','evening','off'],
-  'Jonathan':  ['off','morning','morning','off','off','evening','evening','off'],
-  'Bill':      ['off','morning','morning','off','off','evening','evening','off'],
-  'Gross':     ['off','morning','morning','off','off','evening','evening','off'],
-  'Meadow':    ['off','morning','morning','off','off','evening','evening','off'],
-  'Robin':     ['evening','off','off','morning','morning','off','off','evening'],
-  'Bob':       ['evening','off','off','morning','morning','off','off','evening'],
-  'Lex':       ['evening','off','off','morning','morning','off','off','evening'],
-  'Calvin':    ['morning','off','off','evening','evening','off','off','morning'],
-  'Mike':      ['evening','off','off','morning','morning','off','off','evening'],
-  'Hardy':     ['morning','off','off','evening','evening','off','off','morning'],
-  'Murphy':    ['morning','off','off','evening','evening','off','off','morning'],
-  'Joseph':    ['morning','off','off','evening','evening','off','off','morning'],
-  'Bowen':     ['off','evening','evening','off','off','morning','morning','off'],
-  'Scott':     ['off','off','vip_1200','vip_1200'],
-  'Tom':       ['off','vip_1200','vip_1200','off'],
-  'Simon':     ['off','vip_1200','vip_1200','off'],
-  'Skylar':    ['vip_1200','off','off','vip_1200'],
-  'Felicia':   ['vip_1200','off','off','vip_1200'],
-  'Nolan':     ['vip_1200','off','off','vip_1200'],
-  'Casper':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Elijah':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Holly':     ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'River':     ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Chadwick':  ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Fabio':     ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Plover':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Morgan':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Reggie':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Wade':      ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Ashton':    ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Trinity':   ['off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning'],
-  'Christine': ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Isaac':     ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Warren':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Alexia':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Kiana':     ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Denzel':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-};
 
 // Назначаем паттерны через цикл от CYCLE_START
 Object.keys(BASE_PATTERNS).forEach(name => {
@@ -1303,116 +1082,8 @@ Object.keys(BASE_PATTERNS).forEach(name => {
     return pattern[pos];
   };
 });
-// Команда 1: Irma, Solomon, Toby
-// Команда 2: Curtis, Manuel, Richard
-//
-// Цикл (считаем от 1 июня, смотрим на скрин):
-// День 0-1 (1,2 июня):  Команда 1 работает (Irma+Solomon день, Toby ночь), Команда 2 выходной
-// День 2-3 (3,4 июня):  Команда 2 работает (Curtis+Manuel день, Richard ночь), Команда 1 выходной
-// День 4-5 (5,6 июня):  Команда 1 работает (Irma+Toby день, Solomon ночь), Команда 2 выходной
-// День 6-7 (7,8 июня):  Команда 2 работает (Curtis+Richard день, Manuel ночь), Команда 1 выходной
-// День 8-9 (9,10 июня): Команда 1 работает (Solomon+Toby день, Irma ночь), Команда 2 выходной
-// День 10-11 (11,12):   Команда 2 работает (Manuel+Richard день, Curtis ночь), Команда 1 выходной
-// День 12 = повтор цикла с дня 0
 
-// Для каждого человека — функция по dayIndex (0 = 1 июня)
-// Команда 1: [Irma=0, Solomon=1, Toby=2] — индексы внутри тройки
-// Команда 2: [Curtis=0, Manuel=1, Richard=2]
-//
-// Внутри команды, когда она работает:
-//   Период 1 (слот 0): [0,1] день, [2] ночь
-//   Период 2 (слот 2): [0,2] день, [1] ночь
-//   Период 3 (слот 4): [1,2] день, [0] ночь
-
-function getSuperTeamShift(dayIndex, teamIndex, memberIndex) {
-  // teamIndex: 0 = Команда1 (Irma,Solomon,Toby), 1 = Команда2 (Curtis,Manuel,Richard)
-  // Полный цикл = 12 дней
-  const cycle = 12;
-  const pos = ((dayIndex) % cycle + cycle) % cycle;
-
-  // Команда 1 работает в слоты: 0-1, 4-5, 8-9 (pos 0,1,4,5,8,9)
-  // Команда 2 работает в слоты: 2-3, 6-7, 10-11 (pos 2,3,6,7,10,11)
-  const team1WorkSlots = [0,1,4,5,8,9];
-  const team2WorkSlots = [2,3,6,7,10,11];
-
-  const workSlots = teamIndex === 0 ? team1WorkSlots : team2WorkSlots;
-  if (!workSlots.includes(pos)) return 'off';
-
-  // Определяем какой это период работы (0, 1 или 2) внутри команды
-  const teamPos = workSlots.indexOf(pos); // 0-5
-  const period = Math.floor(teamPos / 2); // 0, 1 или 2
-  const dayInPeriod = teamPos % 2; // 0 или 1 (не используем, оба дня одинаковы)
-
-  // Кто ночью в каждом периоде:
-  // period 0: memberIndex 2 ночью, 0 и 1 днём
-  // period 1: memberIndex 1 ночью, 0 и 2 днём
-  // period 2: memberIndex 0 ночью, 1 и 2 днём
-  const nightMember = [2, 1, 0][period];
-  return memberIndex === nightMember ? 'super_night' : 'super_day';
-}
-
-// Команда 1: Irma(0), Solomon(1), Toby(2)
-const TEAM1 = ['Irma', 'Solomon', 'Toby'];
-// Команда 2: Curtis(0), Manuel(1), Richard(2)
-const TEAM2 = ['Curtis', 'Manuel', 'Richard'];
-
-TEAM1.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
-    return getSuperTeamShift(globalDi, 0, i);
-  };
-});
-TEAM2.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
-    return getSuperTeamShift(globalDi, 1, i);
-  };
-});
-// VIP Supervisors:
-// Adam: 5/2 по будням, 09-21
-// Amelia и Lucas: чередуются по 1 дню, 12h 09-21
-// 1 июня = Amelia, 2,3 = Lucas, 4,5 = Amelia, 6,7 = Lucas...
-// То есть Amelia работает нечётные числа (1,3,5...), Lucas чётные (2,3 — нет, по описанию: 1=Amelia, 2-3=Lucas, 4-5=Amelia)
-// Значит: чередуются блоками по 1/2? Нет — "1 числа работает Amelia, 2,3 Lucas, 4,5 Amelia"
-// Паттерн: 1 день Amelia, 2 дня Lucas, 2 дня Amelia, 2 дня Lucas... = цикл 3? нет
-// Точный паттерн из описания: 1=A, 2=L, 3=L, 4=A, 5=A, 6=L, 7=L, 8=A... цикл 4: A,L,L,A → нет
-// "1 числа Amelia, 2,3 Lucas, 4,5 Amelia" = A(1день) + L(2дня) + A(2дня) + L(2дня)...
-// Значит цикл: первый день = 1 (Amelia одна), потом блоки по 2
-// Упрощаем: dayIndex=0(1июня)=A, 1,2=L, 3,4=A, 5,6=L... цикл 3 со смещением
-// pos в цикле 3: 0=A, 1=L, 2=L → Amelia работает когда pos%3===0, Lucas когда pos%3===1 или 2
-// Проверка: день 0(1июня)→pos0→A✓, день1(2)→pos1→L✓, день2(3)→pos2→L✓, день3(4)→pos0→A✓, день4(5)→pos1→... нет
-// Правильно: pos = dayIndex % 3: 0=A, 1=L, 2=L → дни: 1=A,2=L,3=L,4=A,5=L,6=L — но нужно 4,5=Amelia
-// Значит цикл 4: A,L,L,A → нет, "4,5 Amelia" = 2 дня подряд
-// Итого цикл 4: pos0=A, pos1=L, pos2=L, pos3=A? нет тогда 4=A,5=L
-// Попробуем: день1→A, день2→L, день3→L, день4→A, день5→A, день6→L, день7→L...
-// Цикл 4 со смещением -1: dayIndex%4: 0(д1)=0→A, 1(д2)=1→L, 2(д3)=2→L, 3(д4)=3→A, 4(д5)=0→A ✓!
-// Цикл 4: pos0=A, pos1=L, pos2=L, pos3=A
-OPERATOR_BASE_SHIFTS['Adam'] = (di) => {
-  const date = DAYS[di].date;
-  const dow = date.getDay();
-  return (dow === 0 || dow === 6) ? 'off' : 'super_day';
-};
-OPERATOR_BASE_SHIFTS['Amelia'] = (di) => {
-  const date = DAYS[di].date;
-  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
-  const pos = ((globalDi % 4) + 4) % 4;
-  return (pos === 0 || pos === 3) ? 'super_day' : 'off';
-};
-OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
-  const date = DAYS[di].date;
-  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
-  const pos = ((globalDi % 4) + 4) % 4;
-  return (pos === 1 || pos === 2) ? 'super_day' : 'off';
-};
-
-// Management / other / QA
-// Management / QA
-['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita',
- 'Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'].forEach(name => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => getMgmtShift(di);
-});
+// НК: нет Management/QA
 
 // ── State ──
 let scheduleOverrides = {};
@@ -1454,7 +1125,7 @@ const collapsedSections = new Set();
 
   try {
     const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=nk`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
@@ -1481,7 +1152,6 @@ const collapsedSections = new Set();
   updateStats();
   populateOperatorSelect();
   updateColumnHighlight();
-  setTimeout(initStickyDatesBar, 0);
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -1506,7 +1176,7 @@ async function switchMonth(year, month) {
   // Загружаем данные нового месяца
   try {
     const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=nk`, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
@@ -1521,7 +1191,6 @@ async function switchMonth(year, month) {
   renderAll();
   updateStats();
   updateColumnHighlight();
-  setTimeout(initStickyDatesBar, 0);
 }
 
 function updateMonthNav() {
@@ -1556,10 +1225,9 @@ const PATTERN_PRESETS = {
   'vip_night_day':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
   'vip_1200':        ['vip_1200','off','off','vip_1200'],
   'off':             ['off'],
-  // Supervisor пресеты (если нужно перевести на фиксированный паттерн)
+  // Supervisor пресеты
   'super_day_only':   ['super_day','super_day','off','off'],
   'super_night_only': ['super_night','super_night','off','off'],
-  // Точные паттерны позиций супервайзеров (цикл 12 дней)
   'team1_0': ['super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night','off','off'],
   'team1_1': ['super_day','super_day','off','off','super_night','super_night','off','off','super_day','super_day','off','off'],
   'team1_2': ['super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day','off','off'],
@@ -1637,8 +1305,7 @@ function shiftLabel(type, name, ds) {
     if (override?.customHours) baseHours = override.customHours;
   }
   if (!baseHours) {
-    if (name === 'Adam') baseHours = 8;
-    else {
+    {
       const defaults = {
         morning:11, evening:11, night:11,
         vip_morning:11, vip_evening:11, vip_1200:11,
@@ -1700,10 +1367,9 @@ function renderAll() {
 
   const filterMap = {
     all: null, // все секции
-    regular: ['regular_support'],
-    vip: ['vip_support'],
-    supervisors: ['regular_support','vip_support'],
-    management: ['management']
+    supervisors: ['supervisors_nk'],
+    regular:     ['support_nk'],
+    temp:        ['temp_support']
   };
 
   const allowedKeys = filterMap[activeFilter];
@@ -1742,23 +1408,19 @@ function renderSection(s) {
   table.appendChild(thead);
 
   // Все операторы для подсчёта (считаем по типу смены, не по группе)
-  const allOperators = SECTIONS.flatMap(s2 => s2.members);
-  const isOpSection = ['regular_support', 'vip_support'].includes(s.key);
+  const allOperators = [
+    ...(SECTIONS.find(s2 => s2.key === 'support_nk')?.members || []),
+    ...(SECTIONS.find(s2 => s2.key === 'temp_support')?.members || []),
+  ];
+  const isOpSection = ['support_nk'].includes(s.key);
 
-  // 3 строки счётчиков: утро, вечер, ночь (только для operator секций)
+  // 2 строки счётчиков: день и ночь (только для support_nk)
   let thCountHTML = '';
   if (isOpSection) {
-    const shiftRowsReg = [
-      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
-      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: 3 },
-      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: 2 },
+    const shiftRows = [
+      { types: ['morning', 'extra_morning'], label: '09–21', color: 'var(--shift-morning)', min: 2 },
+      { types: ['evening', 'extra_evening'], label: '21–09', color: 'var(--shift-evening)', min: 1 },
     ];
-    const shiftRowsVip = [
-      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
-      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
-      { types: ['vip_1200','extra_vip_1200','d12'],    label: '12–00', color: '#f59e0b',                  min: 2 },
-    ];
-    const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
     shiftRows.forEach(({ types, label, color, min }) => {
       thCountHTML += `<tr class="thead-counts">`;
       thCountHTML += `<th class="col-name" style="background:var(--thead-count-bg);text-align:left;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.05)">
@@ -1797,15 +1459,11 @@ function renderSection(s) {
 
     let redDot = '';
     if (isOpSection) {
-      const dayTypes = s.key === 'regular_support'
-        ? ['morning','extra_morning']
-        : ['vip_evening','extra_vip_evening'];
-      const nightTypes = s.key === 'regular_support'
-        ? ['evening','extra_evening']
-        : ['vip_morning','extra_vip_morning'];
+      const dayTypes = ['morning','extra_morning'];
+      const nightTypes = ['evening','extra_evening'];
       const dayCount = allOperators.filter(n => dayTypes.includes(getShift(n,di))).length;
       const nightCount = allOperators.filter(n => nightTypes.includes(getShift(n,di))).length;
-      if (dayCount < 4 || nightCount < 3) {
+      if (dayCount < 2 || nightCount < 1) {
         redDot = `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#f87171;margin-left:2px;vertical-align:middle"></span>`;
       }
     }
@@ -1832,8 +1490,9 @@ function renderSection(s) {
   const tbody = document.createElement('tbody');
   s.members.forEach(name => {
     const emp = EMPLOYEES[name] || {};
-    const pos = emp.position || '';
-    const email = emp.email || '';
+    const empOv = (scheduleSettings.employeeOverrides || {})[name] || {};
+    const pos   = empOv.position || emp.position || '';
+    const email = empOv.email    || emp.email    || '';
     const since = emp.since ? emp.since.slice(0,10) : '';
 
     const tr = document.createElement('tr');
@@ -1913,7 +1572,9 @@ function renderSection(s) {
       totalHours += Math.max(0, h);
     });
 
-    tdHTML += `<td style="border-left:1px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
+    // Временные сотрудники — часы не считаем
+    const totalDisplay = TEMP_MEMBERS.has(name) ? '—' : totalHours;
+    tdHTML += `<td style="border-left:1px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalDisplay}</td>`;
 
     tr.innerHTML = tdHTML;
     if (positionsMode) enableDragOnRow(tr, name, s.key);
@@ -1963,13 +1624,13 @@ function updateStats() {
     });
   }
 
-  const totalStaff = SECTIONS.flatMap(s => s.members).length;
-  const regularCount = GROUPS.regular.members.length;
-  const vipCount = GROUPS.vip.members.length;
+  const totalStaff = SECTIONS.filter(s => s.key !== 'temp_support').flatMap(s => s.members).length;
+  const supCount = GROUPS.supervisors.members.length;
+  const opsCount = GROUPS.regular.members.length;
 
   document.getElementById('stat-online').textContent = todayDi >= 0 ? online : '—';
-  document.getElementById('stat-regular').textContent = regularCount;
-  document.getElementById('stat-vip').textContent = vipCount;
+  document.getElementById('stat-regular').textContent = supCount;
+  document.getElementById('stat-vip').textContent = opsCount;
   document.getElementById('stat-total').textContent = totalStaff;
 }
 
@@ -2117,24 +1778,9 @@ function moveOperator(srcName, fromKey, toKey, beforeName, insertAfter) {
 
 function updateGroupsFromSections() {
   SECTIONS.forEach(s => {
-    if (s.key === 'regular_support') {
-      GROUPS.regular.members = s.members.filter(n =>
-        !['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
-      );
-      GROUPS.supervisors.members = s.members.filter(n =>
-        ['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
-      );
-    }
-    if (s.key === 'vip_support') {
-      GROUPS.vip.members = s.members.filter(n =>
-        !['Adam','Amelia','Lucas'].includes(n)
-      );
-      GROUPS.vip_supervisors.members = s.members.filter(n =>
-        ['Adam','Amelia','Lucas'].includes(n)
-      );
-    }
-    if (s.key === 'management') GROUPS.management.members = [...s.members];
-    if (s.key === 'qa') GROUPS.qa.members = [...s.members];
+    if (s.key === 'supervisors_nk') GROUPS.supervisors.members = [...s.members];
+    if (s.key === 'support_nk')     GROUPS.regular.members     = [...s.members];
+    if (s.key === 'temp_support')   GROUPS.temp.members        = [...s.members];
   });
 }
 
@@ -2144,7 +1790,7 @@ async function savePositions() {
   SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
 
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -2202,7 +1848,7 @@ async function clearShifts() {
 
   const msgEl = document.getElementById('clear-shifts-msg');
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings })
@@ -2301,7 +1947,7 @@ function restoreDismissed(name) {
   showToast(`${name} восстановлен`, 'ok');
 
   // Сохраняем
-  fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+  fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
@@ -2322,202 +1968,73 @@ function toggleSection(key) {
 function showDayInfo(ds, di) {
   selectedDateStr = ds;
   updateColumnHighlight();
-  const REGULAR_OPS = GROUPS.regular.members;
-  const VIP_OPS = GROUPS.vip.members;
-  const REG_SUPS = GROUPS.supervisors.members;
-  const VIP_SUPS = GROUPS.vip_supervisors.members;
 
   const ALL_OPS = SECTIONS.flatMap(s => s.members);
-  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di))).length;
-  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di))).length;
-  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di))).length;
-  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di))).length;
-  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di))).length;
-  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di))).length;
+  const SUPS    = GROUPS.supervisors.members;
+  const OPS     = GROUPS.regular.members;
+
+  const dayOps  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di)));
+  const nightOps = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di)));
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
 
-  const countBlock = (label, m, e, n12, mColor, eColor, n12Color) => `
-    <div class="day-info-block">
-      <div class="day-info-block-title">${label}</div>
-      <div class="day-info-count" style="${low(m,4)}">${m+e+n12}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px">всего на смене</div>
-      <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${mColor};flex-shrink:0"></span>
-          <span style="font-size:10px;color:${mColor}">09–21</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(m,4)}">${m}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${eColor};flex-shrink:0"></span>
-          <span style="font-size:10px;color:${eColor}">21–09</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(e,3)}">${e}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${n12Color};flex-shrink:0"></span>
-          <span style="font-size:10px;color:${n12Color}">12–00</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(n12,2)}">${n12}</span>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Супервайзеры
-  const supDay   = REG_SUPS.filter(n => ['super_day','extra_sup_day','extra_sup_day8'].includes(getShift(n, di)));
-  const supNight = REG_SUPS.filter(n => ['super_night','extra_sup_night'].includes(getShift(n, di)));
-  const vipSup   = VIP_SUPS.filter(n => {
-    const t = getShift(n, di);
-    return ['super_day','super_day8','super_night','extra_sup_day','extra_sup_day8','extra_sup_night','work8'].includes(t);
-  });
-
-  // Форматируем дату
   const date = DAYS[di].date;
   const dayName = date.toLocaleDateString('ru', { weekday: 'long', day: 'numeric', month: 'long' });
-
   document.getElementById('day-info-title').textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
   const nameTag = (name, color) =>
     `<div class="day-info-name"><span class="day-info-dot" style="background:${color}"></span>${name}</div>`;
 
   document.getElementById('day-info-body').innerHTML = `
-    ${countBlock('Regular Support', regM, regE, reg12, 'var(--shift-morning)', 'var(--shift-evening)', '#f59e0b')}
-    ${countBlock('VIP Support', vipM, vipE, vip12, 'var(--shift-vip-evening)', 'var(--shift-vip-morning)', '#f59e0b')}
     <div class="day-info-block">
-      <div class="day-info-block-title">Supervisors</div>
-      <div class="day-info-names">
-        ${supDay.length ? `<div style="font-size:9px;color:var(--muted);margin-bottom:2px">ДЕНЬ</div>` + supDay.map(n => nameTag(n, 'var(--shift-super)')).join('') : ''}
-        ${supNight.length ? `<div style="font-size:9px;color:var(--muted);margin:4px 0 2px">НОЧЬ</div>` + supNight.map(n => nameTag(n, 'var(--shift-super-night-color)')).join('') : ''}
-        ${!supDay.length && !supNight.length ? `<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>` : ''}
+      <div class="day-info-block-title">На смене</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--shift-morning);flex-shrink:0"></span>
+          <span style="font-size:10px;color:var(--shift-morning)">09–21</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(dayOps.length,1)}">${dayOps.length}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--shift-evening);flex-shrink:0"></span>
+          <span style="font-size:10px;color:var(--shift-evening)">21–09</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(nightOps.length,1)}">${nightOps.length}</span>
+        </div>
       </div>
     </div>
     <div class="day-info-block">
-      <div class="day-info-block-title">VIP Supervisors</div>
+      <div class="day-info-block-title">Supervisors</div>
       <div class="day-info-names">
-        ${vipSup.length ? vipSup.map(n => {
-          const t = getShift(n, di);
-          const color = t === 'super_night' ? 'var(--shift-super-night-color)' : 'var(--shift-super)';
-          const label = t === 'super_night' ? ' (ночь)' : ' (день)';
-          return `<div class="day-info-name"><span class="day-info-dot" style="background:${color}"></span>${n}<span style="font-size:9px;color:var(--muted)">${label}</span></div>`;
-        }).join('') : `<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>`}
+        ${SUPS.filter(n => ['morning','extra_morning'].includes(getShift(n,di))).length ?
+          '<div style="font-size:9px;color:var(--muted);margin-bottom:2px">ДЕНЬ</div>' +
+          SUPS.filter(n => ['morning','extra_morning'].includes(getShift(n,di))).map(n => nameTag(n,'var(--shift-morning)')).join('') : ''}
+        ${SUPS.filter(n => ['evening','extra_evening'].includes(getShift(n,di))).length ?
+          '<div style="font-size:9px;color:var(--muted);margin:4px 0 2px">НОЧЬ</div>' +
+          SUPS.filter(n => ['evening','extra_evening'].includes(getShift(n,di))).map(n => nameTag(n,'var(--shift-evening)')).join('') : ''}
+      </div>
+    </div>
+    <div class="day-info-block">
+      <div class="day-info-block-title">Support NC</div>
+      <div class="day-info-names">
+        ${dayOps.filter(n => OPS.includes(n)).length ?
+          '<div style="font-size:9px;color:var(--muted);margin-bottom:2px">ДЕНЬ</div>' +
+          dayOps.filter(n => OPS.includes(n)).map(n => nameTag(n,'var(--shift-morning)')).join('') : ''}
+        ${nightOps.filter(n => OPS.includes(n)).length ?
+          '<div style="font-size:9px;color:var(--muted);margin:4px 0 2px">НОЧЬ</div>' +
+          nightOps.filter(n => OPS.includes(n)).map(n => nameTag(n,'var(--shift-evening)')).join('') : ''}
+        ${!dayOps.filter(n=>OPS.includes(n)).length && !nightOps.filter(n=>OPS.includes(n)).length ?
+          '<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>' : ''}
       </div>
     </div>
   `;
 
   document.getElementById('day-info-panel').classList.add('open');
-  document.getElementById('day-info-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
-
-// ── Sticky Dates Bar ──
-function renderStickyDatesBar() {
-  const bar = document.getElementById('sticky-dates-bar');
-  const inner = document.getElementById('sticky-dates-inner');
-  if (!bar || !inner) return;
-
-  // Получаем реальную ширину ячеек из таблицы
-  const sampleTh = document.querySelector('thead th[data-date]');
-  const cellW = sampleTh ? sampleTh.getBoundingClientRect().width : 44;
-
-  let html = `<div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>`;
-  DAYS.forEach(({ d, date }, di) => {
-    const ds = dateStr(d);
-    const isToday = ds === TODAY_STR;
-    const isSelected = ds === selectedDateStr;
-    const dow = date.getDay();
-    const isWeekend = dow === 0 || dow === 6;
-    const dayName = date.toLocaleDateString('ru', { weekday: 'short' });
-    let cls = 'sticky-date-cell';
-    if (isToday) cls += ' today';
-    if (isSelected) cls += ' selected';
-    if (isWeekend && !isToday && !isSelected) cls += ' weekend';
-    html += `<div class="${cls}" data-date="${ds}" style="min-width:${cellW}px;width:${cellW}px" onclick="showDayInfo('${ds}',${di})">
-      <span>${d}</span>
-      <span class="sdc-day">${dayName}</span>
-    </div>`;
-  });
-  html += `<div class="sticky-dates-total" style="min-width:${cellW}px"></div>`;
-  inner.innerHTML = html;
-}
-
-function syncStickyBarScroll() {
-  const inner = document.getElementById('sticky-dates-inner');
-  if (!inner) return;
-  const scrollX = window.scrollX || document.documentElement.scrollLeft;
-  inner.scrollLeft = scrollX;
-
-  // Также обновляем ширину label под текущую реальную ширину col-name+col-info
-  alignStickyLabel();
-}
-
-function alignStickyLabel() {
-  const label = document.getElementById('sticky-dates-label');
-  if (!label) return;
-  const firstDateTh = document.querySelector('thead th[data-date]');
-  if (!firstDateTh) return;
-  // Берём точный left первой ячейки даты — это и есть нужная ширина label
-  const thRect = firstDateTh.getBoundingClientRect();
-  const w = thRect.left;
-  if (w > 0) {
-    label.style.minWidth = w + 'px';
-    label.style.width = w + 'px';
-  }
-  // Также пересчитываем ширину ячеек бара
-  const cellW = firstDateTh.getBoundingClientRect().width;
-  document.querySelectorAll('.sticky-date-cell').forEach(el => {
-    el.style.minWidth = cellW + 'px';
-    el.style.width = cellW + 'px';
-  });
-}
-
-function initStickyDatesBar() {
-  renderStickyDatesBar();
-  const bar = document.getElementById('sticky-dates-bar');
-  const inner = document.getElementById('sticky-dates-inner');
-
-  // Показываем бар при вертикальном скролле > высоты навбара + statsRow
-  let labelAligned = false;
-
-  function onScroll() {
-    const nav = document.querySelector('.nav');
-    const statsRow = document.querySelector('.stats-row');
-    const threshold = (nav?.offsetHeight || 57) + (statsRow?.offsetHeight || 0) + 20;
-    const shouldShow = window.scrollY > threshold;
-    bar.style.display = shouldShow ? 'block' : 'none';
-
-    if (shouldShow) {
-      // Выравниваем label при каждом показе (пока не выровняли точно)
-      if (!labelAligned) { alignStickyLabel(); labelAligned = true; }
-      else { alignStickyLabel(); } // всегда пересчитываем пока скроллим
-      // Синхронизируем горизонтальный скролл
-      inner.scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-    }
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', () => { labelAligned = false; alignStickyLabel(); renderStickyDatesBar(); }, { passive: true });
-
-  // Клик по дате в баре
-  inner.addEventListener('click', (e) => {
-    const cell = e.target.closest('.sticky-date-cell');
-    if (!cell) return;
-    const ds = cell.dataset.date;
-    const di = DAYS.findIndex(d => dateStr(d.d) === ds);
-    if (di >= 0) showDayInfo(ds, di);
-  });
-
-  // Первичное выравнивание после рендера
-  setTimeout(alignStickyLabel, 100);
-}
-
 function updateColumnHighlight() {
   // Снимаем старое выделение
   document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
   if (!selectedDateStr) return;
   // Выделяем все ячейки выбранного столбца
   document.querySelectorAll(`[data-date="${selectedDateStr}"]`).forEach(el => el.classList.add('is-selected'));
-  // Обновляем выделение в sticky bar
-  document.querySelectorAll('.sticky-date-cell').forEach(el => {
-    el.classList.toggle('selected', el.dataset.date === selectedDateStr);
-  });
 }
 
 function closeDayInfo() {
@@ -2580,7 +2097,7 @@ async function applyDismissal() {
   const newSettings = { ...scheduleSettings, dismissed: newDismissed };
 
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ overrides: newOverrides, settings: newSettings })
@@ -2628,15 +2145,13 @@ function populateOperatorSelect() {
   });
 }
 
-// Единый список типов смен для всех
+// Типы смен для НК
 const SHIFT_TYPES_ALL = [
-  // Regular
+  // Regular NC
   { type: 'morning',        label: 'День',      time: '09–21', group: 'Regular' },
   { type: 'evening',        label: 'Ночь',      time: '21–09', group: 'Regular' },
-  { type: 'shift1200',      label: '12-12',     time: '12–00', group: 'Regular' },
   { type: 'extra_morning',  label: '+ Доп День',time: '09–21', group: 'Regular' },
   { type: 'extra_evening',  label: '+ Доп Ночь',time: '21–09', group: 'Regular' },
-  { type: 'extra_1200',     label: '+ Доп 12-12',time: '12–00',group: 'Regular' },
   // VIP
   { type: 'vip_evening',       label: 'День',       time: '09–21', group: 'VIP' },
   { type: 'vip_morning',       label: 'Ночь',       time: '21–09', group: 'VIP' },
@@ -2662,12 +2177,9 @@ const SHIFT_TYPES_ALL = [
 ];
 
 const SHIFT_TYPES = {
-  regular_support: SHIFT_TYPES_ALL,
-  vip_support: SHIFT_TYPES_ALL,
-  management: SHIFT_TYPES_ALL,
-  vip_supervisors: SHIFT_TYPES_ALL,
-  supervisors: SHIFT_TYPES_ALL,
-  qa: SHIFT_TYPES_ALL,
+  supervisors_nk: SHIFT_TYPES_ALL,
+  support_nk:     SHIFT_TYPES_ALL,
+  temp_support:   SHIFT_TYPES_ALL,
 };
 
 // Типы доп событий
@@ -2763,14 +2275,10 @@ function onOperatorChange() {
 }
 
 function getSectionForMember(name) {
-  // VIP supervisors
-  if (['Adam','Amelia','Lucas'].includes(name)) return 'vip_supervisors';
-  // Regular supervisors
-  if (['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(name)) return 'supervisors';
   for (const s of SECTIONS) {
     if (s.members.includes(name)) return s.key;
   }
-  return 'management';
+  return 'support_nk';
 }
 
 function renderShiftTypeGrid(sectionKey) {
@@ -2910,8 +2418,7 @@ function selectShiftType(btn) {
       extraMinusEvents = [{ type: 'loss_sick', hours: defaultH }];
       renderExtraEvents();
     }
-    // Убираем авто ДР если было
-    extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
+    // Ограничиваем доп события — только больничный и оплачиваемый больничный
     document.getElementById('ap-note').required = true;
     document.getElementById('ap-note').placeholder = 'Заметка обязательна для больничного';
   } else if (selectedShiftType === 'birthday') {
@@ -2929,9 +2436,7 @@ function selectShiftType(btn) {
     // Снимаем ограничения
     document.getElementById('ap-note').placeholder = 'Укажите причину';
     document.getElementById('ap-note').required = false;
-    // Убираем авто-потерю если была добавлена автоматически
     extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
-    // Убираем авто ДР если было
     extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
     renderExtraEvents();
   }
@@ -2980,7 +2485,7 @@ async function saveShift() {
     const customHours = isExtra && customHoursInput?.value ? parseFloat(customHoursInput.value) : null;
     const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents]
       .filter(e => e.hours > 0)
-      .map(({ _autoBirthday, ...e }) => e); // убираем служебное поле
+      .map(({ _autoBirthday, ...e }) => e);
     newOverrides[key] = {
       type: selectedShiftType,
       note,
@@ -2992,7 +2497,7 @@ async function saveShift() {
   }
 
   try {
-    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -3175,6 +2680,8 @@ function showToast(msg, type) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+
+
 // ── Pattern Modal ──
 let patternModalName = null;
 
@@ -3259,14 +2766,13 @@ async function savePattern() {
     return;
   }
 
-  // Supervisor auto — удаляем кастомный паттерн, возвращаем к BASE_PATTERNS/getSuperTeamShift
   if (presetKey === 'supervisor_auto') {
     const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
     delete newPatterns[patternModalName];
     const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
     try {
       const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-      const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+      const res = await fetch(`${API}/schedule?month=${monthStr}&project=nk`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
@@ -3277,9 +2783,7 @@ async function savePattern() {
         renderAll();
         closePatternModal();
         showToast(`Паттерн ${patternModalName} сброшен`, 'ok');
-      } else {
-        showToast('Ошибка сохранения', 'err');
-      }
+      } else { showToast('Ошибка сохранения', 'err'); }
     } catch { showToast('Ошибка сети', 'err'); }
     return;
   }
@@ -3297,7 +2801,7 @@ async function savePattern() {
   
   try {
     const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
-    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=nk`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -3318,6 +2822,8 @@ async function savePattern() {
 }
 </script>
 
+
+
 <!-- Pattern Modal -->
 <div class="pattern-modal-overlay" id="pattern-modal-overlay">
   <div class="pattern-modal">
@@ -3328,20 +2834,14 @@ async function savePattern() {
       <div class="custom-select-dropdown" id="pattern-select-dropdown">
         <div class="custom-select-option selected" data-value="morning_evening" onclick="selectPatternOption(this)">09-21 / 21-09 (день первый)</div>
         <div class="custom-select-option" data-value="evening_morning" onclick="selectPatternOption(this)">21-09 / 09-21 (ночь первой)</div>
-        <div class="custom-select-option" data-value="shift1200" onclick="selectPatternOption(this)">12-00 / выходной 2/2</div>
-        <div class="custom-select-option" data-value="vip_day_night" onclick="selectPatternOption(this)">VIP день/ночь (день первый)</div>
-        <div class="custom-select-option" data-value="vip_night_day" onclick="selectPatternOption(this)">VIP ночь/день (ночь первой)</div>
-        <div class="custom-select-option" data-value="vip_1200" onclick="selectPatternOption(this)">VIP 12-00 / выходной 2/2</div>
         <div class="custom-select-option" data-value="off" onclick="selectPatternOption(this)">Выходной (нет смен)</div>
         <div class="custom-select-option" data-value="supervisor_auto" onclick="selectPatternOption(this)">Supervisor (авто, сбросить)</div>
         <div class="custom-select-option" data-value="super_day_only" onclick="selectPatternOption(this)">Sup день 2/2 (фиксированный)</div>
         <div class="custom-select-option" data-value="super_night_only" onclick="selectPatternOption(this)">Sup ночь 2/2 (фиксированный)</div>
-        <div class="custom-select-option" data-value="team1_0" onclick="selectPatternOption(this)">Team1 позиция 0 (как Irma)</div>
-        <div class="custom-select-option" data-value="team1_1" onclick="selectPatternOption(this)">Team1 позиция 1 (как Solomon)</div>
-        <div class="custom-select-option" data-value="team1_2" onclick="selectPatternOption(this)">Team1 позиция 2 (как Toby)</div>
-        <div class="custom-select-option" data-value="team2_0" onclick="selectPatternOption(this)">Team2 позиция 0 (как Curtis)</div>
-        <div class="custom-select-option" data-value="team2_1" onclick="selectPatternOption(this)">Team2 позиция 1 (как Manuel)</div>
-        <div class="custom-select-option" data-value="team2_2" onclick="selectPatternOption(this)">Team2 позиция 2 (как Richard)</div>
+        <div class="custom-select-option" data-value="team1_0" onclick="selectPatternOption(this)">Team1 позиция 0 (как Irving)</div>
+        <div class="custom-select-option" data-value="team1_1" onclick="selectPatternOption(this)">Team1 позиция 1</div>
+        <div class="custom-select-option" data-value="team2_0" onclick="selectPatternOption(this)">Team2 позиция 0 (как Max)</div>
+        <div class="custom-select-option" data-value="team2_1" onclick="selectPatternOption(this)">Team2 позиция 1</div>
         <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
       </div>
       <input type="hidden" id="pattern-preset-select" value="morning_evening" />

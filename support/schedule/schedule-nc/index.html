@@ -108,6 +108,7 @@
     .theme-toggle-label { font-size: 11px; color: var(--muted); font-family: 'Mulish', sans-serif; }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: clip; }
+    @media (max-width: 900px) { html, body { overflow-x: hidden; } }
 
     .bg-grid {
       position: fixed; inset: 0;
@@ -207,9 +208,11 @@
       vertical-align: middle;
     }
     .section-body { overflow: hidden; }
+    /* section-body не скроллим — скроллим table-wrap */
     .section-body.collapsed { display: none; }
 
     .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
+    @media (max-width: 900px) { .table-wrap { overflow-x: auto; overflow-y: visible; border-radius: 6px; -webkit-overflow-scrolling: touch; } }
     table { width: 100%; border-collapse: collapse; }
 
     thead th {
@@ -229,6 +232,7 @@
     thead th { min-width: 36px; }
     thead th.col-name { min-width: 130px; width: 130px; text-align: left; padding-left: 12px; position: sticky; left: 0; background: var(--thead-bg); z-index: 2; border-right: 1px solid var(--border) !important; }
     thead th.col-info { min-width: 190px; width: 190px; text-align: left; padding-left: 8px; position: sticky; left: 130px; background: var(--thead-bg); z-index: 2; border-right: 2px solid rgba(128,128,128,0.2) !important; }
+    @media (max-width: 900px) { thead th.col-info { position: relative; left: auto; } }
     thead th.weekend { color: var(--muted); }
     thead th.today { color: var(--tl); background: var(--tl-glow); }
     html.light thead th.weekend { color: var(--muted); background: none; }
@@ -266,6 +270,8 @@
     }
     td.col-info {
       text-align: left; padding: 4px 8px; position: sticky; left: 130px; z-index: 1;
+    }
+    @media (max-width: 900px) { td.col-info { position: relative !important; left: auto !important; }
       white-space: nowrap; overflow: hidden;
       border-right: 1px solid rgba(255,255,255,0.15) !important;
       box-shadow: none;

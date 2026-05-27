@@ -141,6 +141,7 @@
       display: flex; align-items: center;
       border-right: 2px solid rgba(128,128,128,0.2);
       position: sticky; left: 0; background: var(--nav-bg); z-index: 2;
+      transition: width 0.1s;
     }
     .sticky-date-cell {
       min-width: 44px; width: 44px; flex-shrink: 0;
@@ -2434,9 +2435,24 @@ function renderStickyDatesBar() {
 function syncStickyBarScroll() {
   const inner = document.getElementById('sticky-dates-inner');
   if (!inner) return;
-  // Скролл идёт по window (горизонтальный) — синхронизируем
   const scrollX = window.scrollX || document.documentElement.scrollLeft;
   inner.scrollLeft = scrollX;
+
+  // Также обновляем ширину label под текущую реальную ширину col-name+col-info
+  alignStickyLabel();
+}
+
+function alignStickyLabel() {
+  const label = document.getElementById('sticky-dates-label');
+  if (!label) return;
+  // Берём реальную ширину из первой ячейки таблицы (col-name + col-info)
+  const colName = document.querySelector('thead th.col-name');
+  const colInfo = document.querySelector('thead th.col-info');
+  if (colName && colInfo) {
+    const w = colName.offsetWidth + colInfo.offsetWidth;
+    label.style.minWidth = w + 'px';
+    label.style.width = w + 'px';
+  }
 }
 
 function initStickyDatesBar() {
@@ -2444,19 +2460,23 @@ function initStickyDatesBar() {
   const bar = document.getElementById('sticky-dates-bar');
   const inner = document.getElementById('sticky-dates-inner');
 
-  // Показываем бар только когда первая секция уходит за навбар
-  const navHeight = (document.querySelector('.nav')?.offsetHeight || 57) + (bar.offsetHeight || 0);
-  const observer = new IntersectionObserver(
-    ([entry]) => { bar.style.display = entry.isIntersecting ? 'none' : 'block'; },
-    { threshold: 0, rootMargin: `-${navHeight}px 0px 0px 0px` }
-  );
-  const firstSection = document.querySelector('.schedule-section');
-  if (firstSection) observer.observe(firstSection);
+  // Показываем бар при вертикальном скролле > высоты навбара + statsRow
+  function onScroll() {
+    const nav = document.querySelector('.nav');
+    const statsRow = document.querySelector('.stats-row');
+    const threshold = (nav?.offsetHeight || 57) + (statsRow?.offsetHeight || 0) + 20;
+    bar.style.display = window.scrollY > threshold ? 'block' : 'none';
 
-  // Горизонтальный скролл страницы → синхронизируем inner
-  window.addEventListener('scroll', syncStickyBarScroll, { passive: true });
+    // Синхронизируем горизонтальный скролл
+    const scrollX = window.scrollX || document.documentElement.scrollLeft;
+    inner.scrollLeft = scrollX;
+    alignStickyLabel();
+  }
 
-  // Клик по дате в баре тоже должен подсвечивать колонку
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', alignStickyLabel, { passive: true });
+
+  // Клик по дате в баре
   inner.addEventListener('click', (e) => {
     const cell = e.target.closest('.sticky-date-cell');
     if (!cell) return;
@@ -2464,6 +2484,9 @@ function initStickyDatesBar() {
     const di = DAYS.findIndex(d => dateStr(d.d) === ds);
     if (di >= 0) showDayInfo(ds, di);
   });
+
+  // Первичное выравнивание после рендера
+  setTimeout(alignStickyLabel, 100);
 }
 
 function updateColumnHighlight() {

@@ -2415,7 +2415,7 @@ function renderStickyDatesBar() {
 
   // Получаем реальную ширину ячеек из таблицы
   const sampleTh = document.querySelector('thead th[data-date]');
-  const cellW = sampleTh ? sampleTh.offsetWidth : 44;
+  const cellW = sampleTh ? sampleTh.getBoundingClientRect().width : 44;
 
   let html = `<div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>`;
   DAYS.forEach(({ d, date }, di) => {
@@ -2451,18 +2451,21 @@ function syncStickyBarScroll() {
 function alignStickyLabel() {
   const label = document.getElementById('sticky-dates-label');
   if (!label) return;
-  // Берём реальный offsetLeft первой ячейки даты в таблице
-  // offsetLeft считается от родителя, поэтому берём разницу с левым краем страницы
   const firstDateTh = document.querySelector('thead th[data-date]');
   if (!firstDateTh) return;
+  // Берём точный left первой ячейки даты — это и есть нужная ширина label
   const thRect = firstDateTh.getBoundingClientRect();
-  // thRect.left = расстояние от левого края viewport до начала первой ячейки с датой
-  // Это и есть нужная ширина label (бар всегда прибит к левому краю viewport)
-  const w = thRect.left + (window.scrollX || 0);
+  const w = thRect.left;
   if (w > 0) {
     label.style.minWidth = w + 'px';
     label.style.width = w + 'px';
   }
+  // Также пересчитываем ширину ячеек бара
+  const cellW = firstDateTh.getBoundingClientRect().width;
+  document.querySelectorAll('.sticky-date-cell').forEach(el => {
+    el.style.minWidth = cellW + 'px';
+    el.style.width = cellW + 'px';
+  });
 }
 
 function initStickyDatesBar() {
@@ -2481,8 +2484,9 @@ function initStickyDatesBar() {
     bar.style.display = shouldShow ? 'block' : 'none';
 
     if (shouldShow) {
-      // Выравниваем label только при первом показе или после resize
+      // Выравниваем label при каждом показе (пока не выровняли точно)
       if (!labelAligned) { alignStickyLabel(); labelAligned = true; }
+      else { alignStickyLabel(); } // всегда пересчитываем пока скроллим
       // Синхронизируем горизонтальный скролл
       inner.scrollLeft = window.scrollX || document.documentElement.scrollLeft;
     }

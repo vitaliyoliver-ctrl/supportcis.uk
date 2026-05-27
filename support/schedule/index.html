@@ -1509,6 +1509,9 @@ const PATTERN_PRESETS = {
   'vip_night_day':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
   'vip_1200':        ['vip_1200','off','off','vip_1200'],
   'off':             ['off'],
+  // Supervisor пресеты (если нужно перевести на фиксированный паттерн)
+  'super_day_only':  ['super_day','super_day','off','off'],
+  'super_night_only':['super_night','super_night','off','off'],
 };
 
 function getPatternShift(name, date) {
@@ -3077,7 +3080,32 @@ async function savePattern() {
     closePatternModal();
     return;
   }
-  
+
+  // Supervisor auto — удаляем кастомный паттерн, возвращаем к BASE_PATTERNS/getSuperTeamShift
+  if (presetKey === 'supervisor_auto') {
+    const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
+    delete newPatterns[patternModalName];
+    const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
+    try {
+      const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+      const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        scheduleSettings = newSettings;
+        renderAll();
+        closePatternModal();
+        showToast(`Паттерн ${patternModalName} сброшен`, 'ok');
+      } else {
+        showToast('Ошибка сохранения', 'err');
+      }
+    } catch { showToast('Ошибка сети', 'err'); }
+    return;
+  }
+
   const pattern = PATTERN_PRESETS[presetKey];
   if (!pattern) return;
   
@@ -3127,6 +3155,9 @@ async function savePattern() {
         <div class="custom-select-option" data-value="vip_night_day" onclick="selectPatternOption(this)">VIP ночь/день (ночь первой)</div>
         <div class="custom-select-option" data-value="vip_1200" onclick="selectPatternOption(this)">VIP 12-00 / выходной 2/2</div>
         <div class="custom-select-option" data-value="off" onclick="selectPatternOption(this)">Выходной (нет смен)</div>
+        <div class="custom-select-option" data-value="supervisor_auto" onclick="selectPatternOption(this)">Supervisor (авто, сбросить)</div>
+        <div class="custom-select-option" data-value="super_day_only" onclick="selectPatternOption(this)">Sup день 2/2 (фиксированный)</div>
+        <div class="custom-select-option" data-value="super_night_only" onclick="selectPatternOption(this)">Sup ночь 2/2 (фиксированный)</div>
         <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
       </div>
       <input type="hidden" id="pattern-preset-select" value="morning_evening" />

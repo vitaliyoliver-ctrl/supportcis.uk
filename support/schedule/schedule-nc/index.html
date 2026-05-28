@@ -1121,10 +1121,14 @@ const collapsedSections = new Set();
     if (data.ok) {
       currentUser = data;
       isAdmin = data.role === 'tl';
+      const isSupervisor = data.role === 'supervisor';
       if (isAdmin) {
         document.getElementById('admin-btn').classList.add('visible');
         document.getElementById('dismiss-nav-btn').style.display = 'flex';
         document.getElementById('positions-btn').style.display = 'flex';
+      }
+      if (isSupervisor) {
+        document.getElementById('admin-btn').classList.add('visible');
       }
     }
   } catch {}

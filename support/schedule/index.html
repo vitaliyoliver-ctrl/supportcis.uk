@@ -1780,7 +1780,13 @@ function renderSection(s) {
         const isToday = dateStr(d) === TODAY_STR;
         const baseCls = isToday ? 'today' : isWeekend ? 'weekend' : '';
         // Считаем по ВСЕМ операторам — кто работает эту смену
-        const count = allOperators.filter(n => types.includes(getShift(n, di))).length;
+        // Исключаем тех у кого loss_swap_give (отдал смену)
+        const isSwappedOut = (name, dayIdx) => {
+          const key = `${name}:${dateStr(DAYS[dayIdx].d)}`;
+          const ov = scheduleOverrides[key];
+          return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+        };
+        const count = allOperators.filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di)).length;
         const isLow = count < min;
         const bg = isLow ? 'background:rgba(248,113,113,0.2);' : '';
         const fg = isLow ? '#f87171' : color;
@@ -2334,12 +2340,17 @@ function showDayInfo(ds, di) {
   const VIP_SUPS = GROUPS.vip_supervisors.members;
 
   const ALL_OPS = SECTIONS.flatMap(s => s.members);
-  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di))).length;
-  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di))).length;
-  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di))).length;
-  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di))).length;
-  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di))).length;
-  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di))).length;
+  const hasSwappedOut = (name) => {
+    const key = `${name}:${ds}`;
+    const ov = scheduleOverrides[key];
+    return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+  };
+  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
 

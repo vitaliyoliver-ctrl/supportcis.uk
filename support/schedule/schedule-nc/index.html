@@ -1441,7 +1441,13 @@ function renderSection(s) {
         const isToday = dateStr(d) === TODAY_STR;
         const baseCls = isToday ? 'today' : isWeekend ? 'weekend' : '';
         // Считаем по ВСЕМ операторам — кто работает эту смену
-        const count = allOperators.filter(n => types.includes(getShift(n, di))).length;
+        // Исключаем тех у кого loss_swap_give (отдал смену) — они не выйдут
+        const isSwappedOut = (name, dayIdx) => {
+          const key = `${name}:${dateStr(DAYS[dayIdx].d)}`;
+          const ov = scheduleOverrides[key];
+          return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+        };
+        const count = allOperators.filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di)).length;
         const isLow = count < min;
         const bg = isLow ? 'background:rgba(248,113,113,0.2);' : '';
         const fg = isLow ? '#f87171' : color;
@@ -1978,8 +1984,13 @@ function showDayInfo(ds, di) {
   const SUPS    = GROUPS.supervisors.members;
   const OPS     = GROUPS.regular.members;
 
-  const dayOps  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di)));
-  const nightOps = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di)));
+  const hasSwappedOut = (name) => {
+    const key = `${name}:${ds}`;
+    const ov = scheduleOverrides[key];
+    return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+  };
+  const dayOps   = ALL_OPS.filter(n => ['morning','extra_morning','vip_evening','extra_vip_evening','shift1200','extra_1200','vip_1200'].includes(getShift(n, di)) && !hasSwappedOut(n));
+  const nightOps = ALL_OPS.filter(n => ['evening','extra_evening','vip_morning','extra_vip_morning'].includes(getShift(n, di)) && !hasSwappedOut(n));
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
 

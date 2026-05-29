@@ -359,8 +359,8 @@
     .shift-extra-morning   { background: rgba(96,165,250,0.20);   color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
     .shift-extra-evening   { background: rgba(67,56,202,0.30);    color: #fff; border: 2px dashed rgba(99,102,241,0.6); }
     .shift-extra-1200      { background: rgba(251,146,60,0.22);   color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
-    .shift-extra-vip-morning { background: rgba(56,189,248,0.20); color: #fff; border: 2px dashed rgba(56,189,248,0.6); }
-    .shift-extra-vip-evening { background: rgba(109,40,217,0.30); color: #fff; border: 2px dashed rgba(139,92,246,0.6); }
+    .shift-extra-vip-morning { background: rgba(109,40,217,0.30); color: #fff; border: 2px dashed rgba(139,92,246,0.6); }
+    .shift-extra-vip-evening { background: rgba(56,189,248,0.20); color: #fff; border: 2px dashed rgba(56,189,248,0.6); }
     .shift-extra-vip-1200    { background: rgba(251,146,60,0.22); color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
     .shift-extra-sup-day   { background: rgba(245,158,66,0.22);   color: #fff; border: 2px dashed rgba(245,158,66,0.6); }
     .shift-extra-sup-night { background: rgba(153,27,27,0.30);    color: #fff; border: 2px dashed rgba(239,68,68,0.6); }
@@ -915,7 +915,35 @@
     </div>
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeAdmin()">Отмена</button>
+      <button class="filter-btn" onclick="openProfilePanel()" style="margin-right:auto;font-size:11px;padding:5px 10px">✏ Профиль</button>
       <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- ПРОФИЛЬ ПАНЕЛЬ -->
+  <div class="admin-panel" id="profile-panel" style="width:340px;display:none">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">✏ Профиль сотрудника</div>
+      <button class="close-btn" onclick="closeProfilePanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)" id="profile-name-label">—</div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Позиция</div>
+        <input type="text" class="admin-input" id="profile-position" placeholder="Support, Supervisor..." maxlength="60" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Email</div>
+        <input type="text" class="admin-input" id="profile-email" placeholder="name@velvix.org" maxlength="80" />
+      </div>
+      <div class="save-msg" id="profile-save-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeProfilePanel()">Отмена</button>
+      <button class="btn-save" onclick="saveProfile()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1849,8 +1877,9 @@ function renderSection(s) {
   const tbody = document.createElement('tbody');
   s.members.forEach(name => {
     const emp = EMPLOYEES[name] || {};
-    const pos = emp.position || '';
-    const email = emp.email || '';
+    const empOv = (scheduleSettings.employeeOverrides || {})[name] || {};
+    const pos   = empOv.position || emp.position || '';
+    const email = empOv.email    || emp.email    || '';
     const since = emp.since ? emp.since.slice(0,10) : '';
 
     const tr = document.createElement('tr');
@@ -1923,9 +1952,21 @@ function renderSection(s) {
 
       h = override?.customHours || DEFAULT_HOURS[type] || 0;
       if (override?.extraEvents?.length) {
-        override.extraEvents.forEach(ev => {
-          if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
-        });
+        // Если доп смена + есть extra_swap_take — базовые часы не считаем, только swap_take
+        const isExtraShift = type.startsWith('extra_');
+        const swapTake = override.extraEvents.filter(e => e.type === 'extra_swap_take' && e.hours > 0);
+        if (isExtraShift && swapTake.length > 0) {
+          h = swapTake.reduce((sum, e) => sum + e.hours, 0);
+          // Остальные плюс/минус события кроме swap_take
+          override.extraEvents.forEach(ev => {
+            if (ev.type === 'extra_swap_take') return;
+            if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
+          });
+        } else {
+          override.extraEvents.forEach(ev => {
+            if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
+          });
+        }
       }
       totalHours += Math.max(0, h);
     });
@@ -2852,6 +2893,67 @@ function closeAdmin() {
 
 function overlayClick(e) {
   if (e.target === document.getElementById('admin-overlay')) closeAdmin();
+}
+
+// ── Profile Panel ──
+function openProfilePanel() {
+  const name = document.getElementById('ap-operator').value;
+  if (!name) return;
+  const overrides = scheduleSettings.employeeOverrides || {};
+  const emp = EMPLOYEES[name] || {};
+  const ov  = overrides[name] || {};
+  document.getElementById('profile-name-label').textContent = name;
+  document.getElementById('profile-position').value = ov.position ?? emp.position ?? '';
+  document.getElementById('profile-email').value    = ov.email    ?? emp.email    ?? '';
+  document.getElementById('profile-save-msg').className = 'save-msg';
+  document.getElementById('profile-panel').style.display = 'flex';
+}
+
+function closeProfilePanel() {
+  document.getElementById('profile-panel').style.display = 'none';
+}
+
+async function saveProfile() {
+  const name     = document.getElementById('profile-name-label').textContent;
+  const position = document.getElementById('profile-position').value.trim();
+  const email    = document.getElementById('profile-email').value.trim();
+  const msg      = document.getElementById('profile-save-msg');
+
+  if (!position && !email) {
+    msg.textContent = 'Заполните хотя бы одно поле';
+    msg.className = 'save-msg err show';
+    return;
+  }
+
+  const newSettings = {
+    ...scheduleSettings,
+    employeeOverrides: {
+      ...(scheduleSettings.employeeOverrides || {}),
+      [name]: { position, email }
+    }
+  };
+
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      scheduleSettings = newSettings;
+      renderAll();
+      closeProfilePanel();
+      showToast(`Профиль ${name} обновлён`, 'ok');
+    } else {
+      msg.textContent = 'Ошибка сохранения';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  }
 }
 
 function quickEdit(name, ds, di) {

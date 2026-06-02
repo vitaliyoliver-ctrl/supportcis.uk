@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Main Metrics Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  
+  .header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+  .header .badge { background: #6366f1; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+
+  .upload-zone { padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; margin: 0 auto; }
+  .drop-card { border: 1.5px dashed #2d3148; border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s; background: #1a1d27; position: relative; }
+  .drop-card:hover, .drop-card.over { border-color: #6366f1; background: #1e2036; }
+  .drop-card.loaded { border-color: #22c55e; border-style: solid; }
+  .drop-card input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 32px; margin-bottom: 12px; }
+  .drop-label { font-size: 13px; font-weight: 500; color: #94a3b8; margin-bottom: 4px; }
+  .drop-hint { font-size: 11px; color: #475569; }
+  .drop-name { font-size: 12px; color: #22c55e; margin-top: 8px; font-weight: 500; }
+
+  .btn-analyze { display: block; margin: 0 auto 32px; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 12px 36px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-analyze:hover { background: #4f46e5; }
+  .btn-analyze:disabled { background: #2d3148; color: #475569; cursor: not-allowed; }
+
+  .results { padding: 0 32px 48px; max-width: 1200px; margin: 0 auto; }
+  
+  .section-title { font-size: 13px; font-weight: 600; color: #6366f1; letter-spacing: 1px; text-transform: uppercase; margin: 32px 0 16px; }
+
+  .metrics-table { width: 100%; border-collapse: collapse; background: #1a1d27; border-radius: 12px; overflow: hidden; border: 1px solid #2d3148; }
+  .metrics-table th { background: #141621; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 16px; text-align: left; border-bottom: 1px solid #2d3148; }
+  .metrics-table td { padding: 11px 16px; font-size: 14px; border-bottom: 1px solid #1e2235; color: #e2e8f0; }
+  .metrics-table tr:last-child td { border-bottom: none; }
+  .metrics-table tr:hover td { background: #1e2235; }
+  .metrics-table td.project { font-weight: 600; color: #fff; }
+  .metrics-table td.value { font-variant-numeric: tabular-nums; color: #a5b4fc; }
+  .metrics-table td.csat-val { font-variant-numeric: tabular-nums; }
+  .csat-good { color: #22c55e; }
+  .csat-mid { color: #f59e0b; }
+  .csat-bad { color: #ef4444; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card-metric { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 20px 24px; }
+  .card-metric .label { font-size: 12px; color: #64748b; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .card-metric .value { font-size: 28px; font-weight: 700; color: #a5b4fc; font-variant-numeric: tabular-nums; }
+  .card-metric .sub { font-size: 12px; color: #475569; margin-top: 4px; }
+
+  .dep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .dep-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px 20px; }
+  .dep-card .dep-label { font-size: 12px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .dep-card .dep-val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dep-card .dep-sub { font-size: 11px; color: #475569; margin-top: 4px; }
+
+  .vip-row { background: #1e1b3a; }
+  .vip-row td { color: #a5b4fc !important; }
+  .vip-row td.project { color: #c4b5fd !important; }
+
+  .loader { text-align: center; padding: 48px; color: #64748b; font-size: 14px; }
+  .loader-spinner { border: 3px solid #2d3148; border-top-color: #6366f1; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error { background: #1f1315; border: 1px solid #7f1d1d; border-radius: 8px; padding: 16px; color: #fca5a5; font-size: 13px; margin: 16px 0; }
+  .warning { background: #1c1810; border: 1px solid #78350f; border-radius: 8px; padding: 12px 16px; color: #fbbf24; font-size: 12px; margin: 12px 0; }
+
+  .divider { border: none; border-top: 1px solid #2d3148; margin: 24px 0; }
+
+  .info-row { display: flex; gap: 24px; background: #141621; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+  .info-item { font-size: 12px; color: #64748b; } .info-item span { color: #94a3b8; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Main Metrics Analyzer</h1>
+  <div class="badge">MEET</div>
+</div>
+
+<div class="upload-zone">
+  <div class="drop-card" id="card-main">
+    <input type="file" accept=".xlsx,.xls" id="file-main" onchange="handleFile('main', this)">
+    <div class="drop-icon">📊</div>
+    <div class="drop-label">Основная выгрузка</div>
+    <div class="drop-hint">all_conversation_metrics_*.xlsx</div>
+    <div class="drop-name" id="name-main"></div>
+  </div>
+  <div class="drop-card" id="card-dep">
+    <input type="file" accept=".xlsx,.xls" id="file-dep" onchange="handleFile('dep', this)">
+    <div class="drop-icon">💰</div>
+    <div class="drop-label">Файл депозиторов</div>
+    <div class="drop-hint">Аналитика_CSAT_SG_*.xlsx</div>
+    <div class="drop-name" id="name-dep"></div>
+  </div>
+</div>
+
+<button class="btn-analyze" id="btn" onclick="analyze()" disabled>Рассчитать метрики</button>
+
+<div id="output"></div>
+
+<script>
+const state = { main: null, dep: null };
+
+function handleFile(key, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const card = document.getElementById('card-' + key);
+  const nameEl = document.getElementById('name-' + key);
+  nameEl.textContent = '⏳ Загрузка...';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      state[key] = wb;
+      card.classList.add('loaded');
+      nameEl.textContent = '✓ ' + file.name;
+      checkReady();
+    } catch(err) {
+      nameEl.textContent = '✗ Ошибка чтения';
+      nameEl.style.color = '#ef4444';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkReady() {
+  document.getElementById('btn').disabled = !(state.main && state.dep);
+}
+
+function parseFRT(s) {
+  if (!s || typeof s !== 'string') return null;
+  let total = 0;
+  const h = s.match(/(\d+)\s*час/); if (h) total += parseInt(h[1]) * 3600;
+  const m = s.match(/(\d+)\s*минут/); if (m) total += parseInt(m[1]) * 60;
+  const sec = s.match(/(\d+)\s*секунд/); if (sec) total += parseInt(sec[1]);
+  return total > 0 ? total : null;
+}
+
+function fmtTime(sec) {
+  if (sec == null || isNaN(sec)) return '—';
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
+  if (h > 0) return h + 'ч ' + m + 'м ' + s + 'с';
+  if (m > 0) return m + 'м ' + s + 'с';
+  return s + 'с';
+}
+
+function fmtPct(good, bad) {
+  const t = good + bad;
+  if (t === 0) return { str: '—', val: null };
+  const v = Math.round(good / t * 1000) / 10;
+  return { str: v.toFixed(1) + '%', val: v, total: t };
+}
+
+function csatClass(val) {
+  if (val == null) return '';
+  if (val >= 80) return 'csat-good';
+  if (val >= 65) return 'csat-mid';
+  return 'csat-bad';
+}
+
+function analyze() {
+  const out = document.getElementById('output');
+  out.innerHTML = '<div class="loader"><div class="loader-spinner"></div>Обрабатываю данные...</div>';
+
+  setTimeout(() => {
+    try {
+      const result = compute();
+      out.innerHTML = renderResults(result);
+    } catch(e) {
+      out.innerHTML = '<div class="results"><div class="error">Ошибка: ' + e.message + '</div></div>';
+      console.error(e);
+    }
+  }, 50);
+}
+
+function compute() {
+  // --- Load main sheet ---
+  const wb = state.main;
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const headers = raw[0];
+  const rows = raw.slice(1).filter(r => r[0] != null);
+
+  // Column indices
+  const C = {};
+  headers.forEach((h, i) => { if (h) C[h] = i; });
+  const iDate = C['Дата и время начала'];
+  const iSrc  = C['Источник'];
+  const iGrp  = C['Группа'];
+  const iEmail = C['Почта клиента'];
+  const iOp1  = C['Ник оператора 1'];
+  const iFRT  = C['Время первого ответа'];
+  const iCSAT = C['Оценка чата (CSAT)'];
+
+  // Parse dates
+  function parseDate(v) {
+    if (!v) return null;
+    if (v instanceof Date) return v;
+    if (typeof v === 'string') return new Date(v);
+    if (typeof v === 'number') {
+      // Excel serial
+      return new Date((v - 25569) * 86400 * 1000);
+    }
+    return null;
+  }
+
+  // Annotate rows with parsed date and weekday
+  const data = rows.map((r, idx) => {
+    const dt = parseDate(r[iDate]);
+    return {
+      idx, dt,
+      weekday: dt ? dt.getDay() : -1, // 0=sun,1=mon,...,6=sat
+      src: (r[iSrc] || '').trim(),
+      grp: (r[iGrp] || '').toLowerCase().trim(),
+      email: (r[iEmail] || '').toLowerCase().trim(),
+      op1: r[iOp1],
+      frt: parseFRT(r[iFRT]),
+      csat: r[iCSAT],
+    };
+  });
+
+  // Date range info
+  const validDates = data.map(r => r.dt).filter(Boolean);
+  const minDate = new Date(Math.min(...validDates));
+  const maxDate = new Date(Math.max(...validDates));
+
+  // Sunday = weekday 0. Stats only for Mon-Sat (weekday 1-6)
+  // But use sunday rows for spam detection too
+  const workingData = data.filter(r => r.weekday !== 0);
+  const sundayCount = data.filter(r => r.weekday === 0).length;
+
+  // --- Spam filter ---
+  // Sort all bad ratings by date, mark spam indices (from original data array)
+  const allBad = data
+    .filter(r => r.csat === 'bad' && r.email && r.dt)
+    .sort((a, b) => a.dt - b.dt);
+
+  const spamSet = new Set();
+  const lastBadTime = {};
+  for (const r of allBad) {
+    const prev = lastBadTime[r.email];
+    if (prev && (r.dt - prev) < 86400000) {
+      spamSet.add(r.idx);
+    } else {
+      lastBadTime[r.email] = r.dt;
+    }
+  }
+
+  // --- Load dep file ---
+  const wb2 = state.dep;
+  const emailDep = {};
+  wb2.SheetNames.slice(1).forEach(shName => {
+    const ws2 = wb2.Sheets[shName];
+    const rows2 = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: null }).slice(1);
+    rows2.forEach(r => {
+      if (r[1] && r[4] != null) {
+        const email = String(r[1]).toLowerCase().trim();
+        const dep = parseInt(r[4]);
+        if (!isNaN(dep)) emailDep[email] = dep;
+      }
+    });
+  });
+
+  // --- Project definitions ---
+  const PROJECTS = [
+    { key: 'cat',    label: 'CAT' },
+    { key: 'daddy',  label: 'Daddy' },
+    { key: 'gama',   label: 'GAMA' },
+    { key: 'kent',   label: 'KENT' },
+    { key: 'kometa', label: 'Kometa' },
+    { key: 'mers',   label: 'Mers' },
+    { key: 'r7',     label: 'R7' },
+    { key: 'arkada', label: 'Arkada' },
+  ];
+
+  function srcBelongsTo(src, projKey) {
+    return src.toLowerCase().startsWith(projKey);
+  }
+
+  function isRegular(src) {
+    const s = src.toLowerCase();
+    return s.includes('regular') || s.includes(' tg');
+  }
+
+  function isVIP(src) {
+    const s = src.toLowerCase();
+    return (s.includes('vip') || s.includes('privip')) && !s.includes('vipmanager');
+  }
+
+  // --- Per-project metrics ---
+  const projStats = {};
+  PROJECTS.forEach(p => {
+    projStats[p.key] = {
+      reg_frt: [], vip_frt: [],
+      reg_good: 0, reg_bad: 0,
+      vip_good: 0, vip_bad: 0,
+    };
+  });
+
+  // VIP aggregate FRT across all projects
+  const vipFRTAll = [];
+  let vipGoodAll = 0, vipBadAll = 0;
+
+  workingData.forEach(r => {
+    const s = r.src;
+    PROJECTS.forEach(p => {
+      if (!srcBelongsTo(s, p.key)) return;
+      const st = projStats[p.key];
+      const reg = isRegular(s);
+      const vip = isVIP(s);
+
+      if (reg && r.frt != null) st.reg_frt.push(r.frt);
+      if (vip && r.frt != null) { st.vip_frt.push(r.frt); vipFRTAll.push(r.frt); }
+
+      if (!r.csat || spamSet.has(r.idx)) return;
+      if (reg) { if (r.csat === 'good') st.reg_good++; else if (r.csat === 'bad') st.reg_bad++; }
+      if (vip) {
+        if (r.csat === 'good') { st.vip_good++; vipGoodAll++; }
+        else if (r.csat === 'bad') { st.vip_bad++; vipBadAll++; }
+      }
+    });
+  });
+
+  // --- CSAT without bot ---
+  let nobotGood = 0, nobotBad = 0;
+  workingData.forEach(r => {
+    if (!r.csat || spamSet.has(r.idx)) return;
+    if (!r.op1) return;
+    if (r.csat === 'good') nobotGood++;
+    else if (r.csat === 'bad') nobotBad++;
+  });
+
+  // --- CSAT by dep count ---
+  const brackets = [
+    { key: '0',    lo: 0, hi: 0 },
+    { key: '1–4',  lo: 1, hi: 4 },
+    { key: '5–9',  lo: 5, hi: 9 },
+    { key: '10+',  lo: 10, hi: 1e9 },
+  ];
+  const depGood = {}, depBad = {};
+  brackets.forEach(b => { depGood[b.key] = 0; depBad[b.key] = 0; });
+
+  workingData.forEach(r => {
+    if (!r.csat || spamSet.has(r.idx)) return;
+    if (!r.email || !(r.email in emailDep)) return;
+    const dep = emailDep[r.email];
+    for (const b of brackets) {
+      if (dep >= b.lo && dep <= b.hi) {
+        if (r.csat === 'good') depGood[b.key]++;
+        else if (r.csat === 'bad') depBad[b.key]++;
+        break;
+      }
+    }
+  });
+
+  // VIP avg FRT
+  const vipFRTavg = vipFRTAll.length ? vipFRTAll.reduce((a,b)=>a+b,0)/vipFRTAll.length : null;
+
+  return {
+    minDate, maxDate, sundayCount,
+    workingCount: workingData.length,
+    spamCount: spamSet.size,
+    PROJECTS, projStats,
+    vipFRTavg, vipGoodAll, vipBadAll,
+    nobotGood, nobotBad,
+    brackets, depGood, depBad,
+  };
+}
+
+function renderResults(r) {
+  const { PROJECTS, projStats, vipFRTavg, vipGoodAll, vipBadAll, nobotGood, nobotBad, brackets, depGood, depBad } = r;
+
+  function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+
+  let html = '<div class="results">';
+
+  // Info row
+  const fmt = d => d ? d.toLocaleDateString('ru-RU') : '?';
+  html += `<div class="info-row">
+    <div class="info-item">Период: <span>${fmt(r.minDate)} — ${fmt(r.maxDate)}</span></div>
+    <div class="info-item">Рабочих строк: <span>${r.workingCount.toLocaleString('ru')}</span></div>
+    <div class="info-item">Воскресенье (не в расчёте): <span>${r.sundayCount.toLocaleString('ru')}</span></div>
+    <div class="info-item">Отфильтровано спам-дизлайков: <span>${r.spamCount}</span></div>
+  </div>`;
+
+  // === FRT TABLE ===
+  html += '<div class="section-title">Время первого ответа (среднее)</div>';
+  html += '<table class="metrics-table"><thead><tr><th>Проект</th><th>Regular + TG</th><th>VIP + Privip</th></tr></thead><tbody>';
+
+  PROJECTS.forEach(p => {
+    const st = projStats[p.key];
+    const regFRT = fmtTime(avg(st.reg_frt));
+    const vipFRT = fmtTime(avg(st.vip_frt));
+    html += `<tr><td class="project">${p.label}</td><td class="value">${regFRT}</td><td class="value">${vipFRT}</td></tr>`;
+  });
+
+  // VIP row across all
+  const vipAllFRT = fmtTime(vipFRTavg);
+  html += `<tr class="vip-row"><td class="project">VIP (все проекты)</td><td class="value">—</td><td class="value">${vipAllFRT}</td></tr>`;
+  html += '</tbody></table>';
+
+  // === CSAT TABLE ===
+  html += '<div class="section-title">CSAT</div>';
+  html += '<table class="metrics-table"><thead><tr><th>Проект</th><th>Regular + TG</th><th>VIP + Privip</th></tr></thead><tbody>';
+
+  PROJECTS.forEach(p => {
+    const st = projStats[p.key];
+    const reg = fmtPct(st.reg_good, st.reg_bad);
+    const vip = fmtPct(st.vip_good, st.vip_bad);
+    html += `<tr>
+      <td class="project">${p.label}</td>
+      <td class="csat-val ${csatClass(reg.val)}">${reg.str} <small style="color:#475569;font-size:11px">(${(reg.total||0).toLocaleString('ru')})</small></td>
+      <td class="csat-val ${csatClass(vip.val)}">${vip.str} <small style="color:#475569;font-size:11px">(${(vip.total||0).toLocaleString('ru')})</small></td>
+    </tr>`;
+  });
+
+  const vipAll = fmtPct(vipGoodAll, vipBadAll);
+  html += `<tr class="vip-row">
+    <td class="project">VIP (все проекты)</td>
+    <td class="value">—</td>
+    <td class="csat-val ${csatClass(vipAll.val)}">${vipAll.str} <small style="color:#6366f1;font-size:11px">(${(vipAll.total||0).toLocaleString('ru')})</small></td>
+  </tr>`;
+  html += '</tbody></table>';
+
+  // === CSAT WITHOUT BOT ===
+  html += '<div class="section-title">CSAT without Bot</div>';
+  const nobot = fmtPct(nobotGood, nobotBad);
+  html += `<div class="two-col">
+    <div class="card-metric">
+      <div class="label">CSAT без бота</div>
+      <div class="value ${csatClass(nobot.val)}">${nobot.str}</div>
+      <div class="sub">${nobotGood} лайков / ${nobotBad} дизлайков (${(nobot.total||0).toLocaleString('ru')} всего)</div>
+    </div>
+  </div>`;
+
+  // === CSAT BY DEP COUNT ===
+  html += '<div class="section-title">CSAT по депозитам</div>';
+  html += '<div class="dep-grid">';
+  brackets.forEach(b => {
+    const g = depGood[b.key], bad = depBad[b.key];
+    const p = fmtPct(g, bad);
+    html += `<div class="dep-card">
+      <div class="dep-label">Депозиты: ${b.key}</div>
+      <div class="dep-val ${csatClass(p.val)}">${p.str}</div>
+      <div class="dep-sub">${g} лайков / ${bad} дизлайков<br>${(p.total||0).toLocaleString('ru')} оценок</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  html += '</div>';
+  return html;
+}
+</script>
+</body>
+</html>

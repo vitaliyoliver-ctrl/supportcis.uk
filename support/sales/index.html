@@ -627,22 +627,22 @@
       <div class="legend-table-wrap">
         <div class="legend-table-title">Конверсия в оффер (К₁)<br><span>% чатов с предложением бонуса</span></div>
         <table class="legend-table">
-          <tr><td><span style="color:#EF4444">≤ 5%</span></td><td>× 0.0</td></tr>
-          <tr><td><span style="color:#F97316">5 – 10%</span></td><td>× 0.5</td></tr>
-          <tr><td><span style="color:#EAB308">10 – 18%</span></td><td>× 0.9</td></tr>
-          <tr><td><span style="color:#84CC16">18 – 24%</span></td><td>× 1.0</td></tr>
-          <tr><td><span style="color:#22C55E">≥ 25%</span></td><td>× 1.1</td></tr>
+          <tr><td><span style="color:#EF4444">≤ 10%</span></td><td>× 0.0</td></tr>
+          <tr><td><span style="color:#F97316">10 – 20%</span></td><td>× 0.5</td></tr>
+          <tr><td><span style="color:#EAB308">20 – 25%</span></td><td>× 0.9</td></tr>
+          <tr><td><span style="color:#84CC16">25 – 30%</span></td><td>× 1.0</td></tr>
+          <tr><td><span style="color:#22C55E">≥ 30%</span></td><td>× 1.1</td></tr>
         </table>
       </div>
       <div class="legend-table-wrap">
         <div class="legend-table-title">Конверсия в активацию (К₂)<br><span>% активаций от всей базы чатов</span></div>
         <table class="legend-table">
-          <tr><td><span style="color:#EF4444">≤ 1%</span></td><td>× 0.5</td></tr>
-          <tr><td><span style="color:#F97316">1 – 2.5%</span></td><td>× 0.8</td></tr>
-          <tr><td><span style="color:#EAB308">2.5 – 3.0%</span></td><td>× 1.0</td></tr>
-          <tr><td><span style="color:#84CC16">3.0 – 3.5%</span></td><td>× 1.1</td></tr>
-          <tr><td><span style="color:#84CC16">3.5 – 4.0%</span></td><td>× 1.2</td></tr>
-          <tr><td><span style="color:#22C55E">≥ 4%</span></td><td>× 1.3</td></tr>
+          <tr><td><span style="color:#EF4444">≤ 1.5%</span></td><td>× 0.5</td></tr>
+          <tr><td><span style="color:#F97316">1.5 – 3%</span></td><td>× 0.8</td></tr>
+          <tr><td><span style="color:#EAB308">3 – 4%</span></td><td>× 1.0</td></tr>
+          <tr><td><span style="color:#84CC16">4% – 4.5%</span></td><td>× 1.1</td></tr>
+          <tr><td><span style="color:#84CC16">4.5 – 5%</span></td><td>× 1.2</td></tr>
+          <tr><td><span style="color:#22C55E">≥ 5%</span></td><td>× 1.3</td></tr>
         </table>
       </div>
     </div>
@@ -1167,18 +1167,19 @@ function closeUploadModal() {
 
 // ─── Color tiers ───
 function stColor(v) {
-  if (v <= 1)   return '#EF4444';
-  if (v <= 2.5) return '#F97316';
-  if (v <= 3.5) return '#EAB308';
-  if (v < 4)    return '#84CC16';
+  if (v <= 1.5) return '#EF4444';
+  if (v <= 3)   return '#F97316';
+  if (v <= 4)   return '#EAB308';
+  if (v <= 4.5) return '#84CC16';
+  if (v < 5)    return '#84CC16';
   return '#22C55E';
 }
 
 function ptColor(v) {
-  if (v <= 5)   return '#EF4444';
-  if (v <= 10)  return '#F97316';
-  if (v <= 18)  return '#EAB308';
-  if (v < 25)   return '#84CC16';
+  if (v <= 10)  return '#EF4444';
+  if (v <= 20)  return '#F97316';
+  if (v <= 25)  return '#EAB308';
+  if (v < 30)   return '#84CC16';
   return '#22C55E';
 }
 

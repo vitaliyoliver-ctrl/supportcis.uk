@@ -3,117 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Main Metrics Analyzer</title>
+<title>Metrics Analyzer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
-  
-  .header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
-  .header h1 { font-size: 20px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
-  .header .badge { background: #6366f1; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
 
-  .upload-zone { padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; margin: 0 auto; }
-  .drop-card { border: 1.5px dashed #2d3148; border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s; background: #1a1d27; position: relative; }
-  .drop-card:hover, .drop-card.over { border-color: #6366f1; background: #1e2036; }
-  .drop-card.loaded { border-color: #22c55e; border-style: solid; }
-  .drop-card input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .drop-icon { font-size: 32px; margin-bottom: 12px; }
-  .drop-label { font-size: 13px; font-weight: 500; color: #94a3b8; margin-bottom: 4px; }
-  .drop-hint { font-size: 11px; color: #475569; }
-  .drop-name { font-size: 12px; color: #22c55e; margin-top: 8px; font-weight: 500; }
+.header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 18px 32px; display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 19px; font-weight: 600; color: #fff; }
+.badge { background: #6366f1; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
 
-  .btn-analyze { display: block; margin: 0 auto 32px; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 12px 36px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-  .btn-analyze:hover { background: #4f46e5; }
-  .btn-analyze:disabled { background: #2d3148; color: #475569; cursor: not-allowed; }
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid #2d3148; background: #1a1d27; padding: 0 32px; }
+.tab-btn { background: none; border: none; color: #64748b; font-size: 14px; font-weight: 500; padding: 14px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+.tab-btn:hover { color: #94a3b8; }
+.tab-btn.active { color: #a5b4fc; border-bottom-color: #6366f1; }
 
-  .results { padding: 0 32px 48px; max-width: 1200px; margin: 0 auto; }
-  
-  .section-title { font-size: 13px; font-weight: 600; color: #6366f1; letter-spacing: 1px; text-transform: uppercase; margin: 32px 0 16px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
-  .metrics-table { width: 100%; border-collapse: collapse; background: #1a1d27; border-radius: 12px; overflow: hidden; border: 1px solid #2d3148; }
-  .metrics-table th { background: #141621; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 16px; text-align: left; border-bottom: 1px solid #2d3148; }
-  .metrics-table td { padding: 11px 16px; font-size: 14px; border-bottom: 1px solid #1e2235; color: #e2e8f0; }
-  .metrics-table tr:last-child td { border-bottom: none; }
-  .metrics-table tr:hover td { background: #1e2235; }
-  .metrics-table td.project { font-weight: 600; color: #fff; }
-  .metrics-table td.value { font-variant-numeric: tabular-nums; color: #a5b4fc; }
-  .metrics-table td.csat-val { font-variant-numeric: tabular-nums; }
-  .csat-good { color: #22c55e; }
-  .csat-mid { color: #f59e0b; }
-  .csat-bad { color: #ef4444; }
+/* UPLOAD */
+.upload-zone { padding: 28px 32px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 860px; }
+.drop-card { border: 1.5px dashed #2d3148; border-radius: 12px; padding: 22px; text-align: center; cursor: pointer; transition: all 0.2s; background: #1a1d27; position: relative; }
+.drop-card:hover { border-color: #6366f1; background: #1e2036; }
+.drop-card.loaded { border-color: #22c55e; border-style: solid; }
+.drop-card input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon { font-size: 28px; margin-bottom: 10px; }
+.drop-label { font-size: 13px; font-weight: 500; color: #94a3b8; margin-bottom: 3px; }
+.drop-hint { font-size: 11px; color: #475569; }
+.drop-name { font-size: 12px; color: #22c55e; margin-top: 7px; font-weight: 500; }
 
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .card-metric { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 20px 24px; }
-  .card-metric .label { font-size: 12px; color: #64748b; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px; }
-  .card-metric .value { font-size: 28px; font-weight: 700; color: #a5b4fc; font-variant-numeric: tabular-nums; }
-  .card-metric .sub { font-size: 12px; color: #475569; margin-top: 4px; }
+.btn-analyze { display: block; margin: 20px 32px 0; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 11px 32px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-analyze:hover { background: #4f46e5; }
+.btn-analyze:disabled { background: #2d3148; color: #475569; cursor: not-allowed; }
 
-  .dep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .dep-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px 20px; }
-  .dep-card .dep-label { font-size: 12px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .dep-card .dep-val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .dep-card .dep-sub { font-size: 11px; color: #475569; margin-top: 4px; }
+/* RESULTS */
+.results { padding: 0 32px 48px; max-width: 1200px; }
+.section-title { font-size: 12px; font-weight: 700; color: #6366f1; letter-spacing: 1px; text-transform: uppercase; margin: 28px 0 14px; }
 
-  .vip-row { background: #1e1b3a; }
-  .vip-row td { color: #a5b4fc !important; }
-  .vip-row td.project { color: #c4b5fd !important; }
+.metrics-table { width: 100%; border-collapse: collapse; background: #1a1d27; border-radius: 10px; overflow: hidden; border: 1px solid #2d3148; }
+.metrics-table th { background: #141621; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; padding: 9px 15px; text-align: left; border-bottom: 1px solid #2d3148; }
+.metrics-table td { padding: 10px 15px; font-size: 13px; border-bottom: 1px solid #1e2235; color: #e2e8f0; }
+.metrics-table tr:last-child td { border-bottom: none; }
+.metrics-table tr:hover td { background: #1e2235; }
+.metrics-table td.proj { font-weight: 600; color: #fff; }
+.metrics-table td.val { font-variant-numeric: tabular-nums; color: #a5b4fc; }
+.csat-good { color: #22c55e; }
+.csat-mid  { color: #f59e0b; }
+.csat-bad  { color: #ef4444; }
 
-  .loader { text-align: center; padding: 48px; color: #64748b; font-size: 14px; }
-  .loader-spinner { border: 3px solid #2d3148; border-top-color: #6366f1; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+.cards-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px 20px; min-width: 160px; flex: 1; }
+.card .lbl { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+.card .val { font-size: 22px; font-weight: 700; color: #a5b4fc; font-variant-numeric: tabular-nums; }
+.card .sub { font-size: 11px; color: #475569; margin-top: 4px; }
 
-  .error { background: #1f1315; border: 1px solid #7f1d1d; border-radius: 8px; padding: 16px; color: #fca5a5; font-size: 13px; margin: 16px 0; }
-  .warning { background: #1c1810; border: 1px solid #78350f; border-radius: 8px; padding: 12px 16px; color: #fbbf24; font-size: 12px; margin: 12px 0; }
+.dep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; }
+.dep-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 14px 18px; }
+.dep-card .dep-lbl { font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 5px; }
+.dep-card .dep-val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dep-card .dep-sub { font-size: 11px; color: #475569; margin-top: 3px; }
 
-  .divider { border: none; border-top: 1px solid #2d3148; margin: 24px 0; }
+/* NK project panels */
+.nk-projects { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.nk-proj-card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; overflow: hidden; }
+.nk-proj-header { background: #141621; padding: 12px 18px; font-size: 14px; font-weight: 700; color: #c4b5fd; letter-spacing: 0.3px; border-bottom: 1px solid #2d3148; }
+.nk-proj-body { padding: 14px 18px; }
+.nk-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1e2235; font-size: 13px; }
+.nk-row:last-child { border-bottom: none; }
+.nk-row .nk-lbl { color: #94a3b8; }
+.nk-row .nk-val { font-weight: 600; font-variant-numeric: tabular-nums; color: #a5b4fc; }
+.nk-row .nk-val.csat-good { color: #22c55e; }
+.nk-row .nk-val.csat-mid  { color: #f59e0b; }
+.nk-row .nk-val.csat-bad  { color: #ef4444; }
 
-  .info-row { display: flex; gap: 24px; background: #141621; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-  .info-item { font-size: 12px; color: #64748b; } .info-item span { color: #94a3b8; font-weight: 500; }
+.cat-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+.cat-table td { padding: 5px 0; border-bottom: 1px solid #1e2235; }
+.cat-table tr:last-child td { border-bottom: none; }
+.cat-table .cat-lbl { color: #94a3b8; }
+.cat-table .cat-val { text-align: right; font-weight: 600; color: #e2e8f0; font-variant-numeric: tabular-nums; }
+.cat-bar-wrap { padding: 2px 8px; }
+.cat-bar { height: 4px; background: #6366f1; border-radius: 2px; }
+
+.info-row { display: flex; gap: 20px; flex-wrap: wrap; background: #141621; border-radius: 8px; padding: 10px 15px; margin: 20px 0 4px; }
+.info-item { font-size: 11px; color: #64748b; }
+.info-item span { color: #94a3b8; font-weight: 500; }
+
+.loader { text-align: center; padding: 48px; color: #64748b; font-size: 14px; }
+.loader-spinner { border: 3px solid #2d3148; border-top-color: #6366f1; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.err { background: #1f1315; border: 1px solid #7f1d1d; border-radius: 8px; padding: 14px; color: #fca5a5; font-size: 13px; margin: 16px 0; }
+
+.vip-row td { background: #1a1b36 !important; }
+.vip-row td.proj { color: #c4b5fd !important; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Main Metrics Analyzer</h1>
+  <h1>Metrics Analyzer</h1>
   <div class="badge">MEET</div>
 </div>
 
-<div class="upload-zone">
-  <div class="drop-card" id="card-main">
-    <input type="file" accept=".xlsx,.xls" id="file-main" onchange="handleFile('main', this)">
-    <div class="drop-icon">📊</div>
-    <div class="drop-label">Основная выгрузка</div>
-    <div class="drop-hint">all_conversation_metrics_*.xlsx</div>
-    <div class="drop-name" id="name-main"></div>
-  </div>
-  <div class="drop-card" id="card-dep">
-    <input type="file" accept=".xlsx,.xls" id="file-dep" onchange="handleFile('dep', this)">
-    <div class="drop-icon">💰</div>
-    <div class="drop-label">Файл депозиторов</div>
-    <div class="drop-hint">Аналитика_CSAT_SG_*.xlsx</div>
-    <div class="drop-name" id="name-dep"></div>
-  </div>
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('sg')">СГ проекты</button>
+  <button class="tab-btn" onclick="switchTab('nk')">НК проекты</button>
 </div>
 
-<button class="btn-analyze" id="btn" onclick="analyze()" disabled>Рассчитать метрики</button>
+<!-- ====== СГ TAB ====== -->
+<div class="tab-panel active" id="tab-sg">
+  <div class="upload-zone">
+    <div class="drop-card" id="card-sg-main">
+      <input type="file" accept=".xlsx,.xls" onchange="handleFile('sg_main', this)">
+      <div class="drop-icon">📊</div>
+      <div class="drop-label">Основная выгрузка</div>
+      <div class="drop-hint">all_conversation_metrics_*.xlsx</div>
+      <div class="drop-name" id="name-sg-main"></div>
+    </div>
+    <div class="drop-card" id="card-sg-dep">
+      <input type="file" accept=".xlsx,.xls" onchange="handleFile('sg_dep', this)">
+      <div class="drop-icon">💰</div>
+      <div class="drop-label">Файл депозиторов</div>
+      <div class="drop-hint">Аналитика_CSAT_SG_*.xlsx</div>
+      <div class="drop-name" id="name-sg-dep"></div>
+    </div>
+  </div>
+  <button class="btn-analyze" id="btn-sg" onclick="analyze('sg')" disabled>Рассчитать метрики СГ</button>
+  <div id="out-sg"></div>
+</div>
 
-<div id="output"></div>
+<!-- ====== НК TAB ====== -->
+<div class="tab-panel" id="tab-nk">
+  <div class="upload-zone">
+    <div class="drop-card" id="card-nk-main">
+      <input type="file" accept=".xlsx,.xls" onchange="handleFile('nk_main', this)">
+      <div class="drop-icon">📊</div>
+      <div class="drop-label">Основная выгрузка</div>
+      <div class="drop-hint">all_conversation_metrics_*.xlsx</div>
+      <div class="drop-name" id="name-nk-main"></div>
+    </div>
+    <div class="drop-card" id="card-nk-dep">
+      <input type="file" accept=".xlsx,.xls" onchange="handleFile('nk_dep', this)">
+      <div class="drop-icon">💰</div>
+      <div class="drop-label">Файл депозиторов</div>
+      <div class="drop-hint">Аналитика_CSAT_NK_*.xlsx</div>
+      <div class="drop-name" id="name-nk-dep"></div>
+    </div>
+  </div>
+  <button class="btn-analyze" id="btn-nk" onclick="analyze('nk')" disabled>Рассчитать метрики НК</button>
+  <div id="out-nk"></div>
+</div>
 
 <script>
-const state = { main: null, dep: null };
+// ---- STATE ----
+const state = {};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['sg','nk'][i] === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+}
 
 function handleFile(key, input) {
   const file = input.files[0];
   if (!file) return;
-  const card = document.getElementById('card-' + key);
-  const nameEl = document.getElementById('name-' + key);
+  const cardId = 'card-' + key.replace('_','-');
+  const nameId = 'name-' + key.replace('_','-');
+  const card = document.getElementById(cardId);
+  const nameEl = document.getElementById(nameId);
   nameEl.textContent = '⏳ Загрузка...';
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
-      state[key] = wb;
+      state[key] = XLSX.read(e.target.result, { type: 'array', cellDates: true });
       card.classList.add('loaded');
       nameEl.textContent = '✓ ' + file.name;
       checkReady();
@@ -126,331 +187,485 @@ function handleFile(key, input) {
 }
 
 function checkReady() {
-  document.getElementById('btn').disabled = !(state.main && state.dep);
+  document.getElementById('btn-sg').disabled = !(state.sg_main && state.sg_dep);
+  document.getElementById('btn-nk').disabled = !(state.nk_main && state.nk_dep);
 }
 
+// ---- HELPERS ----
 function parseFRT(s) {
   if (!s || typeof s !== 'string') return null;
-  let total = 0;
-  const h = s.match(/(\d+)\s*час/); if (h) total += parseInt(h[1]) * 3600;
-  const m = s.match(/(\d+)\s*минут/); if (m) total += parseInt(m[1]) * 60;
-  const sec = s.match(/(\d+)\s*секунд/); if (sec) total += parseInt(sec[1]);
-  return total > 0 ? total : null;
+  let t = 0;
+  const h = s.match(/(\d+)\s*час/); if (h) t += parseInt(h[1]) * 3600;
+  const m = s.match(/(\d+)\s*минут/); if (m) t += parseInt(m[1]) * 60;
+  const sec = s.match(/(\d+)\s*секунд/); if (sec) t += parseInt(sec[1]);
+  return t > 0 ? t : null;
 }
-
 function fmtTime(sec) {
   if (sec == null || isNaN(sec)) return '—';
-  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
-  if (h > 0) return h + 'ч ' + m + 'м ' + s + 'с';
-  if (m > 0) return m + 'м ' + s + 'с';
-  return s + 'с';
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+  if (h > 0) return h+'ч '+m+'м '+s+'с';
+  if (m > 0) return m+'м '+s+'с';
+  return s+'с';
 }
-
 function fmtPct(good, bad) {
   const t = good + bad;
-  if (t === 0) return { str: '—', val: null };
-  const v = Math.round(good / t * 1000) / 10;
-  return { str: v.toFixed(1) + '%', val: v, total: t };
+  if (t === 0) return { str: '—', val: null, total: 0 };
+  const v = Math.round(good/t*1000)/10;
+  return { str: v.toFixed(1)+'%', val: v, total: t };
 }
-
 function csatClass(val) {
   if (val == null) return '';
   if (val >= 80) return 'csat-good';
   if (val >= 65) return 'csat-mid';
   return 'csat-bad';
 }
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
 
-function analyze() {
-  const out = document.getElementById('output');
-  out.innerHTML = '<div class="loader"><div class="loader-spinner"></div>Обрабатываю данные...</div>';
-
-  setTimeout(() => {
-    try {
-      const result = compute();
-      out.innerHTML = renderResults(result);
-    } catch(e) {
-      out.innerHTML = '<div class="results"><div class="error">Ошибка: ' + e.message + '</div></div>';
-      console.error(e);
-    }
-  }, 50);
+function parseDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v === 'string') return new Date(v);
+  if (typeof v === 'number') return new Date((v - 25569) * 86400 * 1000);
+  return null;
 }
 
-function compute() {
-  // --- Load main sheet ---
-  const wb = state.main;
+// ---- SPAM FILTER ----
+function buildSpamSet(allRows, iCSAT, iEmail, iDate) {
+  const allBad = [];
+  allRows.forEach((r, idx) => {
+    if (r[iCSAT] === 'bad' && r[iEmail]) {
+      const dt = parseDate(r[iDate]);
+      if (dt) allBad.push({ email: String(r[iEmail]).toLowerCase().trim(), dt, idx });
+    }
+  });
+  allBad.sort((a,b) => a.dt - b.dt);
+  const spamSet = new Set();
+  const lastBad = {};
+  for (const { email, dt, idx } of allBad) {
+    if (lastBad[email] && (dt - lastBad[email]) < 86400000) {
+      spamSet.add(idx);
+    } else {
+      lastBad[email] = dt;
+    }
+  }
+  return spamSet;
+}
+
+// ---- LOAD DEP MAP ----
+function loadDepMap(wb, skipSheets = 1) {
+  const emailDep = {};
+  wb.SheetNames.slice(skipSheets).forEach(shName => {
+    const ws = wb.Sheets[shName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null }).slice(1);
+    rows.forEach(r => {
+      if (r[1] && r[4] != null) {
+        const dep = parseInt(r[4]);
+        if (!isNaN(dep)) emailDep[String(r[1]).toLowerCase().trim()] = dep;
+      }
+    });
+  });
+  return emailDep;
+}
+
+// ---- DEP BRACKETS ----
+const DEP_BRACKETS = [
+  { key: '0',   lo: 0,  hi: 0 },
+  { key: '1–4', lo: 1,  hi: 4 },
+  { key: '5–9', lo: 5,  hi: 9 },
+  { key: '10+', lo: 10, hi: 1e9 },
+];
+
+function calcDepCsat(workingData, spamSet, emailDep) {
+  const good = {}, bad = {};
+  DEP_BRACKETS.forEach(b => { good[b.key] = 0; bad[b.key] = 0; });
+  workingData.forEach(r => {
+    if (!r.csat || spamSet.has(r.idx)) return;
+    if (!r.email || !(r.email in emailDep)) return;
+    const dep = emailDep[r.email];
+    for (const b of DEP_BRACKETS) {
+      if (dep >= b.lo && dep <= b.hi) {
+        if (r.csat === 'good') good[b.key]++;
+        else if (r.csat === 'bad') bad[b.key]++;
+        break;
+      }
+    }
+  });
+  return { good, bad };
+}
+
+// ---- NK CATEGORY MAPPING ----
+const NK_SERVICE = new Set(['operator_chat','regular','tg','vip','bot','очередь','privip']);
+function mapNkCat(val) {
+  if (!val) return null;
+  const v = String(val).toLowerCase().trim();
+  if (NK_SERVICE.has(v)) return null;
+  if (v.startsWith('деп')) return 'Деп';
+  if (v.startsWith('бон') || v.startsWith('бонус')) return 'Бон';
+  if (v.startsWith('вывод')) return 'Вывод';
+  if (v.startsWith('аккаунт')) return 'Аккаунт';
+  if (v.startsWith('жалоб')) return 'Жалобы';
+  if (v.includes('сайт') || v.startsWith('по_сайту')) return 'По сайту';
+  return 'Другое';
+}
+const NK_CATS = ['Деп','Бон','Вывод','Аккаунт','Жалобы','По сайту','Другое'];
+
+// ============================
+// ======== СГ COMPUTE ========
+// ============================
+function computeSG() {
+  const wb = state.sg_main;
   const ws = wb.Sheets[wb.SheetNames[0]];
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
   const headers = raw[0];
   const rows = raw.slice(1).filter(r => r[0] != null);
 
-  // Column indices
   const C = {};
-  headers.forEach((h, i) => { if (h) C[h] = i; });
-  const iDate = C['Дата и время начала'];
-  const iSrc  = C['Источник'];
-  const iGrp  = C['Группа'];
+  headers.forEach((h,i) => { if(h) C[h] = i; });
+  const iDate  = C['Дата и время начала'];
+  const iSrc   = C['Источник'];
   const iEmail = C['Почта клиента'];
-  const iOp1  = C['Ник оператора 1'];
-  const iFRT  = C['Время первого ответа'];
-  const iCSAT = C['Оценка чата (CSAT)'];
+  const iOp1   = C['Ник оператора 1'];
+  const iFRT   = C['Время первого ответа'];
+  const iCSAT  = C['Оценка чата (CSAT)'];
 
-  // Parse dates
-  function parseDate(v) {
-    if (!v) return null;
-    if (v instanceof Date) return v;
-    if (typeof v === 'string') return new Date(v);
-    if (typeof v === 'number') {
-      // Excel serial
-      return new Date((v - 25569) * 86400 * 1000);
-    }
-    return null;
-  }
+  const spamSet = buildSpamSet(rows, iCSAT, iEmail, iDate);
+  const emailDep = loadDepMap(state.sg_dep);
 
-  // Annotate rows with parsed date and weekday
   const data = rows.map((r, idx) => {
     const dt = parseDate(r[iDate]);
     return {
       idx, dt,
-      weekday: dt ? dt.getDay() : -1, // 0=sun,1=mon,...,6=sat
-      src: (r[iSrc] || '').trim(),
-      grp: (r[iGrp] || '').toLowerCase().trim(),
-      email: (r[iEmail] || '').toLowerCase().trim(),
+      weekday: dt ? dt.getDay() : -1,
+      src: (r[iSrc]||'').trim(),
+      email: (r[iEmail]||'').toLowerCase().trim(),
       op1: r[iOp1],
       frt: parseFRT(r[iFRT]),
       csat: r[iCSAT],
     };
   });
 
-  // Date range info
-  const validDates = data.map(r => r.dt).filter(Boolean);
+  const validDates = data.map(r=>r.dt).filter(Boolean);
   const minDate = new Date(Math.min(...validDates));
   const maxDate = new Date(Math.max(...validDates));
-
-  // Sunday = weekday 0. Stats only for Mon-Sat (weekday 1-6)
-  // But use sunday rows for spam detection too
-  const workingData = data.filter(r => r.weekday !== 0);
   const sundayCount = data.filter(r => r.weekday === 0).length;
+  const workingData = data.filter(r => r.weekday !== 0);
 
-  // --- Spam filter ---
-  // Sort all bad ratings by date, mark spam indices (from original data array)
-  const allBad = data
-    .filter(r => r.csat === 'bad' && r.email && r.dt)
-    .sort((a, b) => a.dt - b.dt);
-
-  const spamSet = new Set();
-  const lastBadTime = {};
-  for (const r of allBad) {
-    const prev = lastBadTime[r.email];
-    if (prev && (r.dt - prev) < 86400000) {
-      spamSet.add(r.idx);
-    } else {
-      lastBadTime[r.email] = r.dt;
-    }
-  }
-
-  // --- Load dep file ---
-  const wb2 = state.dep;
-  const emailDep = {};
-  wb2.SheetNames.slice(1).forEach(shName => {
-    const ws2 = wb2.Sheets[shName];
-    const rows2 = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: null }).slice(1);
-    rows2.forEach(r => {
-      if (r[1] && r[4] != null) {
-        const email = String(r[1]).toLowerCase().trim();
-        const dep = parseInt(r[4]);
-        if (!isNaN(dep)) emailDep[email] = dep;
-      }
-    });
-  });
-
-  // --- Project definitions ---
   const PROJECTS = [
-    { key: 'cat',    label: 'CAT' },
-    { key: 'daddy',  label: 'Daddy' },
-    { key: 'gama',   label: 'GAMA' },
-    { key: 'kent',   label: 'KENT' },
-    { key: 'kometa', label: 'Kometa' },
-    { key: 'mers',   label: 'Mers' },
-    { key: 'r7',     label: 'R7' },
-    { key: 'arkada', label: 'Arkada' },
+    { key:'cat',    label:'CAT'    },
+    { key:'daddy',  label:'Daddy'  },
+    { key:'gama',   label:'GAMA'   },
+    { key:'kent',   label:'KENT'   },
+    { key:'kometa', label:'Kometa' },
+    { key:'mers',   label:'Mers'   },
+    { key:'r7',     label:'R7'     },
+    { key:'arkada', label:'Arkada' },
   ];
 
-  function srcBelongsTo(src, projKey) {
-    return src.toLowerCase().startsWith(projKey);
-  }
+  function isRegular(src) { const s=src.toLowerCase(); return s.includes('regular')||s.includes(' tg'); }
+  function isVIP(src) { const s=src.toLowerCase(); return (s.includes('vip')||s.includes('privip'))&&!s.includes('vipmanager'); }
 
-  function isRegular(src) {
-    const s = src.toLowerCase();
-    return s.includes('regular') || s.includes(' tg');
-  }
-
-  function isVIP(src) {
-    const s = src.toLowerCase();
-    return (s.includes('vip') || s.includes('privip')) && !s.includes('vipmanager');
-  }
-
-  // --- Per-project metrics ---
   const projStats = {};
-  PROJECTS.forEach(p => {
-    projStats[p.key] = {
-      reg_frt: [], vip_frt: [],
-      reg_good: 0, reg_bad: 0,
-      vip_good: 0, vip_bad: 0,
-    };
-  });
-
-  // VIP aggregate FRT across all projects
-  const vipFRTAll = [];
-  let vipGoodAll = 0, vipBadAll = 0;
+  PROJECTS.forEach(p => { projStats[p.key] = { reg_frt:[], vip_frt:[], reg_good:0, reg_bad:0, vip_good:0, vip_bad:0 }; });
+  const vipFRTAll=[]; let vipGoodAll=0, vipBadAll=0;
 
   workingData.forEach(r => {
     const s = r.src;
     PROJECTS.forEach(p => {
-      if (!srcBelongsTo(s, p.key)) return;
+      if (!s.toLowerCase().startsWith(p.key)) return;
       const st = projStats[p.key];
-      const reg = isRegular(s);
-      const vip = isVIP(s);
-
+      const reg = isRegular(s), vip = isVIP(s);
       if (reg && r.frt != null) st.reg_frt.push(r.frt);
       if (vip && r.frt != null) { st.vip_frt.push(r.frt); vipFRTAll.push(r.frt); }
-
       if (!r.csat || spamSet.has(r.idx)) return;
-      if (reg) { if (r.csat === 'good') st.reg_good++; else if (r.csat === 'bad') st.reg_bad++; }
-      if (vip) {
-        if (r.csat === 'good') { st.vip_good++; vipGoodAll++; }
-        else if (r.csat === 'bad') { st.vip_bad++; vipBadAll++; }
+      if (reg) { if(r.csat==='good') st.reg_good++; else if(r.csat==='bad') st.reg_bad++; }
+      if (vip) { if(r.csat==='good'){st.vip_good++;vipGoodAll++;} else if(r.csat==='bad'){st.vip_bad++;vipBadAll++;} }
+    });
+  });
+
+  let nobotGood=0, nobotBad=0;
+  workingData.forEach(r => {
+    if (!r.csat||spamSet.has(r.idx)||!r.op1) return;
+    if(r.csat==='good') nobotGood++; else if(r.csat==='bad') nobotBad++;
+  });
+
+  const dep = calcDepCsat(workingData, spamSet, emailDep);
+
+  return { minDate, maxDate, sundayCount, workingCount:workingData.length, spamCount:spamSet.size,
+    PROJECTS, projStats, vipFRTavg: avg(vipFRTAll), vipGoodAll, vipBadAll,
+    nobotGood, nobotBad, dep };
+}
+
+// ============================
+// ======== НК COMPUTE ========
+// ============================
+function computeNK() {
+  const wb = state.nk_main;
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const headers = raw[0];
+  const rows = raw.slice(1).filter(r => r[0] != null);
+
+  const C = {};
+  headers.forEach((h,i) => { if(h) C[h] = i; });
+  const iDate  = C['Дата и время начала'];
+  const iSrc   = C['Источник'];
+  const iEmail = C['Почта клиента'];
+  const iOp1   = C['Ник оператора 1'];
+  const iFRT   = C['Время первого ответа'];
+  const iART   = C['Среднее время ответа'];
+  const iCSAT  = C['Оценка чата (CSAT)'];
+  // Category columns 21-25
+  const iCats  = [21,22,23,24,25];
+
+  const spamSet = buildSpamSet(rows, iCSAT, iEmail, iDate);
+  // NK dep file: sheets are NK(0), Motor(1), Atom(2) - skip first sheet
+  const emailDepAtom  = {};
+  const emailDepMotor = {};
+  state.nk_dep.SheetNames.slice(1).forEach(shName => {
+    const ws2 = state.nk_dep.Sheets[shName];
+    const rows2 = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: null }).slice(1);
+    const target = shName.toLowerCase().includes('atom') ? emailDepAtom : emailDepMotor;
+    rows2.forEach(r => {
+      if (r[1] && r[4] != null) {
+        const dep = parseInt(r[4]);
+        if (!isNaN(dep)) target[String(r[1]).toLowerCase().trim()] = dep;
       }
     });
   });
 
-  // --- CSAT without bot ---
-  let nobotGood = 0, nobotBad = 0;
-  workingData.forEach(r => {
-    if (!r.csat || spamSet.has(r.idx)) return;
-    if (!r.op1) return;
-    if (r.csat === 'good') nobotGood++;
-    else if (r.csat === 'bad') nobotBad++;
+  const data = rows.map((r, idx) => {
+    const dt = parseDate(r[iDate]);
+    const grp = (r[C['Группа']]||'').toLowerCase().trim();
+    // categories
+    const cats = [];
+    for (const ci of iCats) {
+      const c = mapNkCat(r[ci]);
+      if (c && !cats.includes(c)) cats.push(c);
+    }
+    return {
+      idx, dt,
+      weekday: dt ? dt.getDay() : -1,
+      src: (r[iSrc]||'').trim(),
+      grp,
+      email: (r[iEmail]||'').toLowerCase().trim(),
+      op1: r[iOp1],
+      frt: parseFRT(r[iFRT]),
+      art: parseFRT(r[iART]),
+      csat: r[iCSAT],
+      cats,
+    };
   });
 
-  // --- CSAT by dep count ---
-  const brackets = [
-    { key: '0',    lo: 0, hi: 0 },
-    { key: '1–4',  lo: 1, hi: 4 },
-    { key: '5–9',  lo: 5, hi: 9 },
-    { key: '10+',  lo: 10, hi: 1e9 },
+  const validDates = data.map(r=>r.dt).filter(Boolean);
+  const minDate = new Date(Math.min(...validDates));
+  const maxDate = new Date(Math.max(...validDates));
+  const sundayCount = data.filter(r => r.weekday === 0).length;
+  const workingData = data.filter(r => r.weekday !== 0);
+
+  const PROJECTS = [
+    { key: 'atom',  label: 'Atom',  emailDep: emailDepAtom  },
+    { key: 'motor', label: 'Motor', emailDep: emailDepMotor },
   ];
-  const depGood = {}, depBad = {};
-  brackets.forEach(b => { depGood[b.key] = 0; depBad[b.key] = 0; });
+
+  const projStats = {};
+  PROJECTS.forEach(p => {
+    projStats[p.key] = {
+      frt: [], art: [],
+      good: 0, bad: 0,
+      nobot_good: 0, nobot_bad: 0,
+      total_chats: 0,
+      cats: {},
+      dep_good: {}, dep_bad: {},
+    };
+    NK_CATS.forEach(c => { projStats[p.key].cats[c] = 0; });
+    DEP_BRACKETS.forEach(b => { projStats[p.key].dep_good[b.key]=0; projStats[p.key].dep_bad[b.key]=0; });
+  });
 
   workingData.forEach(r => {
+    const grp = r.grp;
+    const p = PROJECTS.find(p => p.key === grp);
+    if (!p) return;
+    const st = projStats[p.key];
+
+    st.total_chats++;
+    if (r.frt != null) st.frt.push(r.frt);
+    if (r.art != null) st.art.push(r.art);
+
+    // Categories - count per chat (first real category found)
+    r.cats.forEach(c => { if (NK_CATS.includes(c)) st.cats[c]++; });
+
     if (!r.csat || spamSet.has(r.idx)) return;
-    if (!r.email || !(r.email in emailDep)) return;
-    const dep = emailDep[r.email];
-    for (const b of brackets) {
-      if (dep >= b.lo && dep <= b.hi) {
-        if (r.csat === 'good') depGood[b.key]++;
-        else if (r.csat === 'bad') depBad[b.key]++;
-        break;
+
+    if (r.csat==='good') st.good++; else if (r.csat==='bad') st.bad++;
+
+    // CSAT without bot
+    if (r.op1) { if(r.csat==='good') st.nobot_good++; else if(r.csat==='bad') st.nobot_bad++; }
+
+    // CSAT by dep
+    const dep = p.emailDep[r.email];
+    if (dep != null) {
+      for (const b of DEP_BRACKETS) {
+        if (dep >= b.lo && dep <= b.hi) {
+          if(r.csat==='good') st.dep_good[b.key]++; else if(r.csat==='bad') st.dep_bad[b.key]++;
+          break;
+        }
       }
     }
   });
 
-  // VIP avg FRT
-  const vipFRTavg = vipFRTAll.length ? vipFRTAll.reduce((a,b)=>a+b,0)/vipFRTAll.length : null;
-
-  return {
-    minDate, maxDate, sundayCount,
-    workingCount: workingData.length,
-    spamCount: spamSet.size,
-    PROJECTS, projStats,
-    vipFRTavg, vipGoodAll, vipBadAll,
-    nobotGood, nobotBad,
-    brackets, depGood, depBad,
-  };
+  return { minDate, maxDate, sundayCount, workingCount: workingData.length, spamCount: spamSet.size, PROJECTS, projStats };
 }
 
-function renderResults(r) {
-  const { PROJECTS, projStats, vipFRTavg, vipGoodAll, vipBadAll, nobotGood, nobotBad, brackets, depGood, depBad } = r;
+// ============================
+// ======== ANALYZE ============
+// ============================
+function analyze(tab) {
+  const outEl = document.getElementById('out-' + tab);
+  outEl.innerHTML = '<div class="loader"><div class="loader-spinner"></div>Обрабатываю данные...</div>';
+  setTimeout(() => {
+    try {
+      if (tab === 'sg') outEl.innerHTML = renderSG(computeSG());
+      else outEl.innerHTML = renderNK(computeNK());
+    } catch(e) {
+      outEl.innerHTML = '<div class="results"><div class="err">Ошибка: ' + e.message + '</div></div>';
+      console.error(e);
+    }
+  }, 50);
+}
 
-  function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+// ============================
+// ======== RENDER СГ ==========
+// ============================
+function renderSG(r) {
+  const { PROJECTS, projStats, vipFRTavg, vipGoodAll, vipBadAll, nobotGood, nobotBad, dep } = r;
+  const fmtD = d => d ? d.toLocaleDateString('ru-RU') : '?';
+  let h = '<div class="results">';
 
-  let html = '<div class="results">';
-
-  // Info row
-  const fmt = d => d ? d.toLocaleDateString('ru-RU') : '?';
-  html += `<div class="info-row">
-    <div class="info-item">Период: <span>${fmt(r.minDate)} — ${fmt(r.maxDate)}</span></div>
+  h += `<div class="info-row">
+    <div class="info-item">Период: <span>${fmtD(r.minDate)} — ${fmtD(r.maxDate)}</span></div>
     <div class="info-item">Рабочих строк: <span>${r.workingCount.toLocaleString('ru')}</span></div>
     <div class="info-item">Воскресенье (не в расчёте): <span>${r.sundayCount.toLocaleString('ru')}</span></div>
-    <div class="info-item">Отфильтровано спам-дизлайков: <span>${r.spamCount}</span></div>
+    <div class="info-item">Спам-дизлайков отфильтровано: <span>${r.spamCount}</span></div>
   </div>`;
 
-  // === FRT TABLE ===
-  html += '<div class="section-title">Время первого ответа (среднее)</div>';
-  html += '<table class="metrics-table"><thead><tr><th>Проект</th><th>Regular + TG</th><th>VIP + Privip</th></tr></thead><tbody>';
-
+  // FRT
+  h += '<div class="section-title">Время первого ответа (среднее)</div>';
+  h += '<table class="metrics-table"><thead><tr><th>Проект</th><th>Regular + TG</th><th>VIP + Privip</th></tr></thead><tbody>';
   PROJECTS.forEach(p => {
     const st = projStats[p.key];
-    const regFRT = fmtTime(avg(st.reg_frt));
-    const vipFRT = fmtTime(avg(st.vip_frt));
-    html += `<tr><td class="project">${p.label}</td><td class="value">${regFRT}</td><td class="value">${vipFRT}</td></tr>`;
+    h += `<tr><td class="proj">${p.label}</td><td class="val">${fmtTime(avg(st.reg_frt))}</td><td class="val">${fmtTime(avg(st.vip_frt))}</td></tr>`;
   });
+  h += `<tr class="vip-row"><td class="proj">VIP (все проекты)</td><td class="val">—</td><td class="val">${fmtTime(vipFRTavg)}</td></tr>`;
+  h += '</tbody></table>';
 
-  // VIP row across all
-  const vipAllFRT = fmtTime(vipFRTavg);
-  html += `<tr class="vip-row"><td class="project">VIP (все проекты)</td><td class="value">—</td><td class="value">${vipAllFRT}</td></tr>`;
-  html += '</tbody></table>';
-
-  // === CSAT TABLE ===
-  html += '<div class="section-title">CSAT</div>';
-  html += '<table class="metrics-table"><thead><tr><th>Проект</th><th>Regular + TG</th><th>VIP + Privip</th></tr></thead><tbody>';
-
+  // CSAT
+  h += '<div class="section-title">CSAT</div>';
+  h += '<table class="metrics-table"><thead><tr><th>Проект</th><th>Regular + TG</th><th>VIP + Privip</th></tr></thead><tbody>';
   PROJECTS.forEach(p => {
     const st = projStats[p.key];
     const reg = fmtPct(st.reg_good, st.reg_bad);
     const vip = fmtPct(st.vip_good, st.vip_bad);
-    html += `<tr>
-      <td class="project">${p.label}</td>
-      <td class="csat-val ${csatClass(reg.val)}">${reg.str} <small style="color:#475569;font-size:11px">(${(reg.total||0).toLocaleString('ru')})</small></td>
-      <td class="csat-val ${csatClass(vip.val)}">${vip.str} <small style="color:#475569;font-size:11px">(${(vip.total||0).toLocaleString('ru')})</small></td>
+    h += `<tr>
+      <td class="proj">${p.label}</td>
+      <td class="val ${csatClass(reg.val)}">${reg.str} <small style="color:#475569;font-size:11px">(${reg.total})</small></td>
+      <td class="val ${csatClass(vip.val)}">${vip.str} <small style="color:#475569;font-size:11px">(${vip.total})</small></td>
     </tr>`;
   });
-
   const vipAll = fmtPct(vipGoodAll, vipBadAll);
-  html += `<tr class="vip-row">
-    <td class="project">VIP (все проекты)</td>
-    <td class="value">—</td>
-    <td class="csat-val ${csatClass(vipAll.val)}">${vipAll.str} <small style="color:#6366f1;font-size:11px">(${(vipAll.total||0).toLocaleString('ru')})</small></td>
-  </tr>`;
-  html += '</tbody></table>';
+  h += `<tr class="vip-row"><td class="proj">VIP (все проекты)</td><td class="val">—</td>
+    <td class="val ${csatClass(vipAll.val)}">${vipAll.str} <small style="color:#475569;font-size:11px">(${vipAll.total})</small></td></tr>`;
+  h += '</tbody></table>';
 
-  // === CSAT WITHOUT BOT ===
-  html += '<div class="section-title">CSAT without Bot</div>';
+  // CSAT without bot
+  h += '<div class="section-title">CSAT without Bot</div>';
   const nobot = fmtPct(nobotGood, nobotBad);
-  html += `<div class="two-col">
-    <div class="card-metric">
-      <div class="label">CSAT без бота</div>
-      <div class="value ${csatClass(nobot.val)}">${nobot.str}</div>
-      <div class="sub">${nobotGood} лайков / ${nobotBad} дизлайков (${(nobot.total||0).toLocaleString('ru')} всего)</div>
-    </div>
-  </div>`;
+  h += `<div class="cards-row"><div class="card">
+    <div class="lbl">CSAT без бота</div>
+    <div class="val ${csatClass(nobot.val)}">${nobot.str}</div>
+    <div class="sub">${nobotGood} лайков / ${nobotBad} дизлайков (${nobot.total} всего)</div>
+  </div></div>`;
 
-  // === CSAT BY DEP COUNT ===
-  html += '<div class="section-title">CSAT по депозитам</div>';
-  html += '<div class="dep-grid">';
-  brackets.forEach(b => {
-    const g = depGood[b.key], bad = depBad[b.key];
-    const p = fmtPct(g, bad);
-    html += `<div class="dep-card">
-      <div class="dep-label">Депозиты: ${b.key}</div>
+  // CSAT by dep
+  h += '<div class="section-title">CSAT по депозитам</div><div class="dep-grid">';
+  DEP_BRACKETS.forEach(b => {
+    const g = dep.good[b.key], bd = dep.bad[b.key];
+    const p = fmtPct(g, bd);
+    h += `<div class="dep-card">
+      <div class="dep-lbl">Депозиты: ${b.key}</div>
       <div class="dep-val ${csatClass(p.val)}">${p.str}</div>
-      <div class="dep-sub">${g} лайков / ${bad} дизлайков<br>${(p.total||0).toLocaleString('ru')} оценок</div>
+      <div class="dep-sub">${g} лайков / ${bd} дизлайков<br>${p.total} оценок</div>
     </div>`;
   });
-  html += '</div>';
+  h += '</div></div>';
+  return h;
+}
 
-  html += '</div>';
-  return html;
+// ============================
+// ======== RENDER НК ==========
+// ============================
+function renderNK(r) {
+  const { PROJECTS, projStats } = r;
+  const fmtD = d => d ? d.toLocaleDateString('ru-RU') : '?';
+  let h = '<div class="results">';
+
+  h += `<div class="info-row">
+    <div class="info-item">Период: <span>${fmtD(r.minDate)} — ${fmtD(r.maxDate)}</span></div>
+    <div class="info-item">Рабочих строк: <span>${r.workingCount.toLocaleString('ru')}</span></div>
+    <div class="info-item">Воскресенье (не в расчёте): <span>${r.sundayCount.toLocaleString('ru')}</span></div>
+    <div class="info-item">Спам-дизлайков отфильтровано: <span>${r.spamCount}</span></div>
+  </div>`;
+
+  h += '<div class="section-title">Проекты</div>';
+  h += '<div class="nk-projects">';
+
+  PROJECTS.forEach(p => {
+    const st = projStats[p.key];
+    const csat = fmtPct(st.good, st.bad);
+    const nobot = fmtPct(st.nobot_good, st.nobot_bad);
+    const avgFRT = avg(st.frt);
+    const avgART = avg(st.art);
+
+    // max cats for bar
+    const maxCat = Math.max(...NK_CATS.map(c => st.cats[c]));
+
+    h += `<div class="nk-proj-card">
+      <div class="nk-proj-header">${p.label}</div>
+      <div class="nk-proj-body">
+
+        <div class="nk-row"><span class="nk-lbl">Чатов всего</span><span class="nk-val">${st.total_chats.toLocaleString('ru')}</span></div>
+        <div class="nk-row"><span class="nk-lbl">Время первого ответа</span><span class="nk-val">${fmtTime(avgFRT)}</span></div>
+        <div class="nk-row"><span class="nk-lbl">Время между ответами</span><span class="nk-val">${fmtTime(avgART)}</span></div>
+        <div class="nk-row"><span class="nk-lbl">CSAT</span><span class="nk-val ${csatClass(csat.val)}">${csat.str} <small style="color:#475569;font-size:11px">(${csat.total})</small></span></div>
+        <div class="nk-row"><span class="nk-lbl">CSAT без бота</span><span class="nk-val ${csatClass(nobot.val)}">${nobot.str} <small style="color:#475569;font-size:11px">(${nobot.total})</small></span></div>
+
+        <div style="margin-top:12px;margin-bottom:6px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.7px;text-transform:uppercase;">CSAT по депозитам</div>
+        ${DEP_BRACKETS.map(b => {
+          const g = st.dep_good[b.key], bd = st.dep_bad[b.key];
+          const dp = fmtPct(g, bd);
+          return `<div class="nk-row"><span class="nk-lbl">Деп ${b.key}</span><span class="nk-val ${csatClass(dp.val)}">${dp.str} <small style="color:#475569;font-size:11px">(${dp.total})</small></span></div>`;
+        }).join('')}
+
+        <div style="margin-top:12px;margin-bottom:6px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.7px;text-transform:uppercase;">Категории обращений</div>
+        <table class="cat-table">
+          ${NK_CATS.map(c => {
+            const cnt = st.cats[c];
+            const barW = maxCat > 0 ? Math.round(cnt/maxCat*100) : 0;
+            const total = st.total_chats;
+            const pct = total > 0 ? (cnt/total*100).toFixed(1)+'%' : '—';
+            return `<tr>
+              <td class="cat-lbl" style="width:90px">${c}</td>
+              <td class="cat-bar-wrap"><div class="cat-bar" style="width:${barW}%"></div></td>
+              <td class="cat-val" style="width:60px">${cnt.toLocaleString('ru')}</td>
+              <td class="cat-val" style="width:50px;color:#64748b">${pct}</td>
+            </tr>`;
+          }).join('')}
+        </table>
+      </div>
+    </div>`;
+  });
+
+  h += '</div></div>';
+  return h;
 }
 </script>
 </body>

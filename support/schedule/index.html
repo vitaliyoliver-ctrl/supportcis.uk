@@ -1819,12 +1819,28 @@ function renderSection(s) {
           const ov = scheduleOverrides[key];
           return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
         };
-        const count = allOperators.filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di)).length;
+        const countRaw = allOperators
+          .filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di))
+          .reduce((sum, n) => {
+            const key = `${n}:${dateStr(DAYS[di].d)}`;
+            const ov = scheduleOverrides[key];
+            let h = getHours(getShift(n, di));
+            if (ov?.customHours !== undefined) h = ov.customHours;
+            if (ov?.extraEvents?.length) {
+              const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
+              ov.extraEvents.forEach(ev => {
+                if (ev.hours > 0) h += plusTypes.includes(ev.type) ? ev.hours : -ev.hours;
+              });
+            }
+            return sum + Math.max(0, h);
+          }, 0) / 11;
+        const count = Math.round(countRaw * 10) / 10;
+        const countDisplay = Number.isInteger(count) ? count : count.toFixed(1);
         const isLow = count < min;
         const bg = isLow ? 'background:rgba(248,113,113,0.2);' : '';
         const fg = isLow ? '#f87171' : color;
         thCountHTML += `<th class="${baseCls}" style="background:var(--thead-count-bg);${bg}padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <span style="font-size:10px;font-weight:700;color:${fg}">${count}</span>
+          <span style="font-size:10px;font-weight:700;color:${fg}">${countDisplay}</span>
         </th>`;
       });
       thCountHTML += `</tr>`;

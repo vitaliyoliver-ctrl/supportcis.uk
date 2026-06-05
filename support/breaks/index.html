@@ -1468,6 +1468,38 @@ function applyTransfers() {
   // populateOperators() reads transfersList via getEffectiveOperators()
 }
 
+async function loadRoster() {
+  try {
+    const r = await sbFetch('/rest/v1/roster?select=section,dept,names');
+    const rows = await r.json();
+    if (!Array.isArray(rows) || rows.length === 0) return;
+    rows.forEach(row => {
+      if (row.section === 'sg' && row.dept === 'regular') OPERATORS.sg.regular = row.names;
+      if (row.section === 'sg' && row.dept === 'vip')     OPERATORS.sg.vip     = row.names;
+      if (row.section === 'nc' && row.dept === 'regular') OPERATORS.nc.regular = row.names;
+    });
+  } catch(e) {
+    console.warn('loadRoster failed:', e);
+  }
+}
+
+async function saveRoster() {
+  const rows = [
+    { section: 'sg', dept: 'regular', names: OPERATORS.sg.regular },
+    { section: 'sg', dept: 'vip',     names: OPERATORS.sg.vip     },
+    { section: 'nc', dept: 'regular', names: OPERATORS.nc.regular  },
+  ];
+  try {
+    await sbFetch('/rest/v1/roster', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates,return=minimal',
+      body: JSON.stringify(rows),
+    });
+  } catch(e) {
+    console.warn('saveRoster failed:', e);
+  }
+}
+
 function getEffectiveOperators(section, dept) {
   // Returns base list + transferred-in operators - transferred-out operators
   let base;
@@ -1679,7 +1711,7 @@ function renderRosterTab(body) {
   body.innerHTML = html;
 }
 
-function addOperator(key) {
+async function addOperator(key) {
   const inp = document.getElementById('new-op-' + key);
   const name = inp.value.trim();
   if (!name) return;
@@ -1691,7 +1723,7 @@ function addOperator(key) {
   renderRosterTab(document.getElementById('adminBody'));
 }
 
-function removeOperator(key, name) {
+async function removeOperator(key, name) {
   if (!confirm('Удалить "' + name + '" из списка? Это нельзя отменить.')) return;
   const map = { sg_regular: OPERATORS.sg.regular, sg_vip: OPERATORS.sg.vip, nc_regular: OPERATORS.nc.regular };
   map[key] = map[key].filter(n => n !== name);

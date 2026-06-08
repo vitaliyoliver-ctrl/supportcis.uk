@@ -1488,11 +1488,14 @@ async function saveRoster() {
     { section: 'nc', dept: 'regular', names: OPERATORS.nc.regular  },
   ];
   try {
-    await sbFetch('/rest/v1/roster', {
+    const r = await sbFetch('/rest/v1/roster', {
       method: 'POST',
       prefer: 'resolution=merge-duplicates,return=minimal',
       body: JSON.stringify(rows),
     });
+    console.log('saveRoster status:', r.status);
+    const text = await r.text();
+    console.log('saveRoster response:', text);
   } catch(e) {
     console.warn('saveRoster failed:', e);
   }

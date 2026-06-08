@@ -1821,7 +1821,7 @@ function renderSection(s) {
         };
         const extraTypes = ['extra_morning','extra_evening','extra_1200','extra_vip_morning','extra_vip_evening','extra_vip_1200','extra_sup_day','extra_sup_night','extra_sup_day8'];
         const countRaw = allOperators
-          .filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di))
+          .filter(n => types.includes(getShift(n, di)))
           .reduce((sum, n) => {
             const key = `${n}:${dateStr(DAYS[di].d)}`;
             const ov = scheduleOverrides[key];

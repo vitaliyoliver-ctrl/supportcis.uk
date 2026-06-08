@@ -1451,6 +1451,7 @@ OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
 
 // ── State ──
 let scheduleOverrides = {};
+let scheduleVersion = 0;
 let scheduleSettings = { customHours: {} };
 let currentUser = null;
 let isAdmin = false;
@@ -1497,6 +1498,7 @@ const collapsedSections = new Set();
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
+      scheduleVersion = data.version || 0;
       scheduleSettings = data.settings || { customHours: {} };
       // Применяем кастомный порядок если есть
       if (scheduleSettings.customOrder) {
@@ -1549,6 +1551,7 @@ async function switchMonth(year, month) {
     if (res.ok) {
       const data = await res.json();
       scheduleOverrides = data.overrides || {};
+      scheduleVersion = data.version || 0;
       // Settings глобальные — не перезаписываем customOrder, только mergeим
       if (data.settings) {
         scheduleSettings = { ...scheduleSettings, ...data.settings };
@@ -1819,14 +1822,12 @@ function renderSection(s) {
           const ov = scheduleOverrides[key];
           return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
         };
-        const extraTypes = ['extra_morning','extra_evening','extra_1200','extra_vip_morning','extra_vip_evening','extra_vip_1200','extra_sup_day','extra_sup_night','extra_sup_day8'];
         const countRaw = allOperators
-          .filter(n => types.includes(getShift(n, di)))
+          .filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di))
           .reduce((sum, n) => {
             const key = `${n}:${dateStr(DAYS[di].d)}`;
             const ov = scheduleOverrides[key];
-            const shiftType = getShift(n, di);
-            let h = extraTypes.includes(shiftType) ? 0 : getHours(shiftType);
+            let h = getHours(getShift(n, di));
             if (ov?.customHours !== undefined) h = ov.customHours;
             if (ov?.extraEvents?.length) {
               const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
@@ -2230,7 +2231,9 @@ async function savePositions() {
       })
     });
     const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
     if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
       scheduleSettings.customOrder = customOrder;
       showToast('Позиции сохранены', 'ok');
       togglePositionsMode();
@@ -2281,10 +2284,12 @@ async function clearShifts() {
     const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings })
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion })
     });
     const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
     if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
       scheduleOverrides = newOverrides;
       renderAll();
       updateColumnHighlight();
@@ -2380,7 +2385,7 @@ function restoreDismissed(name) {
   fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings })
+    body: JSON.stringify({ overrides: scheduleOverrides, settings: scheduleSettings, version: scheduleVersion })
   });
 }
 
@@ -2664,10 +2669,12 @@ async function applyDismissal() {
     const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: newSettings })
+      body: JSON.stringify({ overrides: newOverrides, settings: newSettings, version: scheduleVersion })
     });
     const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
     if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
       scheduleOverrides = newOverrides;
       scheduleSettings = newSettings;
       dismissedEmployees = newDismissed;
@@ -2956,10 +2963,12 @@ async function saveProfile() {
     const res = await fetch(`${API}/schedule?month=${monthStr}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion })
     });
     const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
     if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
       scheduleSettings = newSettings;
       renderAll();
       closeProfilePanel();
@@ -3138,10 +3147,12 @@ async function saveShift() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings })
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion })
     });
     const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
     if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
       scheduleOverrides = newOverrides;
       renderAll();
       updateStats();
@@ -3310,6 +3321,21 @@ function exportToExcel() {
   XLSX.writeFile(wb, `График_Июнь_${YEAR}.xlsx`);
 }
 
+function showStaleWarning() {
+  const existing = document.getElementById('stale-warning');
+  if (existing) return;
+  const el = document.createElement('div');
+  el.id = 'stale-warning';
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = `<div style="background:var(--bg-card);border-radius:12px;padding:24px 32px;max-width:400px;text-align:center;">
+    <div style="font-size:24px;margin-bottom:12px;">⚠️</div>
+    <div style="font-weight:700;font-size:16px;margin-bottom:8px;">Данные устарели</div>
+    <div style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;">Кто-то внёс изменения пока страница была открыта. Перезагрузите страницу, чтобы увидеть актуальные данные.</div>
+    <button onclick="location.reload()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">Перезагрузить</button>
+  </div>`;
+  document.body.appendChild(el);
+}
+
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -3411,10 +3437,12 @@ async function savePattern() {
       const res = await fetch(`${API}/schedule?month=${monthStr}`, {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+        body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion })
       });
       const data = await res.json();
+      if (res.status === 409) { showStaleWarning(); return; }
       if (res.ok && data.ok) {
+        if (data.version) scheduleVersion = data.version;
         scheduleSettings = newSettings;
         renderAll();
         closePatternModal();
@@ -3443,10 +3471,12 @@ async function savePattern() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings })
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion })
     });
     const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
     if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
       scheduleSettings = newSettings;
       renderAll();
       closePatternModal();

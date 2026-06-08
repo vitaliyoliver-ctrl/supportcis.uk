@@ -1819,12 +1819,14 @@ function renderSection(s) {
           const ov = scheduleOverrides[key];
           return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
         };
+        const extraTypes = ['extra_morning','extra_evening','extra_1200','extra_vip_morning','extra_vip_evening','extra_vip_1200','extra_sup_day','extra_sup_night','extra_sup_day8'];
         const countRaw = allOperators
-          .filter(n => types.includes(getShift(n, di)))
+          .filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di))
           .reduce((sum, n) => {
             const key = `${n}:${dateStr(DAYS[di].d)}`;
             const ov = scheduleOverrides[key];
-            let h = getHours(getShift(n, di));
+            const shiftType = getShift(n, di);
+            let h = extraTypes.includes(shiftType) ? 0 : getHours(shiftType);
             if (ov?.customHours !== undefined) h = ov.customHours;
             if (ov?.extraEvents?.length) {
               const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];

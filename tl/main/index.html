@@ -114,10 +114,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div class="tab-panel active" id="tab-sg">
   <div class="upload-zone">
     <div class="drop-card" id="card-sg-main">
-      <input type="file" accept=".xlsx,.xls" onchange="handleFile('sg_main', this)">
+      <input type="file" accept=".xlsx,.xls" multiple onchange="handleSGMain(this)">
       <div class="drop-icon">📊</div>
       <div class="drop-label">Основная выгрузка</div>
-      <div class="drop-hint">all_conversation_metrics_*.xlsx</div>
+      <div class="drop-hint">Можно загрузить несколько файлов сразу</div>
       <div class="drop-name" id="name-sg-main"></div>
     </div>
     <div class="drop-card" id="card-sg-dep">
@@ -186,8 +186,39 @@ function handleFile(key, input) {
   reader.readAsArrayBuffer(file);
 }
 
+// Multi-file loader for SG main
+function handleSGMain(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const card = document.getElementById('card-sg-main');
+  const nameEl = document.getElementById('name-sg-main');
+  nameEl.textContent = '⏳ Загрузка...';
+  state.sg_main_wbs = [];
+  let loaded = 0;
+  files.forEach((file, fi) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        state.sg_main_wbs[fi] = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      } catch(err) {
+        nameEl.textContent = '✗ Ошибка чтения ' + file.name;
+        nameEl.style.color = '#ef4444';
+      }
+      loaded++;
+      if (loaded === files.length) {
+        card.classList.add('loaded');
+        nameEl.textContent = files.length === 1
+          ? '✓ ' + files[0].name
+          : '✓ ' + files.length + ' файла(ов) загружено';
+        checkReady();
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 function checkReady() {
-  document.getElementById('btn-sg').disabled = !(state.sg_main && state.sg_dep);
+  document.getElementById('btn-sg').disabled = !(state.sg_main_wbs && state.sg_main_wbs.length && state.sg_dep);
   document.getElementById('btn-nk').disabled = !(state.nk_main && state.nk_dep);
 }
 
@@ -295,15 +326,17 @@ function calcDepCsat(workingData, spamSet, emailDep) {
 
 // ---- NK CATEGORY MAPPING ----
 const NK_SERVICE = new Set(['operator_chat','regular','tg','vip','bot','очередь','privip']);
+const NK_SKIP = v => v.startsWith('spam_scam') || v.startsWith('блок_системой');
 function mapNkCat(val) {
   if (!val) return null;
   const v = String(val).toLowerCase().trim();
   if (NK_SERVICE.has(v)) return null;
+  if (NK_SKIP(v)) return null;
   if (v.startsWith('деп')) return 'Деп';
   if (v.startsWith('бон') || v.startsWith('бонус')) return 'Бон';
   if (v.startsWith('вывод')) return 'Вывод';
   if (v.startsWith('аккаунт')) return 'Аккаунт';
-  if (v.startsWith('жалоб')) return 'Жалобы';
+  if (v.startsWith('жалоб') || v === 'complaints') return 'Жалобы';
   if (v.includes('сайт') || v.startsWith('по_сайту')) return 'По сайту';
   return 'Другое';
 }
@@ -313,11 +346,15 @@ const NK_CATS = ['Деп','Бон','Вывод','Аккаунт','Жалобы',
 // ======== СГ COMPUTE ========
 // ============================
 function computeSG() {
-  const wb = state.sg_main;
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-  const headers = raw[0];
-  const rows = raw.slice(1).filter(r => r[0] != null);
+  // Merge rows from all uploaded SG main files
+  let headers = null;
+  let rows = [];
+  for (const wb of state.sg_main_wbs) {
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    if (!headers) headers = raw[0];
+    rows = rows.concat(raw.slice(1).filter(r => r[0] != null));
+  }
 
   const C = {};
   headers.forEach((h,i) => { if(h) C[h] = i; });

@@ -1873,7 +1873,7 @@ function renderSection(s) {
           return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
         };
         const countRaw = allOperators
-          .filter(n => types.includes(getShift(n, di)) && !isSwappedOut(n, di))
+          .filter(n => types.includes(getShift(n, di)))
           .reduce((sum, n) => {
             const key = `${n}:${dateStr(DAYS[di].d)}`;
             const ov = scheduleOverrides[key];

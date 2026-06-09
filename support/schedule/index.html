@@ -2337,7 +2337,7 @@ async function clearShifts() {
     const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: 'очистка смен', target: name }] })
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: `очистка смен · ${YEAR}-${String(MONTH).padStart(2,'0')}`, target: name }] })
     });
     const data = await res.json();
     if (res.status === 409) { showStaleWarning(); return; }
@@ -3214,7 +3214,7 @@ async function saveShift() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: `смена: ${selectedShiftType}`, target: operator }] })
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: `смена: ${selectedShiftType} · ${dateFrom === dateTo ? dateFrom : `${dateFrom} — ${dateTo}`}`, target: operator }] })
     });
     const data = await res.json();
     if (res.status === 409) { showStaleWarning(); return; }

@@ -1648,7 +1648,7 @@ function renderSection(s) {
         return;
       }
 
-      h = override?.customHours || DEFAULT_HOURS[type] || 0;
+      h = override?.customHours ?? (type.startsWith('extra_') ? 0 : (DEFAULT_HOURS[type] || 0));
       if (override?.extraEvents?.length) {
         override.extraEvents.forEach(ev => {
           if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;

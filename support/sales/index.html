@@ -253,6 +253,8 @@
   .date-label { font-family:'Barlow',sans-serif;font-size:11px;font-weight:500;color:var(--text-muted);white-space:nowrap; }
   .upload-btn { display:none;align-items:center;gap:6px;padding:5px 12px;background:transparent;border:1px solid var(--green);color:var(--green);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s; }
   .upload-btn:hover { background:var(--green);color:#000; }
+  .clear-btn { display:none;align-items:center;gap:6px;padding:5px 12px;background:transparent;border:1px solid var(--accent-red);color:var(--accent-red);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s; }
+  .clear-btn:hover { background:var(--accent-red);color:#fff; }
   .tl-only { display:none; }
 
   /* ─── Stats strip ─── */
@@ -656,6 +658,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-apr"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('apr')" title="Загрузить данные за апрель">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('apr')" title="Очистить данные за апрель">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -685,6 +688,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-jan"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('jan')" title="Загрузить данные за январь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('jan')" title="Очистить данные за январь">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -714,6 +718,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-feb"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('feb')" title="Загрузить данные за февраль">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('feb')" title="Очистить данные за февраль">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -743,6 +748,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-mar"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('mar')" title="Загрузить данные за март">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('mar')" title="Очистить данные за март">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -772,6 +778,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-may">🕐 Данные с <span style="color:var(--green);font-weight:700;">27.04</span> по <span style="color:var(--green);font-weight:700;">17.05.2026</span></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('may')" title="Загрузить данные за май">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('may')" title="Очистить данные за май">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -801,6 +808,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-jun"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('jun')" title="Загрузить данные за июнь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('jun')" title="Очистить данные за июнь">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -818,6 +826,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-jul"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('jul')" title="Загрузить данные за июль">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('jul')" title="Очистить данные за июль">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -835,6 +844,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-aug"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('aug')" title="Загрузить данные за август">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('aug')" title="Очистить данные за август">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -852,6 +862,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-sep"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('sep')" title="Загрузить данные за сентябрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('sep')" title="Очистить данные за сентябрь">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -869,6 +880,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-oct"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('oct')" title="Загрузить данные за октябрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('oct')" title="Очистить данные за октябрь">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -886,6 +898,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-nov"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('nov')" title="Загрузить данные за ноябрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('nov')" title="Очистить данные за ноябрь">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -903,6 +916,7 @@
       <span class="line"></span>
       <span class="date-label" id="date-dec"></span>
       <button class="upload-btn tl-only" onclick="triggerUpload('dec')" title="Загрузить данные за декабрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('dec')" title="Очистить данные за декабрь">✕ Очистить</button>
     </div>
     <div class="table-wrapper">
       <table class="sales-table">
@@ -1163,6 +1177,28 @@ function showUploadModal(icon, title, msg, done = false) {
 function closeUploadModal() {
   document.getElementById('upload-overlay').style.display = 'none';
   uploadTargetMonth = null;
+}
+
+// ─── Clear month data ───
+async function clearMonth(month) {
+  if (!confirm(`Очистить данные за ${PERIOD_LABELS[month]}? Это действие нельзя отменить.`)) return;
+  try {
+    const res = await fetch(`${SALES_API}/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, rows: [], dateFrom: null, dateTo: null }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Ошибка сервера');
+    salesData[month] = [];
+    const el = document.getElementById('date-' + month);
+    if (el) el.textContent = '';
+    renderSalesTable(month);
+    updateStats(month);
+  } catch (e) {
+    alert('Ошибка при очистке: ' + e.message);
+  }
 }
 
 // ─── Color tiers ───

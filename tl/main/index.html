@@ -451,21 +451,21 @@ function computeNK() {
   const iFRT   = C['Время первого ответа'];
   const iART   = C['Среднее время ответа'];
   const iCSAT  = C['Оценка чата (CSAT)'];
-  // Category columns 21-25
-  const iCats  = [21,22,23,24,25];
+  // Category columns - find by header name to be safe across file versions
+  const iCats  = [1,2,3,4,5].map(n => C['Категория ' + n]).filter(i => i != null);
 
   const spamSet = buildSpamSet(rows, iCSAT, iEmail, iDate);
   // NK dep file: sheets are NK(0), Motor(1), Atom(2) - skip first sheet
   const emailDepAtom  = {};
   const emailDepMotor = {};
-  state.nk_dep.SheetNames.slice(1).forEach(shName => {
+  state.nk_dep.SheetNames.filter(s => s.toLowerCase().includes('atom') || s.toLowerCase().includes('motor')).forEach(shName => {
     const ws2 = state.nk_dep.Sheets[shName];
     const rows2 = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: null }).slice(1);
     const target = shName.toLowerCase().includes('atom') ? emailDepAtom : emailDepMotor;
     rows2.forEach(r => {
       if (r[1] && r[4] != null) {
         const dep = parseInt(r[4]);
-        if (!isNaN(dep)) target[String(r[1]).toLowerCase().trim()] = dep;
+        if (!isNaN(dep) && isFinite(dep)) target[String(r[1]).toLowerCase().trim()] = dep;
       }
     });
   });

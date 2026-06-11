@@ -1,0 +1,4023 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>SupportCIS — График смен</title>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1e2130;
+      --surface: #252836;
+      --surface2: #2a2d3e;
+      --border: rgba(255,255,255,0.08);
+      --text: #e2e5f0;
+      --muted: #7c88a0;
+      --sub: #a0aab8;
+      --tl: #5b9cf6;
+      --tl-glow: rgba(91,156,246,0.15);
+      --support: #34d399;
+      --support-glow: rgba(52,211,153,0.15);
+      --ops: #f59e42;
+      --ops-glow: rgba(245,158,66,0.15);
+      --shift-morning: #5b9cf6;
+      --shift-morning-bg: rgba(91,156,246,0.18);
+      --shift-evening: #a78bfa;
+      --shift-evening-bg: rgba(167,139,250,0.20);
+      --shift-night: #34d399;
+      --shift-night-bg: rgba(52,211,153,0.16);
+      /* VIP смены — тёплые оттенки */
+      --shift-vip-morning: #c4b5fd;
+      --shift-vip-morning-bg: rgba(109,40,217,0.30);
+      --shift-vip-evening: #38bdf8;
+      --shift-vip-evening-bg: rgba(125,211,252,0.20);
+      --shift-vip-1200: #fb923c;
+      --shift-vip-1200-bg: rgba(251,146,60,0.18);
+      --shift-super: #f59e42;
+      --shift-super-bg: rgba(245,158,66,0.18);
+      --shift-super-night-color: #f87171;
+      --shift-super-night-bg: rgba(248,113,113,0.18);
+      --shift-off: transparent;
+      --shift-vacation: rgba(248,113,113,0.15);
+      --shift-sick: rgba(251,191,36,0.15);
+      --thead-bg: #181b2a;
+      --thead-count-bg: #13162a;
+      --row-odd: #252838;
+      --row-even: #222535;
+      --row-hover: #2a3050;
+      --nav-bg: rgba(30,33,48,0.92);
+      --section-header-bg: var(--surface);
+      --section-header-hover: #2a2d40;
+    }
+
+    html.light {
+      --bg: #f0f2f8;
+      --surface: #ffffff;
+      --surface2: #f5f7fc;
+      --border: rgba(0,0,0,0.08);
+      --text: #1a1d2e;
+      --muted: #8892a4;
+      --sub: #5a6478;
+      --tl: #3b7ef8;
+      --tl-glow: rgba(59,126,248,0.12);
+      --support: #059669;
+      --support-glow: rgba(5,150,105,0.12);
+      --ops: #d97706;
+      --ops-glow: rgba(217,119,6,0.12);
+      --shift-morning: #3b7ef8;
+      --shift-morning-bg: rgba(59,126,248,0.12);
+      --shift-evening: #7c3aed;
+      --shift-evening-bg: rgba(124,58,237,0.12);
+      --shift-night: #059669;
+      --shift-night-bg: rgba(5,150,105,0.12);
+      --shift-vip-morning: #0ea5e9;
+      --shift-vip-morning-bg: rgba(14,165,233,0.12);
+      --shift-vip-evening: #c026d3;
+      --shift-vip-evening-bg: rgba(192,38,211,0.12);
+      --shift-vip-1200: #ea580c;
+      --shift-vip-1200-bg: rgba(234,88,12,0.12);
+      --shift-super: #d97706;
+      --shift-super-bg: rgba(217,119,6,0.14);
+      --shift-super-night-color: #dc2626;
+      --shift-super-night-bg: rgba(220,38,38,0.10);
+      --shift-vacation: rgba(220,38,38,0.10);
+      --shift-sick: rgba(217,119,6,0.12);
+      --thead-bg: #e8ebf5;
+      --thead-count-bg: #eef0f8;
+      --row-odd: #ffffff;
+      --row-even: #f8f9fd;
+      --row-hover: #eef2ff;
+      --nav-bg: rgba(255,255,255,0.95);
+      --section-header-bg: #ffffff;
+      --section-header-hover: #f0f4ff;
+    }
+
+    /* Переключатель темы */
+    .theme-toggle {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 10px 4px 6px;
+      cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .theme-toggle:hover { background: rgba(255,255,255,0.1); }
+    html.light .theme-toggle { background: rgba(0,0,0,0.04); }
+    html.light .theme-toggle:hover { background: rgba(0,0,0,0.08); }
+    .theme-toggle-icon { font-size: 14px; line-height: 1; }
+    .theme-toggle-label { font-size: 11px; color: var(--muted); font-family: 'Mulish', sans-serif; }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: clip; }
+    @media (max-width: 900px) { html, body { overflow-x: hidden; } }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px; pointer-events: none; z-index: 0;
+    }
+    .bg-glow { display: none; }
+    .layout { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* NAV */
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px; border-bottom: 1px solid var(--border);
+      background: var(--nav-bg); backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-left { display: flex; align-items: center; gap: 16px; }
+    .sticky-dates-bar {
+      position: sticky; top: 57px; z-index: 90;
+      background: var(--nav-bg); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      overflow-x: hidden; display: none;
+    }
+    .sticky-dates-inner {
+      display: flex; align-items: stretch;
+      min-width: max-content;
+      overflow-x: scroll; overflow-y: hidden;
+      scrollbar-width: none; /* Firefox */
+    }
+    .sticky-dates-inner::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+    .sticky-dates-label {
+      min-width: 320px; width: 320px; flex-shrink: 0;
+      padding: 6px 12px; font-size: 10px; color: var(--muted);
+      display: flex; align-items: center;
+      border-right: 2px solid rgba(128,128,128,0.2);
+      position: sticky; left: 0; background: var(--nav-bg); z-index: 2;
+      transition: width 0.1s;
+    }
+    .sticky-date-cell {
+      min-width: 44px; width: 44px; flex-shrink: 0;
+      padding: 5px 2px; text-align: center;
+      font-size: 11px; font-weight: 700; color: var(--text-sub);
+      border-right: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+    }
+    .sticky-date-cell:hover { background: rgba(255,255,255,0.05); }
+    .sticky-date-cell.today { color: var(--ops); }
+    .sticky-date-cell.selected { background: var(--tl-glow); color: var(--ops); }
+    .sticky-date-cell.weekend { color: var(--muted); }
+    .sticky-date-cell .sdc-day { font-size: 9px; font-weight: 400; opacity: .6; }
+    .sticky-dates-total { min-width: 44px; flex-shrink: 0; border-left: 1px solid rgba(255,255,255,0.15); }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--muted); font-size: 13px; text-decoration: none;
+      padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+      transition: color .2s, border-color .2s, background .2s;
+    }
+    .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
+    .nav-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+    .nav-title span { color: var(--tl); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .month-badge {
+      font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 400;
+      color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .admin-btn {
+      display: none; align-items: center; gap: 6px;
+      background: var(--tl-glow); border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 8px; color: var(--tl); font-size: 12px; font-family: 'Mulish', sans-serif;
+      font-weight: 600; padding: 6px 14px; cursor: pointer; transition: all .2s;
+    }
+    .admin-btn:hover { background: rgba(79,142,247,0.22); border-color: rgba(79,142,247,0.6); }
+    .admin-btn.visible { display: flex; }
+
+    /* MAIN */
+    .main { flex: 1; padding: 28px 24px 48px; width: 100%; }
+
+    /* LEGEND */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;
+      padding: 14px 18px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; align-items: center;
+    }
+    .legend-label { font-size: 11px; color: var(--muted); font-family: 'Unbounded', sans-serif; letter-spacing: 0.08em; margin-right: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--sub); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* STATS ROW */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); font-family: 'Unbounded', sans-serif; letter-spacing: 0.08em; }
+    .stat-val { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; color: #fff; }
+    .stat-sub { font-size: 11px; color: var(--muted); }
+
+    /* FILTERS */
+    .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 12px; font-family: 'Mulish', sans-serif;
+      cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .filter-btn.active { background: var(--tl-glow); border-color: rgba(79,142,247,0.4); color: var(--tl); }
+
+    /* SCHEDULE TABLE */
+    .schedule-section { margin-bottom: 24px; }
+    .section-header {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      margin-bottom: 10px; padding: 10px 14px;
+      background: var(--section-header-bg); border: 1px solid var(--border);
+      border-radius: 10px; user-select: none;
+      transition: background .2s;
+    }
+    .section-header:hover { background: var(--section-header-hover); }
+    .section-toggle { font-size: 12px; color: var(--muted); transition: transform .2s; margin-left: auto; }
+    .section-header.collapsed .section-toggle { transform: rotate(-90deg); }
+    .section-title { font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 700; color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase; }
+    .section-badge {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+      background: var(--tl-glow); color: var(--tl);
+    }
+    .section-badge.green { background: var(--support-glow); color: var(--support); }
+    .section-badge.orange { background: var(--ops-glow); color: var(--ops); }
+    .thead-counts th {
+      background: var(--thead-count-bg) !important;
+      border-bottom: 1px solid var(--border);
+      padding: 3px 1px;
+      vertical-align: middle;
+    }
+    .section-body { overflow: hidden; }
+    /* section-body не скроллим — скроллим table-wrap */
+    .section-body.collapsed { display: none; }
+
+    .table-wrap { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; margin-top: 8px; }
+    @media (max-width: 900px) { .table-wrap { overflow-x: auto; overflow-y: visible; border-radius: 6px; -webkit-overflow-scrolling: touch; } }
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      background: var(--thead-bg);
+      padding: 8px 3px;
+      font-size: 9px;
+      font-family: 'Unbounded', sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 400;
+      text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    thead th:last-child { border-right: none; }
+    thead th { min-width: 36px; }
+    thead th.col-name { min-width: 130px; width: 130px; text-align: left; padding-left: 12px; position: sticky; left: 0; background: var(--thead-bg); z-index: 2; border-right: 1px solid var(--border) !important; }
+    thead th.col-info { min-width: 190px; width: 190px; text-align: left; padding-left: 8px; position: sticky; left: 130px; background: var(--thead-bg); z-index: 2; border-right: 2px solid rgba(128,128,128,0.2) !important; }
+    @media (max-width: 900px) { thead th.col-info { position: relative; left: auto; } }
+    thead th.weekend { color: var(--muted); }
+    thead th.today { color: var(--tl); background: var(--tl-glow); }
+    html.light thead th.weekend { color: var(--muted); background: none; }
+    html.light thead th { border-right: 1px solid rgba(0,0,0,0.25) !important; border-bottom: 2px solid rgba(0,0,0,0.3) !important; }
+    html.light td { border-right: 2px solid rgba(0,0,0,0.2) !important; }
+    html.light tbody tr { border-bottom: 1px solid rgba(0,0,0,0.1) !important; }
+    html.light td { border-right: 1px solid rgba(0,0,0,0.1) !important; }
+    html.light thead th { border-right: 1px solid rgba(0,0,0,0.1) !important; border-bottom: 1px solid rgba(0,0,0,0.15) !important; }
+    html.light .table-wrap { border: 1px solid rgba(0,0,0,0.12) !important; }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:nth-child(odd)  { background: var(--row-odd); }
+    tbody tr:nth-child(even) { background: var(--row-even); }
+    tbody tr:hover { background: var(--row-hover) !important; }
+
+    td {
+      padding: 5px 2px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--sub);
+      vertical-align: middle;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    td:last-child { border-right: none; }
+
+    td.col-name {
+      text-align: left; padding: 6px 12px; font-weight: 600; color: var(--text);
+      font-size: 12px; position: sticky; left: 0; z-index: 1;
+      white-space: nowrap; overflow: hidden;
+      border-right: 1px solid rgba(255,255,255,0.15) !important;
+    }
+    td.col-info {
+      text-align: left; padding: 4px 8px; position: sticky; left: 130px; z-index: 1;
+    }
+    @media (max-width: 900px) { td.col-info { position: relative !important; left: auto !important; }
+      white-space: nowrap; overflow: hidden;
+      border-right: 1px solid rgba(255,255,255,0.15) !important;
+      box-shadow: none;
+    }
+    tbody tr:nth-child(odd)  td.col-name,
+    tbody tr:nth-child(odd)  td.col-info { background: var(--row-odd); }
+    tbody tr:nth-child(even) td.col-name,
+    tbody tr:nth-child(even) td.col-info { background: var(--row-even); }
+    tbody tr:hover td.col-name,
+    tbody tr:hover td.col-info { background: var(--row-hover) !important; }
+    td.is-today { background: var(--tl-glow) !important; border-right: 1px solid rgba(91,156,246,0.3) !important; }
+    td.is-selected { background: rgba(91,156,246,0.13) !important; border-right: 2px solid rgba(91,156,246,0.5) !important; }
+    thead th.is-selected { background: rgba(91,156,246,0.18) !important; color: var(--tl) !important; }
+
+    .shift-pill {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900; line-height: 1;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    td {
+      padding: 0;
+      text-align: center;
+      font-size: 11px;
+      color: var(--sub);
+      vertical-align: middle;
+      border-right: 2px solid var(--border);
+      position: relative;
+      height: 36px;
+    }
+    .shift-morning     { background: rgba(96,165,250,0.55);    color: #111; }
+    .shift-evening     { background: rgba(67,56,202,0.60);     color: #fff; }
+    .shift-night       { background: rgba(52,211,153,0.35);    color: #fff; }
+    .shift-vip-morning { background: rgba(109,40,217,0.55);    color: #fff; }
+    .shift-vip-evening { background: rgba(56,189,248,0.55);    color: #111; }
+    .shift-vip-1200    { background: rgba(251,146,60,0.55);    color: #111; }
+    .shift-super-day   { background: rgba(245,158,66,0.55);    color: #111; }
+    .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff; }
+    .shift-off         { background: transparent; color: rgba(150,150,150,0.35); font-size: 16px; font-weight: 400; text-shadow: none; }
+    .shift-birthday    { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); font-size: 14px; }
+    .shift-vacation    { background: rgba(248,113,113,0.40);   color: #fff; }
+    .shift-sick        { background: rgba(251,191,36,0.45);    color: #fff; }
+    .shift-work8       { background: rgba(139,92,246,0.50);    color: #111; }
+    .shift-1200        { background: rgba(251,146,60,0.55);    color: #111; }
+    .shift-extra-morning   { background: rgba(96,165,250,0.20);   color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
+    .shift-extra-evening   { background: rgba(67,56,202,0.30);    color: #fff; border: 2px dashed rgba(99,102,241,0.6); }
+    .shift-extra-1200      { background: rgba(251,146,60,0.22);   color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
+    .shift-extra-vip-morning { background: rgba(109,40,217,0.30); color: #fff; border: 2px dashed rgba(139,92,246,0.6); }
+    .shift-extra-vip-evening { background: rgba(56,189,248,0.20); color: #fff; border: 2px dashed rgba(56,189,248,0.6); }
+    .shift-extra-vip-1200    { background: rgba(251,146,60,0.22); color: #fff; border: 2px dashed rgba(251,146,60,0.6); }
+    .shift-extra-sup-day   { background: rgba(245,158,66,0.22);   color: #fff; border: 2px dashed rgba(245,158,66,0.6); }
+    .shift-extra-sup-night { background: rgba(153,27,27,0.30);    color: #fff; border: 2px dashed rgba(239,68,68,0.6); }
+    .shift-extra-sup-day8  { background: rgba(245,158,66,0.15);   color: #fff; border: 2px dashed rgba(245,158,66,0.4); }
+    .shift-super-day8      { background: rgba(245,158,66,0.40);   color: #fff; }
+    .shift-nk { background: rgba(148,163,184,0.20); color: #94a3b8; border: 1px dashed rgba(148,163,184,0.4); font-size: 10px; }
+    html.light .shift-nk { background: rgba(100,116,139,0.15); color: #475569; border: 1px dashed rgba(100,116,139,0.4); }
+
+    td.col-name .name-nick { font-size: 14px; font-weight: 800; color: var(--text); }
+
+    .section-divider-row td {
+      padding: 4px 12px; font-size: 9px;
+      font-family: 'Unbounded', sans-serif; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); background: rgba(255,255,255,0.04);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    html.light .table-wrap { border-color: rgba(0,0,0,0.12); }
+    html.light tbody tr { border-bottom-color: rgba(0,0,0,0.08); }
+    html.light td { border-right-color: rgba(0,0,0,0.08); color: #374151; }
+    html.light td.col-name { border-right-color: rgba(0,0,0,0.12) !important; color: #111827; }
+    html.light td.col-info { border-right-color: rgba(0,0,0,0.15) !important; }
+    html.light thead th { border-right-color: rgba(0,0,0,0.08); border-bottom-color: rgba(0,0,0,0.12); color: #6b7280; }
+    html.light thead th.col-name { border-right-color: rgba(0,0,0,0.12) !important; }
+    html.light thead th.col-info { border-right-color: rgba(0,0,0,0.15) !important; }
+    html.light .section-divider-row td { background: #e8ebf5; border-top-color: rgba(0,0,0,0.08); border-bottom-color: rgba(0,0,0,0.08); }
+    html.light .stat-val { color: #111827; }
+    html.light .stat-label { color: #6b7280; }
+    html.light .stat-sub { color: #9ca3af; }
+    html.light .stat-card { background: #fff; border-color: rgba(0,0,0,0.08); }
+    html.light .name-pos { color: #6b7280; }
+    html.light .name-email { color: #6b7280; }
+    html.light .name-since { color: #9ca3af; }
+    html.light .shift-morning     { background: rgba(59,130,246,0.25);    color: #111 !important; }
+    html.light .shift-evening     { background: rgba(55,48,163,0.60);     color: #fff !important; }
+    html.light .shift-night       { background: rgba(16,185,129,0.25);    color: #111 !important; }
+    html.light .shift-vip-morning { background: rgba(109,40,217,0.60);    color: #fff !important; }
+    html.light .shift-vip-evening { background: rgba(14,165,233,0.25);    color: #111 !important; }
+    html.light .shift-vip-1200    { background: rgba(234,88,12,0.28);     color: #111 !important; }
+    html.light .shift-super-day   { background: rgba(217,119,6,0.30);     color: #111 !important; }
+    html.light .shift-super-night { background: rgba(153,27,27,0.60);     color: #fff !important; }
+    html.light .shift-off         { background: transparent; color: rgba(0,0,0,0.2); }
+    html.light .shift-vacation    { background: rgba(220,38,38,0.22);     color: #111 !important; }
+    html.light .shift-sick        { background: rgba(180,130,6,0.25);     color: #111 !important; }
+    html.light .shift-work8       { background: rgba(109,40,217,0.22);    color: #111 !important; }
+    html.light .shift-1200        { background: rgba(234,88,12,0.28);     color: #111 !important; }
+    html.light .legend { background: #fff; border-color: rgba(0,0,0,0.08); }
+    html.light .filter-btn { border-color: rgba(0,0,0,0.12); color: #6b7280; }
+    html.light .filter-btn:hover { color: #111827; border-color: rgba(0,0,0,0.25); background: rgba(0,0,0,0.04); }
+    html.light .filter-btn.active { background: var(--tl-glow); border-color: var(--tl); color: var(--tl); }
+    html.light .month-badge { color: #6b7280; }
+    html.light .section-title { color: #374151; }
+    html.light .section-toggle { color: #9ca3af; }
+    html.light .day-info-panel { background: #fff; border-color: rgba(0,0,0,0.1); }
+    html.light .day-info-header { background: #f8f9fc; border-bottom-color: rgba(0,0,0,0.08); }
+    html.light .day-info-title { color: #111827; }
+    html.light .day-info-block-title { color: #6b7280; }
+    html.light .day-info-count { color: #111827; }
+    html.light .day-info-name { color: #374151; }
+    .col-info-hidden .col-info { display: none; }
+    .col-info-hidden thead th.col-info { display: none; }
+    .col-info-hidden .thead-counts th.col-info { display: none; }
+    .name-pos { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; white-space: nowrap; }
+    .name-email { font-size: 10px; color: var(--muted); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+    .name-since { font-size: 9px; color: rgba(255,255,255,0.2); }
+
+    /* DAY INFO PANEL */
+    .day-info-panel {
+      display: none; margin-bottom: 16px;
+      background: var(--surface); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; overflow: hidden;
+      animation: fadeUp .2s ease;
+    }
+    .day-info-panel.open { display: block; }
+    .day-info-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+    .day-info-title {
+      font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; color: var(--text);
+    }
+    .day-info-close {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; justify-content: center; transition: all .2s;
+    }
+    .day-info-close:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .day-info-body { padding: 14px 18px; display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+    .day-info-block { display: flex; flex-direction: column; gap: 6px; }
+    .day-info-block-title {
+      font-size: 9px; font-family: 'Unbounded', sans-serif; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+    }
+    .day-info-count {
+      font-family: 'Unbounded', sans-serif; font-size: 24px; font-weight: 700; color: #fff; line-height: 1;
+    }
+    .day-info-names { display: flex; flex-direction: column; gap: 3px; }
+    .day-info-name {
+      font-size: 11px; color: var(--sub); display: flex; align-items: center; gap: 5px;
+    }
+    .day-info-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+    @media (max-width: 768px) { .day-info-body { grid-template-columns: repeat(2,1fr); } }
+
+    /* ADMIN PANEL OVERLAY */
+    .admin-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      align-items: flex-start; justify-content: flex-end;
+    }
+    .admin-overlay.open { display: flex; animation: fadeIn .2s ease; }
+    .admin-panel {
+      width: 420px; height: 100vh; background: var(--surface);
+      border-left: 1px solid var(--border); display: flex; flex-direction: column;
+      animation: slideIn .25s ease;
+    }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    .admin-panel-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .admin-panel-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+    .close-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center; transition: all .2s;
+    }
+    .close-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    .admin-panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    .admin-field { display: flex; flex-direction: column; gap: 8px; }
+    .admin-label {
+      font-family: 'Unbounded', sans-serif; font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .admin-select, .admin-input {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 14px;
+      padding: 10px 14px; outline: none; width: 100%;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .admin-select:focus, .admin-input:focus {
+      border-color: var(--tl); box-shadow: 0 0 0 3px var(--tl-glow);
+    }
+    .admin-select option { background: var(--surface); color: var(--text); }
+    html.light .admin-select option { background: #fff; color: #111827; }
+
+    .admin-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .shift-type-grid { display: flex; flex-direction: column; gap: 8px; }
+    .shift-type-btn {
+      padding: 8px 6px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 10px; font-family: 'Mulish', sans-serif;
+      cursor: pointer; text-align: center; transition: all .2s; line-height: 1.4;
+    }
+    .shift-type-btn:hover { border-color: var(--muted); color: var(--text); }
+    .shift-type-btn.selected { border-color: var(--tl); background: var(--tl-glow); color: var(--tl); }
+    .shift-type-btn .stime { font-weight: 700; font-size: 11px; display: block; margin-bottom: 2px; }
+
+    /* Доп события - отдельная секция */
+    .extra-events-list { display: flex; flex-direction: column; gap: 8px; }
+    .extra-event-row {
+      display: grid; grid-template-columns: 1fr 80px 24px; gap: 6px; align-items: center;
+    }
+    .extra-event-select {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 12px;
+      padding: 7px 10px; outline: none; width: 100%;
+    }
+    .extra-event-hours {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 12px;
+      padding: 7px 8px; outline: none; width: 100%; text-align: center;
+    }
+    .extra-event-remove {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; transition: all .2s; flex-shrink: 0;
+    }
+    .extra-event-remove:hover { color: #f87171; border-color: #f87171; }
+    .add-extra-btn {
+      padding: 7px 12px; border-radius: 8px; border: 1px dashed var(--border);
+      background: transparent; color: var(--muted); font-size: 11px; font-family: 'Mulish', sans-serif;
+      cursor: pointer; transition: all .2s; text-align: left; width: 100%;
+    }
+    .add-extra-btn:hover { border-color: var(--tl); color: var(--tl); }
+
+    .admin-divider { height: 1px; background: var(--border); }
+
+    .admin-panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+    .btn-save {
+      flex: 1; padding: 12px; background: linear-gradient(135deg, var(--tl), #3a7bd5);
+      border: none; border-radius: 10px; color: #fff; font-family: 'Unbounded', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: opacity .2s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(79,142,247,0.25);
+    }
+    .btn-save:hover { opacity: .9; box-shadow: 0 6px 24px rgba(79,142,247,0.35); }
+    .btn-save:disabled { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); cursor: not-allowed; box-shadow: none; }
+    .btn-cancel { padding: 12px 18px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--muted); font-family: 'Mulish', sans-serif; font-size: 13px; cursor: pointer; transition: all .2s; }
+    .btn-cancel:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .save-msg { font-size: 12px; padding: 10px 14px; border-radius: 8px; text-align: center; display: none; }
+    .save-msg.ok { display: block; background: var(--support-glow); color: var(--support); }
+    .save-msg.err { display: block; background: rgba(248,113,113,0.12); color: #f87171; }
+
+    .btn-dismiss {
+      padding: 12px 14px; border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 10px; background: rgba(248,113,113,0.08);
+      color: #f87171; cursor: pointer; font-size: 14px; transition: all .2s;
+    }
+    .btn-dismiss:hover { background: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.5); }
+
+    .dismiss-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .dismiss-overlay.open { display: flex; animation: fadeIn .2s ease; }
+    .dismiss-modal {
+      width: 400px; background: var(--surface); border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 16px; overflow: hidden; animation: slideIn .25s ease;
+    }
+
+    /* Уволенный сотрудник — красный ник */
+    .dismissed-name { color: #f87171 !important; }
+    .dismissed-badge {
+      font-size: 9px; color: #f87171; opacity: 0.8;
+      font-family: 'Unbounded', sans-serif; letter-spacing: 0.04em;
+    }
+    /* Positions mode */
+    .note-dot {
+      position: absolute; bottom: 2px; right: 2px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #fbbf24; pointer-events: none; z-index: 1;
+    }
+      display: none; position: absolute; right: 4px; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(248,113,113,0.2); border: 1px solid rgba(248,113,113,0.4);
+      color: #f87171; font-size: 11px; cursor: pointer;
+      align-items: center; justify-content: center;
+      transition: all .2s; z-index: 3;
+    }
+    .btn-delete-row:hover { background: rgba(248,113,113,0.4); }
+    .btn-pattern-row {
+      display: none; position: absolute; right: 28px; top: 50%;
+      transform: translateY(-50%);
+      padding: 2px 6px; border-radius: 4px;
+      background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+      color: #818cf8; font-size: 10px; cursor: pointer;
+      align-items: center; justify-content: center;
+      transition: all .2s; z-index: 3; white-space: nowrap;
+    }
+    .btn-pattern-row:hover { background: rgba(99,102,241,0.4); }
+    .positions-mode td.col-name { overflow: visible; }
+    .positions-mode .btn-delete-row { display: flex; }
+    .positions-mode .btn-pattern-row { display: flex; }
+    .pattern-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .pattern-modal-overlay.open { display: flex; }
+    .pattern-modal {
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; width: 380px; max-width: 95vw;
+    }
+    .pattern-modal h3 { margin: 0 0 16px; color: var(--text); font-size: 15px; }
+    .pattern-modal label { display: block; color: var(--text-sub); font-size: 12px; margin-bottom: 4px; margin-top: 12px; }
+    .custom-select-wrapper { position: relative; }
+    .custom-select-selected {
+      width: 100%; padding: 8px 32px 8px 10px; border-radius: 6px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; box-sizing: border-box;
+      cursor: pointer; user-select: none; position: relative;
+    }
+    .custom-select-selected::after {
+      content: '▾'; position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%); color: var(--text-sub);
+    }
+    .custom-select-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--panel-bg); border: 1px solid var(--border);
+      border-radius: 6px; z-index: 300; margin-top: 2px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden;
+    }
+    .custom-select-dropdown.open { display: block; }
+    .custom-select-option {
+      padding: 9px 12px; font-size: 13px; color: var(--text);
+      cursor: pointer; transition: background .15s;
+    }
+    .custom-select-option:hover { background: var(--hover-bg, rgba(255,255,255,0.06)); }
+    .custom-select-option.selected { background: rgba(99,102,241,0.2); color: #818cf8; }
+    .pattern-modal select, .pattern-modal input {
+      width: 100%; padding: 8px 10px; border-radius: 6px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; box-sizing: border-box;
+    }
+    .pattern-modal-footer { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .positions-mode tbody tr:active { cursor: grabbing; }
+    .drag-over-top td { box-shadow: inset 0 2px 0 var(--ops); }
+    .drag-over-bottom td { box-shadow: inset 0 -2px 0 var(--ops); }
+    .drag-source { opacity: 0.35; }
+    .drop-zone {
+      display: none; padding: 8px;
+      font-size: 10px; font-family: 'Unbounded', sans-serif;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ops); background: rgba(245,158,66,0.06);
+      border: 1px dashed rgba(245,158,66,0.3);
+      border-radius: 6px; margin-top: 4px; text-align: center;
+      cursor: pointer; transition: background .2s;
+    }
+    .drop-zone:hover { background: rgba(245,158,66,0.12); }
+    .positions-mode .drop-zone { display: block; }
+    .positions-mode-banner {
+      display: none; background: rgba(245,158,66,0.1);
+      border: 1px solid rgba(245,158,66,0.3); border-radius: 10px;
+      padding: 10px 16px; margin-bottom: 16px;
+      font-size: 12px; color: var(--ops);
+      align-items: center; gap: 10px;
+    }
+    .positions-mode-banner.visible { display: flex; }
+    .positions-mode-banner button {
+      margin-left: auto; padding: 5px 14px;
+      background: var(--ops); border: none; border-radius: 6px;
+      color: #111; font-size: 11px; font-weight: 700;
+      cursor: pointer; font-family: 'Mulish', sans-serif;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 500;
+      padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      transform: translateY(16px); opacity: 0; transition: all .3s ease; pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok { background: var(--support-glow); color: var(--support); border: 1px solid rgba(52,211,153,0.3); }
+    .toast.err { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 300; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    }
+    .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--tl); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-family: 'Unbounded', sans-serif; font-size: 11px; color: var(--muted); letter-spacing: 0.1em; }
+
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+      .online-grid { grid-template-columns: repeat(2,1fr); }
+      .admin-panel { width: 100vw; }
+      .nav { padding: 12px 16px; }
+      .main { padding: 16px 12px 40px; }
+    }
+
+    /* HISTORY PANEL */
+    .history-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      align-items: flex-start; justify-content: flex-end;
+    }
+    .history-overlay.open { display: flex; animation: fadeIn .2s ease; }
+    .history-panel {
+      width: 480px; height: 100vh; background: var(--surface);
+      border-left: 1px solid var(--border); display: flex; flex-direction: column;
+      animation: slideIn .25s ease;
+    }
+    .history-panel-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .history-panel-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+    .history-panel-body { flex: 1; overflow-y: auto; padding: 0; }
+    .history-entry {
+      display: grid; grid-template-columns: 1fr auto;
+      padding: 12px 24px; border-bottom: 1px solid var(--border);
+      gap: 4px; transition: background .15s;
+    }
+    .history-entry:hover { background: var(--row-hover); }
+    .history-entry-main { display: flex; flex-direction: column; gap: 3px; }
+    .history-entry-target { font-size: 13px; font-weight: 600; color: var(--text); }
+    .history-entry-action { font-size: 11px; color: var(--muted); }
+    .history-entry-by { font-size: 11px; color: var(--tl); }
+    .history-entry-time { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; align-self: center; }
+    .history-empty { padding: 40px 24px; text-align: center; color: var(--muted); font-size: 13px; }
+    .history-pagination {
+      padding: 14px 24px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .history-page-info { font-size: 12px; color: var(--muted); }
+    .history-page-btns { display: flex; gap: 8px; }
+    .history-page-btn {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 12px;
+      cursor: pointer; transition: all .2s; font-family: 'Mulish', sans-serif;
+    }
+    .history-page-btn:hover:not(:disabled) { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .history-page-btn:disabled { opacity: .35; cursor: not-allowed; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Загрузка графика...</div>
+</div>
+
+<div class="layout" id="app" style="display:none">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/support/" class="back-btn">← Support</a>
+      <div class="nav-title">Support<span>CIS</span> — График</div>
+    </div>
+    <div class="nav-right">
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="filter-btn" id="btn-prev-month" onclick="prevMonth()" style="padding:4px 10px;font-size:14px">&#8592;</button>
+        <div class="month-badge" id="month-badge">
+          <span id="month-label">Июнь 2026</span>
+        </div>
+        <button class="filter-btn" id="btn-next-month" onclick="nextMonth()" style="padding:4px 10px;font-size:14px">&#8594;</button>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle-btn">
+        <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+        <span class="theme-toggle-label" id="theme-label">Светлая</span>
+      </button>
+      <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
+      <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
+      <button class="admin-btn" id="history-btn" onclick="openHistoryPanel()" style="display:none;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa">🕐 История</button>
+      <button class="admin-btn" id="swap-btn" onclick="openSwapPanel()" style="display:none;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#34d399">🔄 Отдать смену</button>
+      <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
+      <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
+      <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
+    </div>
+  </nav>
+
+  <!-- STICKY DATES BAR -->
+  <div class="sticky-dates-bar" id="sticky-dates-bar">
+    <div class="sticky-dates-inner" id="sticky-dates-inner">
+      <div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>
+      <!-- заполняется динамически -->
+      <div class="sticky-dates-total"></div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Операторов онлайн</div>
+        <div class="stat-val" id="stat-online">—</div>
+        <div class="stat-sub">сейчас на смене</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Regular Support</div>
+        <div class="stat-val" id="stat-regular">—</div>
+        <div class="stat-sub">операторов в отделе</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">VIP Support</div>
+        <div class="stat-val" id="stat-vip">—</div>
+        <div class="stat-sub">операторов в отделе</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Всего персонала</div>
+        <div class="stat-val" id="stat-total">—</div>
+        <div class="stat-sub">сотрудников в системе</div>
+      </div>
+    </div>
+
+
+    <!-- POSITIONS MODE BANNER -->
+    <div class="positions-mode-banner" id="positions-banner">
+      <span>⇅ Режим редактирования — перетаскивайте строки, удаляйте или добавляйте сотрудников</span>
+      <button onclick="openAddEmployeeModal()" style="background:var(--support);margin-left:0">+ Добавить</button>
+      <button onclick="openClearShiftsModal()" style="background:rgba(248,113,113,0.8)">🗑 Очистить смены</button>
+      <button onclick="savePositions()">Сохранить</button>
+    </div>
+
+    <!-- DAY INFO PANEL -->
+    <div class="day-info-panel" id="day-info-panel">
+      <div class="day-info-header">
+        <div class="day-info-title" id="day-info-title">—</div>
+        <button class="day-info-close" onclick="closeDayInfo()">✕</button>
+      </div>
+      <div class="day-info-body" id="day-info-body"></div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <span class="legend-label">Легенда:</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-morning)"></span>09–21 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-evening)"></span>21–09 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>12–00 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-vip-morning)"></span>VIP 09–21 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-vip-evening)"></span>VIP 21–09 (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super)"></span>Sup День (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--shift-super-night-color)"></span>Sup Ночь (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>8ч (TL/QA)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#94a3b8"></span>НК (11ч)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>✈ Отпуск</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>🤒 Больничный</span>
+      <span class="legend-item"><span style="font-size:13px;font-weight:700;color:var(--muted)">—</span> Выходной</span>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
+      <button class="filter-btn" onclick="setFilter('regular',this)">Regular</button>
+      <button class="filter-btn" onclick="setFilter('vip',this)">VIP</button>
+      <button class="filter-btn" onclick="setFilter('supervisors',this)">Supervisors</button>
+      <button class="filter-btn" onclick="setFilter('management',this)">Management</button>
+    </div>
+
+    <!-- SCHEDULE TABLES -->
+    <div id="schedule-container"></div>
+
+  </div>
+</div>
+
+<!-- ADMIN OVERLAY -->
+<div class="admin-overlay" id="admin-overlay" onclick="overlayClick(event)">
+  <div class="admin-panel" id="admin-panel">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">Редактировать смену</div>
+      <button class="close-btn" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <select class="admin-select" id="ap-operator" onchange="onOperatorChange()"></select>
+      </div>
+
+      <div class="admin-field">
+        <div class="admin-label">Период</div>
+        <div class="admin-date-row">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">С</div>
+            <input type="date" class="admin-input" id="ap-date-from" />
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px">По</div>
+            <input type="date" class="admin-input" id="ap-date-to" />
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-field">
+        <div class="admin-label">Тип смены</div>
+        <div class="shift-type-grid" id="shift-type-grid">
+          <!-- заполняется динамически в зависимости от отдела -->
+        </div>
+      </div>
+
+      <div class="admin-field" id="custom-hours-field" style="display:none">
+        <div class="admin-label">Часы в эту смену</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="number" class="admin-input" id="ap-custom-hours" min="0.5" max="24" step="0.5" placeholder="по умолчанию" style="max-width:120px" />
+          <span style="font-size:12px;color:var(--muted)" id="ap-default-hours-hint"></span>
+        </div>
+      </div>
+
+      <div class="admin-divider"></div>
+
+      <div class="admin-field">
+        <div class="admin-label" style="color:var(--support)">+ Доп часы</div>
+        <div class="extra-events-list" id="extra-plus-list"></div>
+        <button class="add-extra-btn" onclick="addExtraEvent('plus')">+ Добавить</button>
+      </div>
+
+      <div class="admin-field">
+        <div class="admin-label" style="color:#f87171">− Потеря часов</div>
+        <div class="extra-events-list" id="extra-minus-list"></div>
+        <button class="add-extra-btn" onclick="addExtraEvent('minus')">+ Добавить</button>
+      </div>
+
+      <div class="admin-divider"></div>
+
+      <div class="admin-field">
+        <div class="admin-label">Заметка</div>
+        <input type="text" class="admin-input" id="ap-note" placeholder="Укажите причину" maxlength="80" required />
+      </div>
+
+      <div class="save-msg" id="save-msg"></div>
+
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeAdmin()">Отмена</button>
+      <button class="filter-btn" onclick="openProfilePanel()" style="margin-right:auto;font-size:11px;padding:5px 10px">✏ Профиль</button>
+      <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- ПРОФИЛЬ ПАНЕЛЬ -->
+  <div class="admin-panel" id="profile-panel" style="width:340px;display:none">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">✏ Профиль сотрудника</div>
+      <button class="close-btn" onclick="closeProfilePanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)" id="profile-name-label">—</div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Позиция</div>
+        <input type="text" class="admin-input" id="profile-position" placeholder="Support, Supervisor..." maxlength="60" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Email</div>
+        <input type="text" class="admin-input" id="profile-email" placeholder="name@velvix.org" maxlength="80" />
+      </div>
+      <div class="save-msg" id="profile-save-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeProfilePanel()">Отмена</button>
+      <button class="btn-save" onclick="saveProfile()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISMISS MODAL -->
+<div class="dismiss-overlay" id="dismiss-overlay" onclick="dismissOverlayClick(event)">
+  <div class="dismiss-modal">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title" style="color:#f87171">🚫 Увольнение</div>
+      <button class="close-btn" onclick="closeDismissModal()">✕</button>
+    </div>
+    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <select class="admin-select" id="dm-operator"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Последний рабочий день</div>
+        <input type="date" class="admin-input" id="dm-last-day" />
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">После этой даты все рабочие смены будут помечены как уволен (🚫), часы обнулены</div>
+      </div>
+      <div class="save-msg" id="dm-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeDismissModal()">Отмена</button>
+      <button class="btn-save" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 16px rgba(239,68,68,0.3)" onclick="applyDismissal()">Уволить</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR SHIFTS MODAL -->
+<!-- ОБМЕН СМЕНАМИ -->
+<div class="admin-overlay" id="swap-overlay" onclick="if(event.target===this)closeSwapPanel()">
+  <div class="admin-panel" style="width:420px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">🔄 Отдать смену</div>
+      <button class="close-btn" onclick="closeSwapPanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Кто отдаёт</div>
+        <select class="admin-select" id="swap-giver" onchange="swapOnGiverChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата и смена</div>
+        <select class="admin-select" id="swap-date" onchange="swapOnDateChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часы (с / по)</div>
+        <div style="display:flex;gap:8px">
+          <select class="admin-select" id="swap-from" onchange="swapOnFromChange()" style="flex:1"></select>
+          <select class="admin-select" id="swap-to" onchange="swapOnRangeChange()" style="flex:1"></select>
+        </div>
+        <div class="admin-label" id="swap-hours-label" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Кому отдать</div>
+        <select class="admin-select" id="swap-recipient"></select>
+        <div class="admin-label" id="swap-cand-hint" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Комментарий (необязательно)</div>
+        <input type="text" class="admin-input" id="swap-comment" maxlength="300" placeholder="Причина обмена..." />
+      </div>
+      <div class="save-msg" id="swap-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeSwapPanel()">Отмена</button>
+      <button class="btn-save" id="swap-submit" onclick="submitSwapRequest()">Отправить заявку</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-overlay" id="clear-shifts-overlay" onclick="if(event.target===this)closeClearShiftsModal()">
+  <div class="admin-panel" style="width:360px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">Очистить все смены</div>
+      <button class="close-btn" onclick="closeClearShiftsModal()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <select class="admin-select" id="clear-emp-select"></select>
+      </div>
+      <div style="font-size:12px;color:#f87171;margin-top:4px">
+        Все изменённые смены оператора за июнь будут удалены. Базовый паттерн останется.
+      </div>
+      <div class="save-msg" id="clear-shifts-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeClearShiftsModal()">Отмена</button>
+      <button class="btn-save" style="background:linear-gradient(135deg,#ef4444,#b91c1c)" onclick="clearShifts()">🗑 Очистить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE MODAL -->
+<div class="admin-overlay" id="add-employee-overlay" onclick="if(event.target===this)closeAddEmployeeModal()">
+  <div class="admin-panel" style="width:380px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">Добавить сотрудника</div>
+      <button class="close-btn" onclick="closeAddEmployeeModal()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Ник (отображается в графике)</div>
+        <input type="text" class="admin-input" id="new-emp-name" placeholder="например: Alex" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Email</div>
+        <input type="email" class="admin-input" id="new-emp-email" placeholder="name@velvix.org" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Позиция</div>
+        <input type="text" class="admin-input" id="new-emp-position" placeholder="Support / VIP / Supervisor..." />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата начала работы</div>
+        <input type="date" class="admin-input" id="new-emp-since" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Отдел</div>
+        <select class="admin-select" id="new-emp-section">
+          <option value="regular_support">Regular Support</option>
+          <option value="vip_support">VIP Support</option>
+          <option value="management">Management</option>
+          <option value="qa">QA</option>
+        </select>
+      </div>
+      <div class="save-msg" id="add-emp-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeAddEmployeeModal()">Отмена</button>
+      <button class="btn-save" onclick="addEmployee()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+
+// ── Навигация по месяцам ──
+const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
+const AVAILABLE_MONTHS = [
+  { year: 2026, month: 6,  label: 'Июнь 2026' },
+  { year: 2026, month: 7,  label: 'Июль 2026' },
+  { year: 2026, month: 8,  label: 'Август 2026' },
+  { year: 2026, month: 9,  label: 'Сентябрь 2026' },
+  { year: 2026, month: 10, label: 'Октябрь 2026' },
+  { year: 2026, month: 11, label: 'Ноябрь 2026' },
+  { year: 2026, month: 12, label: 'Декабрь 2026' },
+];
+
+const TODAY_REAL = new Date();
+let MONTH = TODAY_REAL.getFullYear() === 2026 ? TODAY_REAL.getMonth() + 1 : 6;
+if (MONTH < 6) MONTH = 6;
+if (MONTH > 12) MONTH = 12;
+let YEAR = 2026;
+
+// ── Данные сотрудников: email, дата, позиция ──
+const EMPLOYEES = {
+  'Oliver':    { email: 'vitaliy.oliver@velvix.org',        position: 'Head',        since: '2022-10-24' },
+  'Jordan':    { email: 'ayman.jordan@velvix.org',          position: 'TL',          since: '2021-08-24' },
+  'Naomi':     { email: 'nataliia.naomi@velvix.org',        position: 'TL',          since: '2023-04-27' },
+  'Matthew':   { email: 'Viktor.Matthew@velvix.org',        position: 'TL',          since: '2023-03-30' },
+  'Robert':    { email: 'Adil.Ab@velvix.org',             position: 'Support',     since: '2026-01-12' },
+  'Reed':      { email: 'vladyslav.reed@velvix.org',         position: 'Complaints',       since: '2024-03-25' },
+  'Jayden':    { email: 'ilia.jayden@velvix.org',            position: 'Coach',            since: '2023-03-30' },
+  'Anna':      { email: 'anna.carrot@velvix.org',            position: 'Coach',            since: '2023-11-24' },
+  'Nikita':    { email: 'nikita.lanaya@velvix.org',          position: 'Analyst',          since: '2025-03-01' },
+  'Curtis':    { email: 'kirill.curtis@velvix.org',         position: 'Supervisor',  since: '2024-03-25' },
+  'Manuel':    { email: 'ruslan.manuel@velvix.org',         position: 'Supervisor',  since: '2024-04-08' },
+  'Irma':      { email: 'janelle.irma@velvix.org',          position: 'Supervisor',  since: '2024-06-24' },
+  'Solomon':   { email: 'ilia.solomon@velvix.org',          position: 'Supervisor',  since: '2023-06-30' },
+  'Richard':   { email: 'ivan.richard@velvix.org',          position: 'Supervisor',  since: '2022-06-23' },
+  'Toby':      { email: 'osman.toby@velvix.org',            position: 'Supervisor',  since: '2024-04-15' },
+  'Will':      { email: 'Rovshan.Will@velvix.org',          position: 'Support',     since: '2025-07-29' },
+  'Bridget':   { email: 'Elvira.As@velvix.org',             position: 'Support',     since: '2025-12-08' },
+  'Kenzo':     { email: 'Nijat.Kenzo@velvix.org',           position: 'Support',     since: '2025-07-22' },
+  'Nora':      { email: 'Alina.Ja@velvix.org',              position: 'Support',     since: '2025-10-20' },
+  'Florence':  { email: 'banovsha.florence@velvix.org',     position: 'Support',     since: '2024-01-29' },
+  'Fletcher':  { email: 'Sherzodjon.Fletcher@velvix.org',   position: 'Support',     since: '2025-07-22' },
+  'Charles':   { email: 'Teymur.Ab@velvix.org',             position: 'Support',     since: '2026-01-26' },
+  'Earl':      { email: 'Rashad.Go@velvix.org',             position: 'Support',     since: '2026-01-12' },
+  'Rudy':      { email: 'rufat.rudy@velvix.org',            position: 'Support',     since: '2024-06-10' },
+  'Balfour':   { email: 'Emin.Nu@velvix.org',               position: 'Support',     since: '2025-10-20' },
+  'Jonathan':  { email: 'Dmitriy.Be@velvix.org',            position: 'Support',     since: '2025-11-17' },
+  'Bill':      { email: 'Artsiom.Pu@velvix.org',            position: 'Support',     since: '2026-01-12' },
+  'Gross':     { email: 'Ruslan.Mi@velvix.org',             position: 'Support',     since: '2026-03-02' },
+  'Meadow':    { email: 'assel.meadow@velvix.org',          position: 'Support',     since: '2024-08-08' },
+  'Norman':    { email: 'elvin.norman@velvix.org',          position: 'Support',     since: '2024-01-29' },
+  'Robin':     { email: 'Mikita.Ma@velvix.org',             position: 'Support',     since: '2025-12-08' },
+  'Bob':       { email: 'Maksym.K@velvix.org',              position: 'Support',     since: '2025-10-20' },
+  'Lex':       { email: 'Vladyslav.Bi@velvix.org',          position: 'Support',     since: '2026-01-12' },
+  'Calvin':    { email: 'Radik.Mu@velvix.org',              position: 'Support',     since: '2026-03-02' },
+  'Mike':      { email: 'stanislav.mike@velvix.org',        position: 'Support',     since: '2023-08-28' },
+  'Hardy':     { email: 'Teymur.Hardy@velvix.org',          position: 'Support',     since: '2025-07-29' },
+  'Murphy':    { email: 'Viktor.Bo@velvix.org',             position: 'Support',     since: '2025-11-17' },
+  'Joseph':    { email: 'Oleh.Vy@velvix.org',              position: 'Support',     since: '2025-10-20' },
+  'Bowen':     { email: 'ivan.bowen@velvix.org',            position: 'Support',     since: '2024-05-27' },
+  'Adam':      { email: 'vadym.adam@velvix.org',            position: 'VIP Sup',     since: '2023-08-17' },
+  'Amelia':    { email: 'tamila.amelia@velvix.org',         position: 'VIP Sup',     since: '2023-10-23' },
+  'Lucas':     { email: 'vladimir.lucas@velvix.org',        position: 'VIP Sup',     since: '2023-07-22' },
+  'Scott':     { email: 'serghei.scott@velvix.org',         position: 'VIP',         since: '2023-04-25' },
+  'Tom':       { email: 'fuad.tom@velvix.org',              position: 'VIP',         since: '2024-04-08' },
+  'Simon':     { email: 'nurdaulet.simon@velvix.org',       position: 'VIP',         since: '2023-12-04' },
+  'Casper':    { email: 'Ruslan.Casper@velvix.org',         position: 'VIP',         since: '2025-07-22' },
+  'Elijah':    { email: 'alisher.elijah@velvix.org',        position: 'VIP',         since: '2024-05-27' },
+  'Holly':     { email: 'lolita.holly@velvix.org',          position: 'VIP',         since: '2024-11-11' },
+  'River':     { email: 'vladyslav.river@velvix.org',       position: 'VIP',         since: '2024-03-25' },
+  'Chadwick':  { email: 'temirlan.chadwick@velvix.org',     position: 'VIP',         since: '2024-06-24' },
+  'Fabio':     { email: 'daniil.fabio@velvix.org',          position: 'VIP',         since: '2024-11-25' },
+  'Plover':    { email: 'timur.plover@velvix.org',          position: 'VIP',         since: '2024-09-16' },
+  'Morgan':    { email: 'vladislav.morgan@velvix.org',      position: 'VIP',         since: '2024-05-13' },
+  'Reggie':    { email: 'maksym.reggie@velvix.org',         position: 'VIP',         since: '2024-03-25' },
+  'Nolan':     { email: 'Aliyar.Ko@velvix.org',             position: 'VIP',         since: '2025-10-20' },
+  'Skylar':    { email: 'elnur.skylar@velvix.org',          position: 'VIP',         since: '2024-11-11' },
+  'Wade':      { email: 'teymur.wade@velvix.org',           position: 'VIP',         since: '2024-03-25' },
+  'Denzel':    { email: 'emil.denzel@velvix.org',           position: 'VIP',         since: '2024-02-26' },
+  'Ashton':    { email: 'matsvei.ashton@velvix.org',        position: 'VIP',         since: '2024-11-25' },
+  'Christine': { email: 'zuleykha.christine@velvix.org',    position: 'VIP',         since: '2024-06-24' },
+  'Isaac':     { email: 'azim.isaac@velvix.org',            position: 'VIP',         since: '2024-01-15' },
+  'Felicia':   { email: 'nigar.felicia@velvix.org',         position: 'VIP',         since: '2024-11-25' },
+  'Warren':    { email: 'Vladimir.Warren@velvix.org',       position: 'VIP',         since: '2025-07-22' },
+  'Alexia':    { email: 'sabina.ib@velvix.org',             position: 'VIP',         since: '2024-01-29' },
+  'Kiana':     { email: 'kateryna.kiana@velvix.org',        position: 'VIP',         since: '2023-12-04' },
+  'Trinity':   { email: 'Muslmat.Trinity@velvix.org',       position: 'VIP',         since: '2025-07-22' },
+  'Оксана':    { email: 'oksana.qa@velvix.org',       position: 'QA Team Lead',   since: '2023-03-20' },
+  'Аня':       { email: 'anna.va@velvix.org',          position: 'QA Supervisor',  since: '2023-04-04' },
+  'Айгерим':   { email: 'aigerim.qa@velvix.org',       position: 'QA Manager',     since: '2023-04-17' },
+  'Анастасия': { email: 'anastasia.qa@velvix.org',     position: 'QA Manager',     since: '2023-01-18' },
+  'Натия':     { email: 'natia.qa@velvix.org',         position: 'QA Manager',     since: '2024-05-01' },
+  'Сарвар':    { email: 'sarvar.qa@velvix.org',        position: 'QA Manager',     since: '2024-07-08' },
+  'Зумруд':    { email: 'zumrud.qa@velvix.org',        position: 'QA Manager',     since: '2024-06-19' },
+  'Roger':     { email: 'aliaksandr.roger@velvix.org', position: 'QA AI',          since: '2023-08-28' },
+};
+
+// ── Секции графика ──
+const SECTIONS = [
+  {
+    key: 'regular_support',
+    label: 'Regular Support',
+    color: 'blue',
+    members: [
+      'Curtis','Manuel','Richard','Irma','Solomon','Toby',
+      'Will','Bridget','Fletcher','Kenzo','Nora','Robert',
+      'Charles','Earl','Rudy','Bowen','Balfour','Jonathan',
+      'Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike',
+      'Florence','Hardy','Murphy','Joseph'
+    ]
+  },
+  {
+    key: 'vip_support',
+    label: 'VIP Support',
+    color: 'green',
+    members: [
+      'Adam','Amelia','Lucas',
+      'Scott','Tom','Simon','Skylar','Felicia','Nolan',
+      'Casper','Elijah','Holly','River','Chadwick','Fabio','Plover','Morgan','Reggie',
+      'Wade','Ashton','Trinity','Christine','Isaac','Warren','Alexia','Kiana','Denzel'
+    ]
+  },
+  {
+    key: 'management',
+    label: 'Management',
+    color: 'blue',
+    members: ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita']
+  },
+  {
+    key: 'qa',
+    label: 'QA',
+    color: 'orange',
+    members: ['Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger']
+  }
+];
+
+// Для совместимости со старым кодом (populateOperatorSelect, updateStats)
+const GROUPS = {
+  management: { label: 'Management', members: ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita'] },
+  supervisors: { label: 'Supervisors', members: ['Curtis','Manuel','Irma','Solomon','Richard','Toby'] },
+  regular: { label: 'Regular Support', members: ['Will','Bridget','Fletcher','Kenzo','Nora','Robert','Charles','Earl','Rudy','Bowen','Balfour','Jonathan','Bill','Gross','Meadow','Robin','Bob','Lex','Calvin','Mike','Florence','Hardy','Murphy','Joseph'] },
+  vip_supervisors: { label: 'VIP Supervisors', members: ['Adam','Amelia','Lucas'] },
+  vip: { label: 'VIP Support', members: ['Scott','Tom','Simon','Skylar','Felicia','Nolan','Casper','Elijah','Holly','River','Chadwick','Fabio','Plover','Morgan','Reggie','Wade','Ashton','Trinity','Christine','Isaac','Warren','Alexia','Kiana','Denzel'] },
+  qa: { label: 'QA', members: ['Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'] }
+};
+const GROUP_ORDER = ['management','supervisors','regular','vip_supervisors','vip','qa'];
+
+// Дни июня 2026
+function getDaysInMonth(year, month) {
+  const days = [];
+  const count = new Date(year, month, 0).getDate(); // июнь = 30
+  for (let d = 1; d <= count; d++) {
+    const date = new Date(year, month - 1, d);
+    days.push({ d, day: date.toLocaleDateString('ru', { weekday: 'short' }), date });
+  }
+  return days;
+}
+
+let DAYS = getDaysInMonth(YEAR, MONTH);
+const TODAY_REAL_DATE = new Date();
+function getTodayStr() {
+  if (TODAY_REAL_DATE.getFullYear() === YEAR && TODAY_REAL_DATE.getMonth() + 1 === MONTH) {
+    return `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(TODAY_REAL_DATE.getDate()).padStart(2,'0')}`;
+  }
+  return null; // не текущий месяц — нет "сегодня"
+}
+let TODAY_STR = getTodayStr();
+let selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+
+// ── Точные паттерны смен из графика (июнь 2026) ──
+const EXACT_SHIFTS = {
+  'Will':     ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
+  'Bridget':  ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
+  'Fletcher': ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
+  'Kenzo':    ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
+  'Nora':     ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
+  'Robert':   ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
+  'Florence': ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
+  'Charles':  ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','evening'],
+  'Earl':     ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
+  'Rudy':     ['off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
+  'Balfour':  ['off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
+  'Jonathan': ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','vacation','vacation','vacation','vacation','vacation'],
+  'Bill':     ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
+  'Gross':    ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
+  'Meadow':   ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
+  'Robin':    ['evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
+  'Bob':      ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
+  'Lex':      ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off'],
+  'Calvin':   ['morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
+  'Mike':     ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
+  'Hardy':    ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
+  'Murphy':   ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
+  'Joseph':   ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
+  'Bowen':    ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning'],
+  'Scott':    ['vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
+  'Tom':      ['off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
+  'Simon':    ['off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
+  'Skylar':   ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off'],
+  'Felicia':  ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off'],
+  'Nolan':    ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off'],
+  'Casper':   ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Elijah':   ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Holly':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'River':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vip_evening'],
+  'Chadwick': ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Fabio':    ['off','vip_evening','vip_evening','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Plover':   ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Morgan':   ['vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_morning'],
+  'Reggie':   ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening'],
+  'Wade':     ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Ashton':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Trinity':  ['vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Christine':['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Isaac':    ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Warren':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Alexia':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off'],
+  'Kiana':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_morning','vip_morning','off'],
+  'Denzel':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+};
+
+// Management / QA: 8h пн-пт
+function getMgmtShift(dayIndex) {
+  const date = DAYS[dayIndex].date;
+  const dow = date.getDay();
+  return (dow === 0 || dow === 6) ? 'off' : 'work8';
+}
+
+const OPERATOR_BASE_SHIFTS = {};
+
+// Базовые циклы операторов, вычислены из EXACT_SHIFTS июня
+// CYCLE_START = 2026-06-01 (день 0)
+const BASE_PATTERNS = {
+  'Will':      ['shift1200','off','off','shift1200'],
+  'Bridget':   ['shift1200','off','off','shift1200'],
+  'Fletcher':  ['shift1200','off','off','shift1200'],
+  'Kenzo':     ['off','shift1200','shift1200','off'],
+  'Nora':      ['off','shift1200','shift1200','off'],
+  'Robert':    ['off','shift1200','shift1200','off'],
+  'Florence':  ['morning','off','off','evening','evening','off','off','morning'],
+  'Charles':   ['off','evening','evening','off','off','morning','morning','off'],
+  'Earl':      ['off','evening','evening','off','off','morning','morning','off'],
+  'Rudy':      ['off','evening','evening','off','off','morning','morning','off'],
+  'Balfour':   ['off','morning','morning','off','off','evening','evening','off'],
+  'Jonathan':  ['off','morning','morning','off','off','evening','evening','off'],
+  'Bill':      ['off','morning','morning','off','off','evening','evening','off'],
+  'Gross':     ['off','morning','morning','off','off','evening','evening','off'],
+  'Meadow':    ['off','morning','morning','off','off','evening','evening','off'],
+  'Robin':     ['evening','off','off','morning','morning','off','off','evening'],
+  'Bob':       ['evening','off','off','morning','morning','off','off','evening'],
+  'Lex':       ['evening','off','off','morning','morning','off','off','evening'],
+  'Calvin':    ['morning','off','off','evening','evening','off','off','morning'],
+  'Mike':      ['evening','off','off','morning','morning','off','off','evening'],
+  'Hardy':     ['morning','off','off','evening','evening','off','off','morning'],
+  'Murphy':    ['morning','off','off','evening','evening','off','off','morning'],
+  'Joseph':    ['morning','off','off','evening','evening','off','off','morning'],
+  'Bowen':     ['off','evening','evening','off','off','morning','morning','off'],
+  'Scott':     ['off','off','vip_1200','vip_1200'],
+  'Tom':       ['off','vip_1200','vip_1200','off'],
+  'Simon':     ['off','vip_1200','vip_1200','off'],
+  'Skylar':    ['vip_1200','off','off','vip_1200'],
+  'Felicia':   ['vip_1200','off','off','vip_1200'],
+  'Nolan':     ['vip_1200','off','off','vip_1200'],
+  'Casper':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Elijah':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Holly':     ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'River':     ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
+  'Chadwick':  ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Fabio':     ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Plover':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Morgan':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Reggie':    ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
+  'Wade':      ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Ashton':    ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Trinity':   ['off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning'],
+  'Christine': ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Isaac':     ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'Warren':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Alexia':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Kiana':     ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'Denzel':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+};
+
+// Назначаем паттерны через цикл от CYCLE_START
+Object.keys(BASE_PATTERNS).forEach(name => {
+  const pattern = BASE_PATTERNS[name];
+  const cycleLen = pattern.length;
+  OPERATOR_BASE_SHIFTS[name] = (di) => {
+    const date = DAYS[di].date;
+    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+    const pos = ((globalDi % cycleLen) + cycleLen) % cycleLen;
+    return pattern[pos];
+  };
+});
+// Команда 1: Irma, Solomon, Toby
+// Команда 2: Curtis, Manuel, Richard
+//
+// Цикл (считаем от 1 июня, смотрим на скрин):
+// День 0-1 (1,2 июня):  Команда 1 работает (Irma+Solomon день, Toby ночь), Команда 2 выходной
+// День 2-3 (3,4 июня):  Команда 2 работает (Curtis+Manuel день, Richard ночь), Команда 1 выходной
+// День 4-5 (5,6 июня):  Команда 1 работает (Irma+Toby день, Solomon ночь), Команда 2 выходной
+// День 6-7 (7,8 июня):  Команда 2 работает (Curtis+Richard день, Manuel ночь), Команда 1 выходной
+// День 8-9 (9,10 июня): Команда 1 работает (Solomon+Toby день, Irma ночь), Команда 2 выходной
+// День 10-11 (11,12):   Команда 2 работает (Manuel+Richard день, Curtis ночь), Команда 1 выходной
+// День 12 = повтор цикла с дня 0
+
+// Для каждого человека — функция по dayIndex (0 = 1 июня)
+// Команда 1: [Irma=0, Solomon=1, Toby=2] — индексы внутри тройки
+// Команда 2: [Curtis=0, Manuel=1, Richard=2]
+//
+// Внутри команды, когда она работает:
+//   Период 1 (слот 0): [0,1] день, [2] ночь
+//   Период 2 (слот 2): [0,2] день, [1] ночь
+//   Период 3 (слот 4): [1,2] день, [0] ночь
+
+function getSuperTeamShift(dayIndex, teamIndex, memberIndex) {
+  // teamIndex: 0 = Команда1 (Irma,Solomon,Toby), 1 = Команда2 (Curtis,Manuel,Richard)
+  // Полный цикл = 12 дней
+  const cycle = 12;
+  const pos = ((dayIndex) % cycle + cycle) % cycle;
+
+  // Команда 1 работает в слоты: 0-1, 4-5, 8-9 (pos 0,1,4,5,8,9)
+  // Команда 2 работает в слоты: 2-3, 6-7, 10-11 (pos 2,3,6,7,10,11)
+  const team1WorkSlots = [0,1,4,5,8,9];
+  const team2WorkSlots = [2,3,6,7,10,11];
+
+  const workSlots = teamIndex === 0 ? team1WorkSlots : team2WorkSlots;
+  if (!workSlots.includes(pos)) return 'off';
+
+  // Определяем какой это период работы (0, 1 или 2) внутри команды
+  const teamPos = workSlots.indexOf(pos); // 0-5
+  const period = Math.floor(teamPos / 2); // 0, 1 или 2
+  const dayInPeriod = teamPos % 2; // 0 или 1 (не используем, оба дня одинаковы)
+
+  // Кто ночью в каждом периоде:
+  // period 0: memberIndex 2 ночью, 0 и 1 днём
+  // period 1: memberIndex 1 ночью, 0 и 2 днём
+  // period 2: memberIndex 0 ночью, 1 и 2 днём
+  const nightMember = [2, 1, 0][period];
+  return memberIndex === nightMember ? 'super_night' : 'super_day';
+}
+
+// Команда 1: Irma(0), Solomon(1), Toby(2)
+const TEAM1 = ['Irma', 'Solomon', 'Toby'];
+// Команда 2: Curtis(0), Manuel(1), Richard(2)
+const TEAM2 = ['Curtis', 'Manuel', 'Richard'];
+
+TEAM1.forEach((name, i) => {
+  OPERATOR_BASE_SHIFTS[name] = (di) => {
+    const date = DAYS[di].date;
+    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+    return getSuperTeamShift(globalDi, 0, i);
+  };
+});
+TEAM2.forEach((name, i) => {
+  OPERATOR_BASE_SHIFTS[name] = (di) => {
+    const date = DAYS[di].date;
+    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+    return getSuperTeamShift(globalDi, 1, i);
+  };
+});
+// VIP Supervisors:
+// Adam: 5/2 по будням, 09-21
+// Amelia и Lucas: чередуются по 1 дню, 12h 09-21
+// 1 июня = Amelia, 2,3 = Lucas, 4,5 = Amelia, 6,7 = Lucas...
+// То есть Amelia работает нечётные числа (1,3,5...), Lucas чётные (2,3 — нет, по описанию: 1=Amelia, 2-3=Lucas, 4-5=Amelia)
+// Значит: чередуются блоками по 1/2? Нет — "1 числа работает Amelia, 2,3 Lucas, 4,5 Amelia"
+// Паттерн: 1 день Amelia, 2 дня Lucas, 2 дня Amelia, 2 дня Lucas... = цикл 3? нет
+// Точный паттерн из описания: 1=A, 2=L, 3=L, 4=A, 5=A, 6=L, 7=L, 8=A... цикл 4: A,L,L,A → нет
+// "1 числа Amelia, 2,3 Lucas, 4,5 Amelia" = A(1день) + L(2дня) + A(2дня) + L(2дня)...
+// Значит цикл: первый день = 1 (Amelia одна), потом блоки по 2
+// Упрощаем: dayIndex=0(1июня)=A, 1,2=L, 3,4=A, 5,6=L... цикл 3 со смещением
+// pos в цикле 3: 0=A, 1=L, 2=L → Amelia работает когда pos%3===0, Lucas когда pos%3===1 или 2
+// Проверка: день 0(1июня)→pos0→A✓, день1(2)→pos1→L✓, день2(3)→pos2→L✓, день3(4)→pos0→A✓, день4(5)→pos1→... нет
+// Правильно: pos = dayIndex % 3: 0=A, 1=L, 2=L → дни: 1=A,2=L,3=L,4=A,5=L,6=L — но нужно 4,5=Amelia
+// Значит цикл 4: A,L,L,A → нет, "4,5 Amelia" = 2 дня подряд
+// Итого цикл 4: pos0=A, pos1=L, pos2=L, pos3=A? нет тогда 4=A,5=L
+// Попробуем: день1→A, день2→L, день3→L, день4→A, день5→A, день6→L, день7→L...
+// Цикл 4 со смещением -1: dayIndex%4: 0(д1)=0→A, 1(д2)=1→L, 2(д3)=2→L, 3(д4)=3→A, 4(д5)=0→A ✓!
+// Цикл 4: pos0=A, pos1=L, pos2=L, pos3=A
+OPERATOR_BASE_SHIFTS['Adam'] = (di) => {
+  const date = DAYS[di].date;
+  const dow = date.getDay();
+  return (dow === 0 || dow === 6) ? 'off' : 'super_day';
+};
+OPERATOR_BASE_SHIFTS['Amelia'] = (di) => {
+  const date = DAYS[di].date;
+  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  const pos = ((globalDi % 4) + 4) % 4;
+  return (pos === 0 || pos === 3) ? 'super_day' : 'off';
+};
+OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
+  const date = DAYS[di].date;
+  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  const pos = ((globalDi % 4) + 4) % 4;
+  return (pos === 1 || pos === 2) ? 'super_day' : 'off';
+};
+
+// Management / other / QA
+// Management / QA
+['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita',
+ 'Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'].forEach(name => {
+  OPERATOR_BASE_SHIFTS[name] = (di) => getMgmtShift(di);
+});
+
+// ── State ──
+let scheduleOverrides = {};
+let scheduleVersion = 0;
+let scheduleLog = [];
+let scheduleSettings = { customHours: {} };
+let currentUser = null;
+let isAdmin = false;
+let activeFilter = 'all';
+let selectedShiftType = null;
+let isDark = true;
+const collapsedSections = new Set();
+
+// ── Init ──
+(async () => {
+  // Загружаем тему
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    isDark = false;
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-icon').textContent = '☀️';
+    document.getElementById('theme-label').textContent = 'Светлая';
+  } else {
+    document.getElementById('theme-icon').textContent = '🌙';
+    document.getElementById('theme-label').textContent = 'Тёмная';
+  }
+
+  try {
+    const res = await fetch(`${API}/check`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.ok) {
+      currentUser = data;
+      isAdmin = data.role === 'tl';
+      const isSupervisor = data.role === 'supervisor';
+      if (isAdmin) {
+        document.getElementById('admin-btn').classList.add('visible');
+        document.getElementById('dismiss-nav-btn').style.display = 'flex';
+        document.getElementById('positions-btn').style.display = 'flex';
+        document.getElementById('history-btn').style.display = 'flex';
+      }
+      if (isSupervisor) {
+        document.getElementById('admin-btn').classList.add('visible');
+        document.getElementById('history-btn').style.display = 'flex';
+      }
+    }
+  } catch {}
+
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      scheduleOverrides = data.overrides || {};
+      scheduleVersion = data.version || 0;
+      scheduleLog = data.log || [];
+      scheduleSettings = data.settings || { customHours: {} };
+      // Применяем кастомный порядок если есть
+      if (scheduleSettings.customOrder) {
+        SECTIONS.forEach(s => {
+          if (scheduleSettings.customOrder[s.key]) {
+            s.members = scheduleSettings.customOrder[s.key];
+          }
+        });
+        updateGroupsFromSections();
+      }
+      dismissedEmployees = scheduleSettings.dismissed || {};
+    }
+  } catch {}
+
+  // Инициализируем навигацию по месяцам
+  const initMonthObj = AVAILABLE_MONTHS.find(m => m.year === YEAR && m.month === MONTH);
+  document.getElementById('month-label').textContent = initMonthObj ? initMonthObj.label : `${YEAR}-${MONTH}`;
+  updateMonthNav();
+
+  renderAll();
+  updateStats();
+  populateOperatorSelect();
+  updateColumnHighlight();
+  setTimeout(initStickyDatesBar, 0);
+  initSwapUi();
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+})();
+
+// ── Переключение месяца ──
+async function switchMonth(year, month) {
+  YEAR = year;
+  MONTH = month;
+  DAYS = getDaysInMonth(YEAR, MONTH);
+  TODAY_STR = getTodayStr();
+  selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  scheduleOverrides = {};
+
+  // Обновляем заголовок
+  const monthObj = AVAILABLE_MONTHS.find(m => m.year === year && m.month === month);
+  document.getElementById('month-label').textContent = monthObj ? monthObj.label : `${year}-${month}`;
+
+  // Обновляем состояние кнопок навигации
+  updateMonthNav();
+
+  // Загружаем данные нового месяца
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      scheduleOverrides = data.overrides || {};
+      scheduleVersion = data.version || 0;
+      scheduleLog = data.log || [];
+      // Settings глобальные — не перезаписываем customOrder, только mergeим
+      if (data.settings) {
+        scheduleSettings = { ...scheduleSettings, ...data.settings };
+      }
+      dismissedEmployees = scheduleSettings.dismissed || {};
+    }
+  } catch {}
+
+  renderAll();
+  updateStats();
+  updateColumnHighlight();
+  setTimeout(initStickyDatesBar, 0);
+  initSwapUi();
+}
+
+function updateMonthNav() {
+  const idx = AVAILABLE_MONTHS.findIndex(m => m.year === YEAR && m.month === MONTH);
+  document.getElementById('btn-prev-month').disabled = idx <= 0;
+  document.getElementById('btn-next-month').disabled = idx >= AVAILABLE_MONTHS.length - 1;
+}
+
+function prevMonth() {
+  const idx = AVAILABLE_MONTHS.findIndex(m => m.year === YEAR && m.month === MONTH);
+  if (idx > 0) switchMonth(AVAILABLE_MONTHS[idx - 1].year, AVAILABLE_MONTHS[idx - 1].month);
+}
+
+function nextMonth() {
+  const idx = AVAILABLE_MONTHS.findIndex(m => m.year === YEAR && m.month === MONTH);
+  if (idx < AVAILABLE_MONTHS.length - 1) switchMonth(AVAILABLE_MONTHS[idx + 1].year, AVAILABLE_MONTHS[idx + 1].month);
+}
+
+// ── Helpers ──
+function dateStr(d) {
+  return `${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+// ── Паттерны операторов (хранятся в settings.operatorPatterns) ──
+// { pattern: ['morning','off',...], cycleStart: '2026-06-01' }
+// Стандартные паттерны:
+const PATTERN_PRESETS = {
+  'morning_evening': ['morning','off','off','evening','evening','off','off','morning'],
+  'evening_morning': ['evening','off','off','morning','morning','off','off','evening'],
+  'shift1200':       ['shift1200','off','off','shift1200'],
+  'vip_day_night':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
+  'vip_night_day':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
+  'vip_1200':        ['vip_1200','off','off','vip_1200'],
+  'off':             ['off'],
+  // Supervisor пресеты (если нужно перевести на фиксированный паттерн)
+  'super_day_only':   ['super_day','super_day','off','off'],
+  'super_night_only': ['super_night','super_night','off','off'],
+  // Точные паттерны позиций супервайзеров (цикл 12 дней)
+  'team1_0': ['super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night','off','off'],
+  'team1_1': ['super_day','super_day','off','off','super_night','super_night','off','off','super_day','super_day','off','off'],
+  'team1_2': ['super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day','off','off'],
+  'team2_0': ['off','off','super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night'],
+  'team2_1': ['off','off','super_day','super_day','off','off','super_night','super_night','off','off','super_day','super_day'],
+  'team2_2': ['off','off','super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day'],
+};
+
+function getPatternShift(name, date) {
+  const patterns = scheduleSettings.operatorPatterns || {};
+  const op = patterns[name];
+  if (!op || !op.pattern || !op.cycleStart) return null;
+  const start = new Date(op.cycleStart);
+  // До даты начала — паттерн не применяется, fallback на BASE_PATTERNS
+  if (date < start) return null;
+  const diffDays = Math.floor((date - start) / 86400000);
+  const cycle = op.pattern.length;
+  const pos = ((diffDays % cycle) + cycle) % cycle;
+  return op.pattern[pos];
+}
+
+function getShift(name, dayIndex) {
+  const key = `${name}:${dateStr(DAYS[dayIndex].d)}`;
+  if (scheduleOverrides[key]) return scheduleOverrides[key].type;
+  // Сначала проверяем operatorPatterns из settings
+  const patternShift = getPatternShift(name, DAYS[dayIndex].date);
+  if (patternShift !== null) return patternShift;
+  // Fallback на захардкоженные паттерны июня
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  return fn ? fn(dayIndex) : 'off';
+}
+
+// Дефолтные часы по типу смены
+const DEFAULT_HOURS = {
+  morning: 11, evening: 11, night: 11,
+  vip_morning: 11, vip_evening: 11, vip_1200: 11,
+  super_day: 11, super_night: 11, super_day8: 8,
+  shift1200: 11, work8: 8,
+  extra_morning: 0, extra_evening: 0, extra_1200: 0,
+  extra_vip_morning: 0, extra_vip_evening: 0, extra_vip_1200: 0,
+  extra_sup_day: 11, extra_sup_night: 11, extra_sup_day8: 8,
+  nk: 11,
+  vacation: 0, sick: 0, off: 0, birthday: 0
+};
+
+function getHours(type) {
+  if (scheduleSettings.customHours && scheduleSettings.customHours[type] !== undefined) {
+    return scheduleSettings.customHours[type];
+  }
+  return DEFAULT_HOURS[type] ?? 0;
+}
+
+function shiftLabel(type, name, ds) {
+  if (type === 'off') return '';
+  if (type === 'birthday') return '🎂';
+  if (type === 'vacation') return '✈';
+  if (type === 'nk') return 'НК';
+  if (type === 'dismissed') return '🚫';
+  if (type === 'sick') {
+    if (name && ds) {
+      const key = `${name}:${ds}`;
+      const override = scheduleOverrides[key];
+      const paidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
+      if (paidSick) return '🤒💰';
+    }
+    return '🤒';
+  }
+
+  // Базовые часы
+  let baseHours;
+  if (name && ds) {
+    const key = `${name}:${ds}`;
+    const override = scheduleOverrides[key];
+    if (override?.customHours !== undefined && override.customHours === 0) return '🚫';
+    if (override?.customHours) baseHours = override.customHours;
+  }
+  if (!baseHours) {
+    if (name === 'Adam') baseHours = 8;
+    else {
+      const defaults = {
+        morning:11, evening:11, night:11,
+        vip_morning:11, vip_evening:11, vip_1200:11,
+        super_day:11, super_night:11, shift1200:11, work8:8
+      };
+      baseHours = defaults[type] || 0;
+    }
+  }
+
+  // Считаем дельту от доп событий
+  // Оплачиваемый больничный НЕ добавляет часы к рабочей смене, только компенсирует потери
+  let delta = 0;
+  if (name && ds) {
+    const key = `${name}:${ds}`;
+    const override = scheduleOverrides[key];
+    if (override?.extraEvents?.length) {
+      const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
+      override.extraEvents.forEach(ev => {
+        if (ev.hours > 0) {
+          if (plusTypes.includes(ev.type)) delta += ev.hours;
+          else delta -= ev.hours;
+        }
+      });
+    }
+  }
+
+  const total = baseHours + delta;
+  return total > 0 ? String(total) : '0';
+}
+
+function shiftClass(type) {
+  const map = {
+    morning: 'shift-morning', evening: 'shift-evening', night: 'shift-night',
+    vip_morning: 'shift-vip-morning', vip_evening: 'shift-vip-evening', vip_1200: 'shift-vip-1200',
+    super_day: 'shift-super-day', super_night: 'shift-super-night',
+    super_day8: 'shift-super-day8',
+    shift1200: 'shift-1200', work8: 'shift-work8',
+    extra_morning:     'shift-extra-morning',
+    extra_evening:     'shift-extra-evening',
+    extra_1200:        'shift-extra-1200',
+    extra_vip_morning: 'shift-extra-vip-morning',
+    extra_vip_evening: 'shift-extra-vip-evening',
+    extra_vip_1200:    'shift-extra-vip-1200',
+    extra_sup_day:     'shift-extra-sup-day',
+    extra_sup_night:   'shift-extra-sup-night',
+    extra_sup_day8:    'shift-extra-sup-day8',
+    vacation: 'shift-vacation', sick: 'shift-sick', birthday: 'shift-birthday',
+    dismissed: 'shift-super-night',
+    nk: 'shift-nk',
+    off: 'shift-off',
+  };
+  return map[type] || 'shift-off';
+}
+
+// ── Render ──
+function renderAll() {
+  const container = document.getElementById('schedule-container');
+  container.innerHTML = '';
+
+  const filterMap = {
+    all: null, // все секции
+    regular: ['regular_support'],
+    vip: ['vip_support'],
+    supervisors: ['regular_support','vip_support'],
+    management: ['management']
+  };
+
+  const allowedKeys = filterMap[activeFilter];
+  const sections = allowedKeys
+    ? SECTIONS.filter(s => allowedKeys.includes(s.key))
+    : SECTIONS;
+
+  sections.forEach(s => container.appendChild(renderSection(s)));
+}
+
+function renderSection(s) {
+  const section = document.createElement('div');
+  section.className = 'schedule-section';
+
+  const badgeClass = s.color === 'green' ? 'green' : s.color === 'orange' ? 'orange' : '';
+  const isCollapsed = collapsedSections.has(s.key);
+
+  const header = document.createElement('div');
+  header.className = 'section-header' + (isCollapsed ? ' collapsed' : '');
+  header.innerHTML = `
+    <div class="section-title">${s.label}</div>
+    <div class="section-badge ${badgeClass}">${s.members.length} чел.</div>
+    <div class="section-toggle">▾</div>
+  `;
+  header.addEventListener('click', () => toggleSection(s.key));
+  section.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'section-body' + (isCollapsed ? ' collapsed' : '');
+  body.id = `section-body-${s.key}`;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'table-wrap';
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  table.appendChild(thead);
+
+  // Все операторы для подсчёта (считаем по типу смены, не по группе)
+  const allOperators = SECTIONS.flatMap(s2 => s2.members);
+  const isOpSection = ['regular_support', 'vip_support'].includes(s.key);
+
+  // 3 строки счётчиков: утро, вечер, ночь (только для operator секций)
+  let thCountHTML = '';
+  if (isOpSection) {
+    const shiftRowsReg = [
+      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
+      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: 3 },
+      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: 2 },
+    ];
+    const shiftRowsVip = [
+      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
+      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
+      { types: ['vip_1200','extra_vip_1200','d12'],    label: '12–00', color: '#f59e0b',                  min: 2 },
+    ];
+    const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
+    shiftRows.forEach(({ types, label, color, min }) => {
+      thCountHTML += `<tr class="thead-counts">`;
+      thCountHTML += `<th class="col-name" style="background:var(--thead-count-bg);text-align:left;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="display:flex;align-items:center;gap:5px">
+          <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
+          <span style="font-size:9px;color:${color};font-weight:600">${label}</span>
+        </span>
+      </th>`;
+      thCountHTML += `<th class="col-info" style="background:var(--thead-count-bg);border-bottom:1px solid rgba(255,255,255,0.05)"></th>`;
+      DAYS.forEach(({d, date}, di) => {
+        const dow = date.getDay();
+        const isWeekend = dow === 0 || dow === 6;
+        const isToday = dateStr(d) === TODAY_STR;
+        const baseCls = isToday ? 'today' : isWeekend ? 'weekend' : '';
+        // Считаем по ВСЕМ операторам — кто работает эту смену
+        // Исключаем тех у кого loss_swap_give (отдал смену)
+        const isSwappedOut = (name, dayIdx) => {
+          const key = `${name}:${dateStr(DAYS[dayIdx].d)}`;
+          const ov = scheduleOverrides[key];
+          return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+        };
+        const countRaw = allOperators
+          .filter(n => types.includes(getShift(n, di)))
+          .reduce((sum, n) => {
+            const key = `${n}:${dateStr(DAYS[di].d)}`;
+            const ov = scheduleOverrides[key];
+            let h = getHours(getShift(n, di));
+            if (ov?.customHours !== undefined) h = ov.customHours;
+            if (ov?.extraEvents?.length) {
+              const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
+              ov.extraEvents.forEach(ev => {
+                if (ev.hours > 0) h += plusTypes.includes(ev.type) ? ev.hours : -ev.hours;
+              });
+            }
+            return sum + Math.max(0, h);
+          }, 0) / 11;
+        const count = Math.round(countRaw * 10) / 10;
+        const countDisplay = Number.isInteger(count) ? count : count.toFixed(1);
+        const isLow = count < min;
+        const bg = isLow ? 'background:rgba(248,113,113,0.2);' : '';
+        const fg = isLow ? '#f87171' : color;
+        thCountHTML += `<th class="${baseCls}" style="background:var(--thead-count-bg);${bg}padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <span style="font-size:10px;font-weight:700;color:${fg}">${countDisplay}</span>
+        </th>`;
+      });
+      thCountHTML += `</tr>`;
+    });
+  }
+
+  // Header row 2 - даты
+  let thHTML = `<tr><th class="col-name">Сотрудник</th><th class="col-info">Позиция / Email / С</th>`;
+  DAYS.forEach(({d, day, date}, di) => {
+    const ds = dateStr(d);
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isToday = ds === TODAY_STR;
+    const cls = isToday ? 'today' : isWeekend ? 'weekend' : '';
+
+    let redDot = '';
+    if (isOpSection) {
+      const dayTypes = s.key === 'regular_support'
+        ? ['morning','extra_morning']
+        : ['vip_evening','extra_vip_evening'];
+      const nightTypes = s.key === 'regular_support'
+        ? ['evening','extra_evening']
+        : ['vip_morning','extra_vip_morning'];
+      const dayCount = allOperators.filter(n => dayTypes.includes(getShift(n,di))).length;
+      const nightCount = allOperators.filter(n => nightTypes.includes(getShift(n,di))).length;
+      if (dayCount < 4 || nightCount < 3) {
+        redDot = `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#f87171;margin-left:2px;vertical-align:middle"></span>`;
+      }
+    }
+
+    thHTML += `<th class="${cls}" data-date="${ds}" style="cursor:pointer;padding:6px 2px" onclick="showDayInfo('${ds}',${di})"><span style="font-size:12px;font-weight:700">${d}</span>${redDot}<br><span style="font-size:9px;font-weight:500;opacity:.8">${day}</span></th>`;
+  });
+  // ИТОГО — один раз после всех дней
+  thHTML += `<th style="background:var(--thead-bg);min-width:44px;padding:8px 4px;border-left:1px solid rgba(255,255,255,0.15);font-size:9px;letter-spacing:0.04em;position:sticky;right:0;z-index:2">ИТОГО<br><span style="font-size:8px;font-weight:300;opacity:.7">ч</span></th>`;
+  thHTML += '</tr>';
+
+  // Добавляем пустую ячейку в строки счётчиков
+  if (thCountHTML) {
+    thCountHTML = thCountHTML.replace(/<\/tr>/g, `<th style="background:var(--thead-count-bg);border-left:1px solid rgba(255,255,255,0.15)"></th></tr>`);
+  }
+
+  thead.innerHTML = thCountHTML + thHTML;
+
+  const DIVIDERS = {
+    regular_support: { after: 'Toby',  label: 'Операторы' },
+    vip_support:     { after: 'Lucas', label: 'VIP Операторы' },
+  };
+  const dividerConfig = DIVIDERS[s.key];
+
+  const tbody = document.createElement('tbody');
+  s.members.forEach(name => {
+    const emp = EMPLOYEES[name] || {};
+    const empOv = (scheduleSettings.employeeOverrides || {})[name] || {};
+    const pos   = empOv.position || emp.position || '';
+    const email = empOv.email    || emp.email    || '';
+    const since = emp.since ? emp.since.slice(0,10) : '';
+
+    const tr = document.createElement('tr');
+    tr.dataset.name = name;
+
+    const isDismissed = !!dismissedEmployees[name];
+    const nameClass = isDismissed ? 'name-nick dismissed-name' : 'name-nick';
+    const dismissedTag = isDismissed
+      ? `<div class="dismissed-badge">уволен с ${dismissedEmployees[name]}</div>`
+      : '';
+
+    const deleteBtnStyle = positionsMode ? 'display:flex' : 'display:none';
+    let tdHTML = `<td class="col-name" style="position:relative">
+      <span class="${nameClass}">${name}</span>
+      <button class="btn-pattern-row" onclick="openPatternModal('${name}')" title="Паттерн">⟳ Паттерн</button>
+      <button class="btn-delete-row" style="${deleteBtnStyle}" onclick="deleteEmployee('${name}','${s.key}')" title="Удалить">✕</button>
+    </td>`;
+    tdHTML += `<td class="col-info">
+      ${pos ? `<div class="name-pos">${pos}</div>` : ''}
+      ${email ? `<div class="name-email">${email}</div>` : ''}
+      ${since ? `<div class="name-since">с ${since}</div>` : ''}
+      ${dismissedTag}
+    </td>`;
+
+    DAYS.forEach(({d, date}, di) => {
+      const ds = dateStr(d);
+      const isToday = ds === TODAY_STR;
+      const type = getShift(name, di);
+      const label = shiftLabel(type, name, ds);
+      const cls = shiftClass(type);
+      const key = `${name}:${ds}`;
+      const override = scheduleOverrides[key];
+      const note = override?.note || '';
+      const hasPaidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
+      const todayCls = isToday ? ' is-today' : '';
+      const editAttr = isAdmin ? ` style="cursor:pointer" title="${note || 'Редактировать'}"` : (note ? ` title="${note}"` : '');
+      const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
+      const noteDot = note ? `<span class="note-dot"></span>` : '';
+
+      tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
+      if (type === 'off') {
+        tdHTML += `<span class="shift-pill shift-off">—</span>`;
+      } else {
+        tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
+      }
+      tdHTML += noteDot;
+      tdHTML += `</td>`;
+    });
+
+    // Считаем итого часов за месяц
+    let totalHours = 0;
+    const plusTypesSet = new Set(['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid']);
+    DAYS.forEach((d, di) => {
+      const ds2 = dateStr(d.d);
+      const type = getShift(name, di);
+      if (['off','vacation','dismissed'].includes(type)) return;
+      const key = `${name}:${ds2}`;
+      const override = scheduleOverrides[key];
+
+      // Для больничного: базовые часы = 0, если есть оплачиваемый — добавляем его часы
+      let h = 0;
+      if (type === 'sick') {
+        if (override?.extraEvents?.length) {
+          const paidSick = override.extraEvents.find(e => e.type === 'extra_sick_paid');
+          if (paidSick) h = paidSick.hours;
+        }
+        totalHours += h;
+        return;
+      }
+
+      h = override?.customHours || DEFAULT_HOURS[type] || 0;
+      if (override?.extraEvents?.length) {
+        // Если доп смена + есть extra_swap_take — базовые часы не считаем, только swap_take
+        const isExtraShift = type.startsWith('extra_');
+        const swapTake = override.extraEvents.filter(e => e.type === 'extra_swap_take' && e.hours > 0);
+        if (isExtraShift && swapTake.length > 0) {
+          h = swapTake.reduce((sum, e) => sum + e.hours, 0);
+          // Остальные плюс/минус события кроме swap_take
+          override.extraEvents.forEach(ev => {
+            if (ev.type === 'extra_swap_take') return;
+            if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
+          });
+        } else {
+          override.extraEvents.forEach(ev => {
+            if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
+          });
+        }
+      }
+      totalHours += Math.max(0, h);
+    });
+
+    tdHTML += `<td style="border-left:1px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
+
+    tr.innerHTML = tdHTML;
+    if (positionsMode) enableDragOnRow(tr, name, s.key);
+    tbody.appendChild(tr);
+
+    // Разделитель после супервайзеров
+    if (dividerConfig && name === dividerConfig.after) {
+      const divTr = document.createElement('tr');
+      divTr.className = 'section-divider-row';
+      divTr.innerHTML = `<td colspan="${DAYS.length + 2}">${dividerConfig.label}</td>`;
+      tbody.appendChild(divTr);
+    }
+  });
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+
+  // Drop zone для перетаскивания из других секций
+  const dropZone = document.createElement('div');
+  dropZone.className = 'drop-zone';
+  dropZone.textContent = `↓ Перенести сюда в ${s.label}`;
+  enableDropOnZone(dropZone, s.key);
+  body.appendChild(wrap);
+  body.appendChild(dropZone);
+  section.appendChild(body);
+  return section;
+}
+
+// ── Stats ──
+function updateStats() {
+  const now = new Date();
+  const h = now.getHours();
+  let online = 0;
+  const todayDi = TODAY_REAL_DATE.getMonth() === (MONTH - 1) && TODAY_REAL_DATE.getFullYear() === YEAR
+    ? TODAY_REAL_DATE.getDate() - 1 : -1;
+
+  if (todayDi >= 0) {
+    const allMembers = SECTIONS.flatMap(s => s.members);
+    allMembers.forEach(name => {
+      const type = getShift(name, todayDi);
+      if (type === 'morning' && h >= 6 && h < 15) online++;
+      if (type === 'evening' && h >= 15) online++;
+      if (type === 'night' && h < 10) online++;
+      if (type === 'super_day' && h >= 9 && h < 21) online++;
+      if (type === 'super_night' && (h >= 21 || h < 9)) online++;
+      if (type === 'work8' && h >= 9 && h < 18) online++;
+    });
+  }
+
+  const totalStaff = SECTIONS.flatMap(s => s.members).length;
+  const regularCount = GROUPS.regular.members.length;
+  const vipCount = GROUPS.vip.members.length;
+
+  document.getElementById('stat-online').textContent = todayDi >= 0 ? online : '—';
+  document.getElementById('stat-regular').textContent = regularCount;
+  document.getElementById('stat-vip').textContent = vipCount;
+  document.getElementById('stat-total').textContent = totalStaff;
+}
+
+let infoColumnVisible = true;
+
+function toggleTheme() {
+  isDark = !isDark;
+  if (isDark) {
+    document.documentElement.classList.remove('light');
+    document.getElementById('theme-icon').textContent = '🌙';
+    document.getElementById('theme-label').textContent = 'Тёмная';
+  } else {
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-icon').textContent = '☀️';
+    document.getElementById('theme-label').textContent = 'Светлая';
+  }
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+function toggleInfoColumn() {
+  infoColumnVisible = !infoColumnVisible;
+  const container = document.getElementById('schedule-container');
+  if (infoColumnVisible) {
+    container.classList.remove('col-info-hidden');
+    document.getElementById('toggle-info-btn').textContent = '⇔ Инфо';
+  } else {
+    container.classList.add('col-info-hidden');
+    document.getElementById('toggle-info-btn').textContent = '⇔ Инфо ▸';
+  }
+}
+
+// ── Positions Mode ──
+let positionsMode = false;
+let dragSrcRow = null;
+let dragSrcSection = null;
+
+function togglePositionsMode() {
+  positionsMode = !positionsMode;
+  const btn = document.getElementById('positions-btn');
+  const banner = document.getElementById('positions-banner');
+  const container = document.getElementById('schedule-container');
+
+  if (positionsMode) {
+    btn.style.background = 'rgba(245,158,66,0.25)';
+    btn.style.borderColor = 'rgba(245,158,66,0.6)';
+    btn.textContent = '✓ Позиции вкл';
+    banner.classList.add('visible');
+    container.classList.add('positions-mode');
+    renderAll();
+    updateColumnHighlight();
+  } else {
+    btn.style.background = 'rgba(245,158,66,0.1)';
+    btn.style.borderColor = 'rgba(245,158,66,0.3)';
+    btn.textContent = '⇅ Позиции';
+    banner.classList.remove('visible');
+    container.classList.remove('positions-mode');
+  }
+}
+
+function enableDragOnRow(tr, name, sectionKey) {
+  tr.draggable = true;
+
+  tr.addEventListener('dragstart', e => {
+    dragSrcRow = tr;
+    dragSrcSection = sectionKey;
+    tr.classList.add('drag-source');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', name);
+  });
+
+  tr.addEventListener('dragend', () => {
+    tr.classList.remove('drag-source');
+    document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top','drag-over-bottom');
+    });
+  });
+
+  tr.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragSrcRow || dragSrcRow === tr) return;
+    document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    const rect = tr.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (e.clientY < mid) tr.classList.add('drag-over-top');
+    else tr.classList.add('drag-over-bottom');
+  });
+
+  tr.addEventListener('dragleave', () => {
+    tr.classList.remove('drag-over-top','drag-over-bottom');
+  });
+
+  tr.addEventListener('drop', e => {
+    e.preventDefault();
+    if (!dragSrcRow || dragSrcRow === tr) return;
+    const srcName = e.dataTransfer.getData('text/plain');
+    const tgtName = tr.dataset.name;
+    const isBottom = tr.classList.contains('drag-over-bottom');
+    tr.classList.remove('drag-over-top','drag-over-bottom');
+    moveOperator(srcName, dragSrcSection, sectionKey, tgtName, isBottom);
+  });
+}
+
+function enableDropOnZone(el, targetSection) {
+  el.addEventListener('dragover', e => { e.preventDefault(); el.style.background = 'rgba(245,158,66,0.2)'; });
+  el.addEventListener('dragleave', () => { el.style.background = ''; });
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    el.style.background = '';
+    const srcName = e.dataTransfer.getData('text/plain');
+    moveOperator(srcName, dragSrcSection, targetSection, null, false);
+  });
+}
+
+function moveOperator(srcName, fromKey, toKey, beforeName, insertAfter) {
+  // Убираем из старой секции
+  const fromSec = SECTIONS.find(s => s.key === fromKey);
+  const toSec = SECTIONS.find(s => s.key === toKey);
+  if (!fromSec || !toSec) return;
+
+  const fromIdx = fromSec.members.indexOf(srcName);
+  if (fromIdx === -1) return;
+  fromSec.members.splice(fromIdx, 1);
+
+  // Добавляем в новую секцию
+  if (!beforeName || fromKey !== toKey) {
+    // В другую секцию — в конец, или перед указанным
+    if (beforeName && toSec.members.includes(beforeName)) {
+      const tgtIdx = toSec.members.indexOf(beforeName);
+      toSec.members.splice(insertAfter ? tgtIdx + 1 : tgtIdx, 0, srcName);
+    } else {
+      toSec.members.push(srcName);
+    }
+  } else {
+    // Внутри одной секции
+    const tgtIdx = toSec.members.indexOf(beforeName);
+    toSec.members.splice(insertAfter ? tgtIdx + 1 : tgtIdx, 0, srcName);
+  }
+
+  // Обновляем GROUPS тоже
+  updateGroupsFromSections();
+  renderAll();
+  updateColumnHighlight();
+}
+
+function updateGroupsFromSections() {
+  SECTIONS.forEach(s => {
+    if (s.key === 'regular_support') {
+      GROUPS.regular.members = s.members.filter(n =>
+        !['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
+      );
+      GROUPS.supervisors.members = s.members.filter(n =>
+        ['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
+      );
+    }
+    if (s.key === 'vip_support') {
+      GROUPS.vip.members = s.members.filter(n =>
+        !['Adam','Amelia','Lucas'].includes(n)
+      );
+      GROUPS.vip_supervisors.members = s.members.filter(n =>
+        ['Adam','Amelia','Lucas'].includes(n)
+      );
+    }
+    if (s.key === 'management') GROUPS.management.members = [...s.members];
+    if (s.key === 'qa') GROUPS.qa.members = [...s.members];
+  });
+}
+
+async function savePositions() {
+  // Сохраняем кастомный порядок в KV
+  const customOrder = {};
+  SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
+
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        overrides: scheduleOverrides,
+        settings: { ...scheduleSettings, customOrder },
+        version: scheduleVersion,
+        logEntries: [{ action: 'порядок позиций', target: null }],
+      })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings.customOrder = customOrder;
+      showToast('Позиции сохранены', 'ok');
+      togglePositionsMode();
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
+  }
+}
+
+function openClearShiftsModal() {
+  const sel = document.getElementById('clear-emp-select');
+  sel.innerHTML = '';
+  SECTIONS.forEach(s => {
+    const og = document.createElement('optgroup');
+    og.label = s.label;
+    s.members.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+  document.getElementById('clear-shifts-msg').className = 'save-msg';
+  document.getElementById('clear-shifts-overlay').classList.add('open');
+}
+
+function closeClearShiftsModal() {
+  document.getElementById('clear-shifts-overlay').classList.remove('open');
+}
+
+async function clearShifts() {
+  const name = document.getElementById('clear-emp-select').value;
+  if (!name) return;
+
+  const newOverrides = { ...scheduleOverrides };
+  // Удаляем все overrides для этого оператора за текущий месяц
+  // и ставим off на каждый день чтобы перебить базовый паттерн
+  DAYS.forEach(d => {
+    const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    newOverrides[key] = { type: 'off', editedAt: new Date().toISOString() };
+  });
+
+  const msgEl = document.getElementById('clear-shifts-msg');
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: `очистка смен · ${YEAR}-${String(MONTH).padStart(2,'0')}`, target: name }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleOverrides = newOverrides;
+      renderAll();
+      updateColumnHighlight();
+      closeClearShiftsModal();
+      showToast(`Смены ${name} очищены`, 'ok');
+    } else {
+      msgEl.textContent = 'Ошибка сохранения';
+      msgEl.className = 'save-msg err';
+    }
+  } catch {
+    msgEl.textContent = 'Ошибка сети';
+    msgEl.className = 'save-msg err';
+  }
+}
+
+function openAddEmployeeModal() {
+  document.getElementById('new-emp-name').value = '';
+  document.getElementById('new-emp-email').value = '';
+  document.getElementById('new-emp-position').value = '';
+  document.getElementById('new-emp-since').value = '';
+  document.getElementById('add-emp-msg').className = 'save-msg';
+  document.getElementById('add-employee-overlay').classList.add('open');
+}
+
+function closeAddEmployeeModal() {
+  document.getElementById('add-employee-overlay').classList.remove('open');
+}
+
+function addEmployee() {
+  const name = document.getElementById('new-emp-name').value.trim();
+  const email = document.getElementById('new-emp-email').value.trim();
+  const position = document.getElementById('new-emp-position').value.trim();
+  const since = document.getElementById('new-emp-since').value;
+  const sectionKey = document.getElementById('new-emp-section').value;
+  const msgEl = document.getElementById('add-emp-msg');
+
+  if (!name) {
+    msgEl.textContent = 'Введите имя сотрудника';
+    msgEl.className = 'save-msg err';
+    return;
+  }
+  if (SECTIONS.some(s => s.members.includes(name))) {
+    msgEl.textContent = 'Сотрудник с таким ником уже существует';
+    msgEl.className = 'save-msg err';
+    return;
+  }
+
+  // Добавляем в EMPLOYEES
+  EMPLOYEES[name] = { email, position, since };
+
+  // Добавляем в секцию
+  const sec = SECTIONS.find(s => s.key === sectionKey);
+  if (sec) sec.members.push(name);
+
+  // Добавляем паттерн (пустой — всё будет через overrides)
+  OPERATOR_BASE_SHIFTS[name] = () => 'off';
+
+  updateGroupsFromSections();
+  closeAddEmployeeModal();
+  renderAll();
+  updateColumnHighlight();
+  showToast(`${name} добавлен`, 'ok');
+}
+
+function deleteEmployee(name, sectionKey) {
+  if (!confirm(`Удалить ${name} из графика?`)) return;
+  const sec = SECTIONS.find(s => s.key === sectionKey);
+  if (sec) {
+    const idx = sec.members.indexOf(name);
+    if (idx !== -1) sec.members.splice(idx, 1);
+  }
+  updateGroupsFromSections();
+  renderAll();
+  updateColumnHighlight();
+  showToast(`${name} удалён`, 'ok');
+}
+
+async function restoreDismissed(name) {
+  // Убираем все dismissed overrides для этого оператора
+  const newOverrides = { ...scheduleOverrides };
+  Object.keys(newOverrides).forEach(key => {
+    if (key.startsWith(`${name}:`) && newOverrides[key].type === 'dismissed') {
+      delete newOverrides[key];
+    }
+  });
+
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: 'восстановлен', target: name }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleOverrides = newOverrides;
+      renderAll();
+      updateColumnHighlight();
+      closeAdmin();
+      showToast(`${name} восстановлен`, 'ok');
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
+  }
+}
+
+function toggleSection(key) {
+  if (collapsedSections.has(key)) {
+    collapsedSections.delete(key);
+  } else {
+    collapsedSections.add(key);
+  }
+  renderAll();
+  updateColumnHighlight();
+}
+
+// ── Day Info Panel ──
+function showDayInfo(ds, di) {
+  selectedDateStr = ds;
+  updateColumnHighlight();
+  const REGULAR_OPS = GROUPS.regular.members;
+  const VIP_OPS = GROUPS.vip.members;
+  const REG_SUPS = GROUPS.supervisors.members;
+  const VIP_SUPS = GROUPS.vip_supervisors.members;
+
+  const ALL_OPS = SECTIONS.flatMap(s => s.members);
+  const hasSwappedOut = (name) => {
+    const key = `${name}:${ds}`;
+    const ov = scheduleOverrides[key];
+    return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+  };
+  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+
+  const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
+
+  const countBlock = (label, m, e, n12, mColor, eColor, n12Color) => `
+    <div class="day-info-block">
+      <div class="day-info-block-title">${label}</div>
+      <div class="day-info-count" style="${low(m,4)}">${m+e+n12}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">всего на смене</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${mColor};flex-shrink:0"></span>
+          <span style="font-size:10px;color:${mColor}">09–21</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(m,4)}">${m}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${eColor};flex-shrink:0"></span>
+          <span style="font-size:10px;color:${eColor}">21–09</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(e,3)}">${e}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${n12Color};flex-shrink:0"></span>
+          <span style="font-size:10px;color:${n12Color}">12–00</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(n12,2)}">${n12}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Супервайзеры
+  const supDay   = REG_SUPS.filter(n => ['super_day','extra_sup_day','extra_sup_day8'].includes(getShift(n, di)));
+  const supNight = REG_SUPS.filter(n => ['super_night','extra_sup_night'].includes(getShift(n, di)));
+  const vipSup   = VIP_SUPS.filter(n => {
+    const t = getShift(n, di);
+    return ['super_day','super_day8','super_night','extra_sup_day','extra_sup_day8','extra_sup_night','work8'].includes(t);
+  });
+
+  // Форматируем дату
+  const date = DAYS[di].date;
+  const dayName = date.toLocaleDateString('ru', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  document.getElementById('day-info-title').textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+  const nameTag = (name, color) =>
+    `<div class="day-info-name"><span class="day-info-dot" style="background:${color}"></span>${name}</div>`;
+
+  document.getElementById('day-info-body').innerHTML = `
+    ${countBlock('Regular Support', regM, regE, reg12, 'var(--shift-morning)', 'var(--shift-evening)', '#f59e0b')}
+    ${countBlock('VIP Support', vipM, vipE, vip12, 'var(--shift-vip-evening)', 'var(--shift-vip-morning)', '#f59e0b')}
+    <div class="day-info-block">
+      <div class="day-info-block-title">Supervisors</div>
+      <div class="day-info-names">
+        ${supDay.length ? `<div style="font-size:9px;color:var(--muted);margin-bottom:2px">ДЕНЬ</div>` + supDay.map(n => nameTag(n, 'var(--shift-super)')).join('') : ''}
+        ${supNight.length ? `<div style="font-size:9px;color:var(--muted);margin:4px 0 2px">НОЧЬ</div>` + supNight.map(n => nameTag(n, 'var(--shift-super-night-color)')).join('') : ''}
+        ${!supDay.length && !supNight.length ? `<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>` : ''}
+      </div>
+    </div>
+    <div class="day-info-block">
+      <div class="day-info-block-title">VIP Supervisors</div>
+      <div class="day-info-names">
+        ${vipSup.length ? vipSup.map(n => {
+          const t = getShift(n, di);
+          const color = t === 'super_night' ? 'var(--shift-super-night-color)' : 'var(--shift-super)';
+          const label = t === 'super_night' ? ' (ночь)' : ' (день)';
+          return `<div class="day-info-name"><span class="day-info-dot" style="background:${color}"></span>${n}<span style="font-size:9px;color:var(--muted)">${label}</span></div>`;
+        }).join('') : `<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>`}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('day-info-panel').classList.add('open');
+  document.getElementById('day-info-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Sticky Dates Bar ──
+function renderStickyDatesBar() {
+  const bar = document.getElementById('sticky-dates-bar');
+  const inner = document.getElementById('sticky-dates-inner');
+  if (!bar || !inner) return;
+
+  // Получаем реальную ширину ячеек из таблицы
+  const sampleTh = document.querySelector('thead th[data-date]');
+  const cellW = sampleTh ? sampleTh.getBoundingClientRect().width : 44;
+
+  let html = `<div class="sticky-dates-label" id="sticky-dates-label">ДАТА</div>`;
+  DAYS.forEach(({ d, date }, di) => {
+    const ds = dateStr(d);
+    const isToday = ds === TODAY_STR;
+    const isSelected = ds === selectedDateStr;
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const dayName = date.toLocaleDateString('ru', { weekday: 'short' });
+    let cls = 'sticky-date-cell';
+    if (isToday) cls += ' today';
+    if (isSelected) cls += ' selected';
+    if (isWeekend && !isToday && !isSelected) cls += ' weekend';
+    html += `<div class="${cls}" data-date="${ds}" style="min-width:${cellW}px;width:${cellW}px" onclick="showDayInfo('${ds}',${di})">
+      <span>${d}</span>
+      <span class="sdc-day">${dayName}</span>
+    </div>`;
+  });
+  html += `<div class="sticky-dates-total" style="min-width:${cellW}px"></div>`;
+  inner.innerHTML = html;
+}
+
+function syncStickyBarScroll() {
+  const inner = document.getElementById('sticky-dates-inner');
+  if (!inner) return;
+  const scrollX = window.scrollX || document.documentElement.scrollLeft;
+  inner.scrollLeft = scrollX;
+
+  // Также обновляем ширину label под текущую реальную ширину col-name+col-info
+  alignStickyLabel();
+}
+
+function alignStickyLabel() {
+  const label = document.getElementById('sticky-dates-label');
+  if (!label) return;
+  const firstDateTh = document.querySelector('thead th[data-date]');
+  if (!firstDateTh) return;
+  // Берём точный left первой ячейки даты — это и есть нужная ширина label
+  const thRect = firstDateTh.getBoundingClientRect();
+  const w = thRect.left;
+  if (w > 0) {
+    label.style.minWidth = w + 'px';
+    label.style.width = w + 'px';
+  }
+  // Также пересчитываем ширину ячеек бара
+  const cellW = firstDateTh.getBoundingClientRect().width;
+  document.querySelectorAll('.sticky-date-cell').forEach(el => {
+    el.style.minWidth = cellW + 'px';
+    el.style.width = cellW + 'px';
+  });
+}
+
+function initStickyDatesBar() {
+  renderStickyDatesBar();
+  const bar = document.getElementById('sticky-dates-bar');
+  const inner = document.getElementById('sticky-dates-inner');
+
+  // Показываем бар при вертикальном скролле > высоты навбара + statsRow
+  let labelAligned = false;
+
+  function onScroll() {
+    const nav = document.querySelector('.nav');
+    const statsRow = document.querySelector('.stats-row');
+    const threshold = (nav?.offsetHeight || 57) + (statsRow?.offsetHeight || 0) + 20;
+    const shouldShow = window.scrollY > threshold;
+    bar.style.display = shouldShow ? 'block' : 'none';
+
+    if (shouldShow) {
+      // Выравниваем label при каждом показе (пока не выровняли точно)
+      if (!labelAligned) { alignStickyLabel(); labelAligned = true; }
+      else { alignStickyLabel(); } // всегда пересчитываем пока скроллим
+      // Синхронизируем горизонтальный скролл
+      inner.scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', () => { labelAligned = false; alignStickyLabel(); renderStickyDatesBar(); }, { passive: true });
+
+  // Клик по дате в баре
+  inner.addEventListener('click', (e) => {
+    const cell = e.target.closest('.sticky-date-cell');
+    if (!cell) return;
+    const ds = cell.dataset.date;
+    const di = DAYS.findIndex(d => dateStr(d.d) === ds);
+    if (di >= 0) showDayInfo(ds, di);
+  });
+
+  // Первичное выравнивание после рендера
+  setTimeout(alignStickyLabel, 100);
+}
+
+function updateColumnHighlight() {
+  // Снимаем старое выделение
+  document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+  if (!selectedDateStr) return;
+  // Выделяем все ячейки выбранного столбца
+  document.querySelectorAll(`[data-date="${selectedDateStr}"]`).forEach(el => el.classList.add('is-selected'));
+  // Обновляем выделение в sticky bar
+  document.querySelectorAll('.sticky-date-cell').forEach(el => {
+    el.classList.toggle('selected', el.dataset.date === selectedDateStr);
+  });
+}
+
+function closeDayInfo() {
+  document.getElementById('day-info-panel').classList.remove('open');
+}
+
+// ── Dismissal ──
+let dismissedEmployees = {}; // { name: 'YYYY-MM-DD' } — дата последней смены
+
+function openDismissModal() {
+  const sel = document.getElementById('dm-operator');
+  sel.innerHTML = '';
+  SECTIONS.flatMap(s => s.members).forEach(name => {
+    if (!dismissedEmployees[name]) {
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    }
+  });
+  const ds = `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  document.getElementById('dm-last-day').value = ds;
+  document.getElementById('dm-msg').className = 'save-msg';
+  document.getElementById('dismiss-overlay').classList.add('open');
+}
+
+function closeDismissModal() {
+  document.getElementById('dismiss-overlay').classList.remove('open');
+}
+
+function dismissOverlayClick(e) {
+  if (e.target === document.getElementById('dismiss-overlay')) closeDismissModal();
+}
+
+async function applyDismissal() {
+  const name = document.getElementById('dm-operator').value;
+  const lastDay = document.getElementById('dm-last-day').value;
+  const msgEl = document.getElementById('dm-msg');
+
+  if (!name || !lastDay) {
+    msgEl.textContent = 'Выберите сотрудника и дату';
+    msgEl.className = 'save-msg err'; return;
+  }
+
+  const newOverrides = { ...scheduleOverrides };
+  const lastDate = new Date(lastDay);
+
+  // Помечаем все рабочие смены после lastDay как 'dismissed'
+  DAYS.forEach((d, di) => {
+    const dt = new Date(`${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`);
+    if (dt <= lastDate) return; // до увольнения не трогаем
+    const baseType = OPERATOR_BASE_SHIFTS[name] ? OPERATOR_BASE_SHIFTS[name](di) : 'off';
+    if (baseType === 'off') return; // выходные не трогаем
+    const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    const existing = newOverrides[key] || {};
+    if (existing.type === 'off') return;
+    newOverrides[key] = { ...existing, type: 'dismissed', customHours: 0, editedAt: new Date().toISOString() };
+  });
+
+  const newDismissed = { ...dismissedEmployees, [name]: lastDay };
+  const newSettings = { ...scheduleSettings, dismissed: newDismissed };
+
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: newOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: `уволен с ${lastDay}`, target: name }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleOverrides = newOverrides;
+      scheduleSettings = newSettings;
+      dismissedEmployees = newDismissed;
+      renderAll(); closeDismissModal();
+      showToast(`${name} уволен с ${lastDay}`, 'ok');
+    } else {
+      msgEl.textContent = data.error || 'Ошибка';
+      msgEl.className = 'save-msg err';
+    }
+  } catch {
+    msgEl.textContent = 'Ошибка сети';
+    msgEl.className = 'save-msg err';
+  }
+}
+
+// ── Filter ──
+function setFilter(filter, btn) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+  updateColumnHighlight();
+}
+
+// ── Admin Panel ──
+function populateOperatorSelect() {
+  const sel = document.getElementById('ap-operator');
+  sel.innerHTML = '';
+  SECTIONS.forEach(s => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = s.label;
+    s.members.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      optgroup.appendChild(opt);
+    });
+    sel.appendChild(optgroup);
+  });
+}
+
+// Единый список типов смен для всех
+const SHIFT_TYPES_ALL = [
+  // Regular
+  { type: 'morning',        label: 'День',      time: '09–21', group: 'Regular' },
+  { type: 'evening',        label: 'Ночь',      time: '21–09', group: 'Regular' },
+  { type: 'shift1200',      label: '12-12',     time: '12–00', group: 'Regular' },
+  { type: 'extra_morning',  label: '+ Доп День',time: '09–21', group: 'Regular' },
+  { type: 'extra_evening',  label: '+ Доп Ночь',time: '21–09', group: 'Regular' },
+  { type: 'extra_1200',     label: '+ Доп 12-12',time: '12–00',group: 'Regular' },
+  // VIP
+  { type: 'vip_evening',       label: 'День',       time: '09–21', group: 'VIP' },
+  { type: 'vip_morning',       label: 'Ночь',       time: '21–09', group: 'VIP' },
+  { type: 'vip_1200',          label: '12-12',      time: '12–00', group: 'VIP' },
+  { type: 'extra_vip_evening', label: '+ Доп День', time: '09–21', group: 'VIP' },
+  { type: 'extra_vip_morning', label: '+ Доп Ночь', time: '21–09', group: 'VIP' },
+  { type: 'extra_vip_1200',    label: '+ Доп 12-12',time: '12–00', group: 'VIP' },
+  // Supervisor
+  { type: 'super_day',       label: 'День 11ч',   time: '09–21', group: 'Sup' },
+  { type: 'super_night',     label: 'Ночь 11ч',   time: '21–09', group: 'Sup' },
+  { type: 'super_day8',      label: 'День 8ч',    time: '09–18', group: 'Sup' },
+  { type: 'extra_sup_day',   label: '+ Доп 11ч',  time: '09–21', group: 'Sup' },
+  { type: 'extra_sup_night', label: '+ Доп Ночь', time: '21–09', group: 'Sup' },
+  { type: 'extra_sup_day8',  label: '+ Доп 8ч',   time: '09–18', group: 'Sup' },
+  // Management/QA
+  { type: 'work8',    label: '8h офис',   time: '09–18', group: 'Mgmt' },
+  // Общие
+  { type: 'nk',       label: 'НК',         time: 'НК',  group: null },
+  { type: 'vacation', label: 'Отпуск',     time: '✈',   group: null },
+  { type: 'sick',     label: 'Больничный', time: '🤒',  group: null },
+  { type: 'birthday', label: 'Выходной ДР', time: '🎂',  group: null },
+  { type: 'off',      label: 'Выходной',   time: '—',   group: null },
+];
+
+const SHIFT_TYPES = {
+  regular_support: SHIFT_TYPES_ALL,
+  vip_support: SHIFT_TYPES_ALL,
+  management: SHIFT_TYPES_ALL,
+  vip_supervisors: SHIFT_TYPES_ALL,
+  supervisors: SHIFT_TYPES_ALL,
+  qa: SHIFT_TYPES_ALL,
+};
+
+// Типы доп событий
+const EXTRA_PLUS_TYPES = [
+  { value: 'extra_critical',       label: 'Крит ситуация' },
+  { value: 'extra_vacation_cover', label: 'Замена отпуска' },
+  { value: 'extra_sick_cover',     label: 'Замена больничного' },
+  { value: 'extra_swap_take',      label: 'Получение/Обмен' },
+  { value: 'extra_org_plus',       label: 'Орг моменты' },
+  { value: 'extra_sick_paid',      label: 'Оплачиваемый больничный' },
+];
+
+const EXTRA_MINUS_TYPES = [
+  { value: 'loss_sick',       label: 'Больничный' },
+  { value: 'loss_vacation',   label: 'Отпуск' },
+  { value: 'loss_org',        label: 'Орг моменты' },
+  { value: 'loss_swap_give',  label: 'Отдача/Обмен' },
+  { value: 'loss_dismissal',  label: 'Увольнение' },
+];
+
+// Для совместимости с Excel экспортом
+const ALL_EXTRA_LABELS = {
+  extra_critical:       'Крит ситуация',
+  extra_vacation_cover: 'Замена отпуска',
+  extra_sick_cover:     'Замена больничного',
+  extra_swap_take:      'Получение/Обмен',
+  extra_org_plus:       'Орг моменты (+)',
+  extra_sick_paid:      'Оплачиваемый больничный',
+  loss_sick:            'Больничный (-)',
+  loss_vacation:        'Отпуск (-)',
+  loss_org:             'Орг моменты (-)',
+  loss_swap_give:       'Отдача/Обмен (-)',
+  loss_dismissal:       'Увольнение (-)',
+  extra_dismissal:      'Увольнение',
+  extra_org:            'Орг моменты',
+  extra_swap_give:      'Обмен (отдал)',
+};
+
+let extraPlusEvents = [];  // [{type, hours}]
+let extraMinusEvents = []; // [{type, hours}]
+
+function renderExtraEvents() {
+  renderExtraBlock('plus');
+  renderExtraBlock('minus');
+}
+
+function renderExtraBlock(kind) {
+  const isSick = selectedShiftType === 'sick';
+  const plusTypes = isSick
+    ? EXTRA_PLUS_TYPES.filter(t => t.value === 'extra_sick_paid')
+    : EXTRA_PLUS_TYPES.filter(t => t.value !== 'extra_sick_paid');
+  const minusTypes = isSick
+    ? EXTRA_MINUS_TYPES.filter(t => t.value === 'loss_sick')
+    : EXTRA_MINUS_TYPES;
+
+  const types = kind === 'plus' ? plusTypes : minusTypes;
+  const events = kind === 'plus' ? extraPlusEvents : extraMinusEvents;
+  const list = document.getElementById(`extra-${kind}-list`);
+  list.innerHTML = '';
+  events.forEach((ev, i) => {
+    if (!types.find(t => t.value === ev.type)) ev.type = types[0].value;
+    const row = document.createElement('div');
+    row.className = 'extra-event-row';
+    row.innerHTML = `
+      <select class="extra-event-select" onchange="extra${kind==='plus'?'Plus':'Minus'}Events[${i}].type=this.value">
+        ${types.map(t => `<option value="${t.value}" ${ev.type===t.value?'selected':''}>${t.label}</option>`).join('')}
+      </select>
+      <input type="number" class="extra-event-hours" placeholder="часы" min="0.5" max="24" step="0.5"
+        value="${ev.hours||''}" oninput="extra${kind==='plus'?'Plus':'Minus'}Events[${i}].hours=parseFloat(this.value)||0" />
+      <button class="extra-event-remove" onclick="removeExtraEvent('${kind}',${i})">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addExtraEvent(kind) {
+  const types = kind === 'plus' ? EXTRA_PLUS_TYPES : EXTRA_MINUS_TYPES;
+  if (kind === 'plus') extraPlusEvents.push({ type: types[0].value, hours: 0 });
+  else extraMinusEvents.push({ type: types[0].value, hours: 0 });
+  renderExtraEvents();
+}
+
+function removeExtraEvent(kind, i) {
+  if (kind === 'plus') extraPlusEvents.splice(i, 1);
+  else extraMinusEvents.splice(i, 1);
+  renderExtraEvents();
+}
+
+function onOperatorChange() {
+  const name = document.getElementById('ap-operator').value;
+  selectedShiftType = null;
+  renderShiftTypeGrid(getSectionForMember(name));
+}
+
+function getSectionForMember(name) {
+  // VIP supervisors
+  if (['Adam','Amelia','Lucas'].includes(name)) return 'vip_supervisors';
+  // Regular supervisors
+  if (['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(name)) return 'supervisors';
+  for (const s of SECTIONS) {
+    if (s.members.includes(name)) return s.key;
+  }
+  return 'management';
+}
+
+function renderShiftTypeGrid(sectionKey) {
+  const types = SHIFT_TYPES_ALL;
+  const grid = document.getElementById('shift-type-grid');
+  grid.style.display = 'flex';
+  grid.style.flexDirection = 'column';
+  grid.style.gap = '8px';
+  grid.innerHTML = '';
+
+  const groups = ['Regular', 'VIP', 'Sup', 'Mgmt', null];
+  const groupLabels = { Regular: 'Regular', VIP: 'VIP', Sup: 'Supervisor', Mgmt: 'Management', null: '' };
+
+  groups.forEach(group => {
+    const groupTypes = types.filter(t => t.group === group || (group === null && t.group === null));
+    if (!groupTypes.length) return;
+
+    if (group !== null) {
+      const divider = document.createElement('div');
+      divider.style.cssText = 'font-size:9px;font-family:Unbounded,sans-serif;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:4px 0 2px;border-top:1px solid var(--border);margin-top:4px';
+      divider.textContent = groupLabels[group];
+      grid.appendChild(divider);
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px';
+    groupTypes.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'shift-type-btn';
+      btn.dataset.type = t.type;
+      btn.onclick = () => selectShiftType(btn);
+      btn.innerHTML = `<span class="stime">${t.time}</span>${t.label}`;
+      row.appendChild(btn);
+    });
+    grid.appendChild(row);
+  });
+}
+
+function openAdmin() {
+  const ds = `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  document.getElementById('ap-date-from').value = ds;
+  document.getElementById('ap-date-to').value = ds;
+  document.getElementById('ap-note').value = '';
+  document.getElementById('save-msg').className = 'save-msg';
+  selectedShiftType = null;
+  extraPlusEvents = []; extraMinusEvents = [];
+  renderExtraEvents();
+  const name = document.getElementById('ap-operator').value;
+  renderShiftTypeGrid(getSectionForMember(name));
+  document.getElementById('admin-overlay').classList.add('open');
+}
+
+function closeAdmin() {
+  document.getElementById('admin-overlay').classList.remove('open');
+  extraPlusEvents = []; extraMinusEvents = [];
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('admin-overlay')) closeAdmin();
+}
+
+// ── Profile Panel ──
+function openProfilePanel() {
+  const name = document.getElementById('ap-operator').value;
+  if (!name) return;
+  const overrides = scheduleSettings.employeeOverrides || {};
+  const emp = EMPLOYEES[name] || {};
+  const ov  = overrides[name] || {};
+  document.getElementById('profile-name-label').textContent = name;
+  document.getElementById('profile-position').value = ov.position ?? emp.position ?? '';
+  document.getElementById('profile-email').value    = ov.email    ?? emp.email    ?? '';
+  document.getElementById('profile-save-msg').className = 'save-msg';
+  document.getElementById('profile-panel').style.display = 'flex';
+}
+
+function closeProfilePanel() {
+  document.getElementById('profile-panel').style.display = 'none';
+}
+
+async function saveProfile() {
+  const name     = document.getElementById('profile-name-label').textContent;
+  const position = document.getElementById('profile-position').value.trim();
+  const email    = document.getElementById('profile-email').value.trim();
+  const msg      = document.getElementById('profile-save-msg');
+
+  if (!position && !email) {
+    msg.textContent = 'Заполните хотя бы одно поле';
+    msg.className = 'save-msg err show';
+    return;
+  }
+
+  const newSettings = {
+    ...scheduleSettings,
+    employeeOverrides: {
+      ...(scheduleSettings.employeeOverrides || {}),
+      [name]: { position, email }
+    }
+  };
+
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: 'профиль', target: name }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      renderAll();
+      closeProfilePanel();
+      showToast(`Профиль ${name} обновлён`, 'ok');
+    } else {
+      msg.textContent = 'Ошибка сохранения';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  }
+}
+
+function quickEdit(name, ds, di) {
+  document.getElementById('ap-operator').value = name;
+  document.getElementById('ap-date-from').value = ds;
+  document.getElementById('ap-date-to').value = ds;
+  document.getElementById('ap-note').value = '';
+  document.getElementById('save-msg').className = 'save-msg';
+  selectedShiftType = null;
+
+  const sectionKey = getSectionForMember(name);
+  renderShiftTypeGrid(sectionKey);
+
+  const currentType = getShift(name, di);
+  const btn = document.querySelector(`.shift-type-btn[data-type="${currentType}"]`);
+  if (btn) { btn.classList.add('selected'); selectedShiftType = currentType; }
+
+  const key = `${name}:${ds}`;
+  const override = scheduleOverrides[key];
+
+  // Кнопка восстановления если уволен
+  const isDismissed = !!dismissedEmployees[name];
+  let restoreBtn = document.getElementById('restore-btn');
+  if (!restoreBtn) {
+    restoreBtn = document.createElement('button');
+    restoreBtn.id = 'restore-btn';
+    restoreBtn.className = 'btn-cancel';
+    restoreBtn.style.cssText = 'color:#34d399;border-color:rgba(52,211,153,0.3);display:none';
+    restoreBtn.textContent = '↩ Восстановить';
+    document.querySelector('.admin-panel-footer').prepend(restoreBtn);
+  }
+  restoreBtn.style.display = isDismissed ? 'block' : 'none';
+  restoreBtn.onclick = () => restoreDismissed(name);
+
+  // Загружаем доп события
+  const allEvents = override?.extraEvents ? [...override.extraEvents] : [];
+  const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
+  extraPlusEvents = allEvents.filter(e => plusTypes.includes(e.type));
+  extraMinusEvents = allEvents.filter(e => !plusTypes.includes(e.type));
+  renderExtraEvents();
+
+  document.getElementById('ap-note').value = override?.note || '';
+  document.getElementById('admin-overlay').classList.add('open');
+}
+
+function selectShiftType(btn) {
+  document.querySelectorAll('.shift-type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedShiftType = btn.dataset.type;
+
+  // Поле кастомных часов — только для доп смен
+  const isExtra = selectedShiftType.startsWith('extra_');
+  const hoursField = document.getElementById('custom-hours-field');
+  const hint = document.getElementById('ap-default-hours-hint');
+  if (hoursField) {
+    hoursField.style.display = isExtra ? 'flex' : 'none';
+    if (isExtra && hint) {
+      const defH = DEFAULT_HOURS[selectedShiftType] || 11;
+      hint.textContent = `по умолчанию: ${defH}ч`;
+    }
+  }
+
+  // При выборе больничного — автоматически добавляем потерю часов
+  if (selectedShiftType === 'sick') {
+    // Берём часы предыдущей смены оператора или дефолт 11
+    const opName = document.getElementById('ap-operator').value;
+    const dateFrom = document.getElementById('ap-date-from').value;
+    let defaultH = 11;
+    if (opName && dateFrom) {
+      const dt = new Date(dateFrom);
+      const di = dt.getDate() - 1;
+      const prevType = OPERATOR_BASE_SHIFTS[opName] ? OPERATOR_BASE_SHIFTS[opName](di) : null;
+      if (prevType && DEFAULT_HOURS[prevType]) defaultH = DEFAULT_HOURS[prevType];
+    }
+    // Добавляем потерю если ещё нет
+    const alreadyHas = extraMinusEvents.some(e => e.type === 'loss_sick');
+    if (!alreadyHas) {
+      extraMinusEvents = [{ type: 'loss_sick', hours: defaultH }];
+      renderExtraEvents();
+    }
+    // Убираем авто ДР если было
+    extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
+    document.getElementById('ap-note').required = true;
+    document.getElementById('ap-note').placeholder = 'Заметка обязательна для больничного';
+  } else if (selectedShiftType === 'birthday') {
+    // Авто: +11ч орг моменты
+    const alreadyHasBday = extraPlusEvents.some(e => e._autoBirthday);
+    if (!alreadyHasBday) {
+      extraPlusEvents = [{ type: 'extra_org_plus', hours: 11, _autoBirthday: true }];
+      renderExtraEvents();
+    }
+    // Убираем авто-потерю больничного если была
+    extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    document.getElementById('ap-note').placeholder = 'Укажите причину';
+    document.getElementById('ap-note').required = false;
+  } else {
+    // Снимаем ограничения
+    document.getElementById('ap-note').placeholder = 'Укажите причину';
+    document.getElementById('ap-note').required = false;
+    // Убираем авто-потерю если была добавлена автоматически
+    extraMinusEvents = extraMinusEvents.filter(e => e.type !== 'loss_sick');
+    // Убираем авто ДР если было
+    extraPlusEvents = extraPlusEvents.filter(e => e._autoBirthday !== true);
+    renderExtraEvents();
+  }
+
+  // Показываем/скрываем оплачиваемый больничный в плюс событиях
+  renderExtraEvents();
+}
+
+async function saveShift() {
+  const operator = document.getElementById('ap-operator').value;
+  const dateFrom = document.getElementById('ap-date-from').value;
+  const dateTo = document.getElementById('ap-date-to').value;
+  const note = document.getElementById('ap-note').value.trim();
+  const msgEl = document.getElementById('save-msg');
+
+  if (!operator || !dateFrom || !dateTo || !selectedShiftType) {
+    msgEl.textContent = 'Выберите сотрудника, период и тип смены';
+    msgEl.className = 'save-msg err';
+    return;
+  }
+
+  const hasExtraEvents = [...extraPlusEvents, ...extraMinusEvents].some(e => e.hours > 0);
+  const isSick = selectedShiftType === 'sick';
+
+  if ((hasExtraEvents || isSick) && !note) {
+    msgEl.textContent = 'Заметка обязательна при доп событиях или больничном';
+    msgEl.className = 'save-msg err';
+    document.getElementById('ap-note').focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Сохранение...';
+  msgEl.className = 'save-msg';
+
+  const from = new Date(dateFrom);
+  const to = new Date(dateTo);
+  const newOverrides = { ...scheduleOverrides };
+
+  for (let dt = new Date(from); dt <= to; dt.setDate(dt.getDate() + 1)) {
+    if (dt.getMonth() !== MONTH - 1 || dt.getFullYear() !== YEAR) continue;
+    const key = `${operator}:${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    const isExtra = selectedShiftType.startsWith('extra_');
+    const customHoursInput = document.getElementById('ap-custom-hours');
+    const customHours = isExtra && customHoursInput?.value ? parseFloat(customHoursInput.value) : null;
+    const allExtraEvents = [...extraPlusEvents, ...extraMinusEvents]
+      .filter(e => e.hours > 0)
+      .map(({ _autoBirthday, ...e }) => e); // убираем служебное поле
+    newOverrides[key] = {
+      type: selectedShiftType,
+      note,
+      ...(customHours ? { customHours } : {}),
+      ...(allExtraEvents.length ? { extraEvents: allExtraEvents } : {}),
+      editedBy: currentUser?.email,
+      editedAt: new Date().toISOString()
+    };
+  }
+
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: `смена: ${selectedShiftType} · ${dateFrom === dateTo ? dateFrom : `${dateFrom} — ${dateTo}`}`, target: operator }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleOverrides = newOverrides;
+      renderAll();
+      updateStats();
+      closeAdmin();
+      showToast('Изменения сохранены', 'ok');
+    } else {
+      msgEl.textContent = data.error || 'Ошибка сохранения';
+      msgEl.className = 'save-msg err';
+    }
+  } catch {
+    msgEl.textContent = 'Ошибка сети';
+    msgEl.className = 'save-msg err';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Сохранить';
+  }
+}
+
+// ── Excel Export ──
+function exportToExcel() {
+  const wb = XLSX.utils.book_new();
+
+  const EXTRA_LABELS = ALL_EXTRA_LABELS;
+
+  const SHIFT_LABELS = {
+    morning: 'Утро', evening: 'Вечер', night: 'Ночь',
+    super_day: 'Sup День', super_night: 'Sup Ночь',
+    work8: '8h', vacation: 'Отпуск', sick: 'Больничный', off: '—'
+  };
+
+  const DEFAULT_H = { morning:11, evening:11, night:11, vip_morning:11, vip_evening:11, vip_1200:11, super_day:11, super_night:11, shift1200:11, work8:8 };
+
+  // Все сотрудники по секциям
+  const allMembers = SECTIONS.flatMap(s => s.members.map(name => ({
+    name, section: s.label, position: EMPLOYEES[name]?.position || ''
+  })));
+
+  // ── Лист 1: График ──
+  const scheduleHeader = ['Сотрудник', 'Отдел', 'Позиция', ...DAYS.map(d => `${d.d}/${MONTH}`)];
+  const scheduleRows = [scheduleHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    const row = [name, section, position];
+    DAYS.forEach((d, di) => {
+      const type = getShift(name, di);
+      row.push(SHIFT_LABELS[type] || type);
+    });
+    scheduleRows.push(row);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(scheduleRows);
+  ws1['!cols'] = [{ wch: 16 }, { wch: 20 }, { wch: 16 }, ...DAYS.map(() => ({ wch: 7 }))];
+  XLSX.utils.book_append_sheet(wb, ws1, 'График');
+
+  // ── Лист 2: Статистика часов ──
+  const statsHeader = [
+    'Сотрудник', 'Отдел', 'Позиция',
+    'Всего часов', 'Смен', 'Утро', 'Вечер', 'Ночь', 'Sup День', 'Sup Ночь', '8h',
+    'Отпусков', 'Больничных', 'Выходных'
+  ];
+  const statsRows = [statsHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    const counts = {};
+    let totalHours = 0;
+    let totalShifts = 0;
+
+    DAYS.forEach((d, di) => {
+      const type = getShift(name, di);
+      counts[type] = (counts[type] || 0) + 1;
+
+      // Кастомные часы или дефолт
+      const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      const override = scheduleOverrides[key];
+      const h = override?.customHours || DEFAULT_H[type] || 0;
+      totalHours += h;
+      if (!['off','vacation','sick'].includes(type)) totalShifts++;
+    });
+
+    statsRows.push([
+      name, section, position,
+      totalHours, totalShifts,
+      counts.morning || 0, counts.evening || 0, counts.night || 0,
+      counts.super_day || 0, counts.super_night || 0, counts.work8 || 0,
+      counts.vacation || 0, counts.sick || 0, counts.off || 0
+    ]);
+  });
+
+  const ws2 = XLSX.utils.aoa_to_sheet(statsRows);
+  ws2['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },{ wch:12 },{ wch:8 },
+    { wch:7 },{ wch:7 },{ wch:7 },{ wch:10 },{ wch:10 },{ wch:7 },
+    { wch:10 },{ wch:12 },{ wch:10 }];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Статистика');
+
+  // ── Лист 3: Доп события ──
+  const extraHeader = ['Сотрудник', 'Отдел', 'Позиция', 'Дата', 'Тип события', 'Часы', 'Заметка'];
+  const extraRows = [extraHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    DAYS.forEach((d) => {
+      const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      const override = scheduleOverrides[key];
+      if (override?.extraEvents?.length) {
+        override.extraEvents.forEach(ev => {
+          if (ev.hours > 0) {
+            extraRows.push([
+              name, section, position,
+              `${d.d}.${MONTH}.${YEAR}`,
+              EXTRA_LABELS[ev.type] || ev.type,
+              ev.hours,
+              override.note || ''
+            ]);
+          }
+        });
+      }
+    });
+  });
+
+  const ws3 = XLSX.utils.aoa_to_sheet(extraRows);
+  ws3['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },{ wch:12 },{ wch:22 },{ wch:7 },{ wch:30 }];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Доп события');
+
+  // ── Лист 4: Сводка доп часов ──
+  const summaryHeader = ['Сотрудник', 'Отдел', 'Позиция',
+    'Замена отпуска', 'Замена больничного', 'Крит ситуация',
+    'Увольнение', 'Орг моменты', 'Обмен (отдал)', 'Обмен (получил)', 'Итого доп часов'
+  ];
+  const summaryRows = [summaryHeader];
+
+  allMembers.forEach(({name, section, position}) => {
+    const extraTotals = {};
+    DAYS.forEach((d) => {
+      const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+      const override = scheduleOverrides[key];
+      if (override?.extraEvents) {
+        override.extraEvents.forEach(ev => {
+          if (ev.hours > 0) {
+            extraTotals[ev.type] = (extraTotals[ev.type] || 0) + ev.hours;
+          }
+        });
+      }
+    });
+
+    const total = Object.values(extraTotals).reduce((a,b) => a+b, 0);
+    if (total > 0) {
+      summaryRows.push([
+        name, section, position,
+        extraTotals.extra_vacation_cover || 0,
+        extraTotals.extra_sick_cover || 0,
+        extraTotals.extra_critical || 0,
+        extraTotals.extra_dismissal || 0,
+        extraTotals.extra_org || 0,
+        extraTotals.extra_swap_give || 0,
+        extraTotals.extra_swap_take || 0,
+        total
+      ]);
+    }
+  });
+
+  const ws4 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws4['!cols'] = [{ wch:16 },{ wch:20 },{ wch:16 },
+    { wch:16 },{ wch:18 },{ wch:14 },
+    { wch:12 },{ wch:14 },{ wch:16 },{ wch:18 },{ wch:14 }];
+  XLSX.utils.book_append_sheet(wb, ws4, 'Сводка доп часов');
+
+  XLSX.writeFile(wb, `График_Июнь_${YEAR}.xlsx`);
+}
+
+function showStaleWarning() {
+  const existing = document.getElementById('stale-warning');
+  if (existing) return;
+  const el = document.createElement('div');
+  el.id = 'stale-warning';
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  el.innerHTML = `<div style="background:var(--bg-card);border-radius:12px;padding:24px 32px;max-width:400px;text-align:center;">
+    <div style="font-size:24px;margin-bottom:12px;">⚠️</div>
+    <div style="font-weight:700;font-size:16px;margin-bottom:8px;">Данные устарели</div>
+    <div style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;">Кто-то внёс изменения пока страница была открыта. Перезагрузите страницу, чтобы увидеть актуальные данные.</div>
+    <button onclick="location.reload()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">Перезагрузить</button>
+  </div>`;
+  document.body.appendChild(el);
+}
+
+// ────────────────────────────────────────────
+// ── ОБМЕН СМЕНАМИ (заявки через ТГ-бота) ──
+// ────────────────────────────────────────────
+const SWAP_PROJECT = 'sg';
+const SWAP_MIN_REST = 6; // минимальный отдых между сменами, часов
+
+// Окна смен, которые можно отдавать: [начало, конец] в часах от 00:00 дня смены (конец > 24 = переход на след. день)
+const SWAP_GIVABLE = {
+  morning: [9,21], evening: [21,33], shift1200: [12,24],
+  vip_evening: [9,21], vip_morning: [21,33], vip_1200: [12,24],
+  super_day: [9,21], super_night: [21,33], super_day8: [10,19],
+};
+// Окна занятости (включая доп-смены и прочее) для проверки конфликтов
+const SWAP_BUSY_WINDOWS = {
+  ...SWAP_GIVABLE,
+  night: [21,33], work8: [9,18],
+  extra_morning: [9,21], extra_evening: [21,33], extra_1200: [12,24],
+  extra_vip_morning: [21,33], extra_vip_evening: [9,21], extra_vip_1200: [12,24],
+  extra_sup_day: [9,21], extra_sup_night: [21,33], extra_sup_day8: [10,19],
+};
+// Ночные типы: после ночи нельзя брать дневную смену на следующий день
+const SWAP_NIGHT_TYPES = new Set(['evening','vip_morning','super_night','night','extra_evening','extra_vip_morning','extra_sup_night']);
+// Типы дня получателя, при которых взять смену нельзя
+const SWAP_BLOCK_DAY = new Set(['vacation','sick','nk','birthday','dismissed']);
+
+function swapEmpOv(name) {
+  const ov = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const emp = EMPLOYEES[name] || {};
+  return { position: String(ov.position ?? emp.position ?? '').trim(), email: String(ov.email ?? emp.email ?? '').trim() };
+}
+function swapGroupOf(name) {
+  const p = swapEmpOv(name).position.toLowerCase();
+  if (p === 'support') return 'support';
+  if (p === 'supervisor') return 'supervisor';
+  return null;
+}
+function swapFindMyName() {
+  if (!currentUser?.email) return null;
+  const e = currentUser.email.toLowerCase();
+  const all = [...new Set(SECTIONS.flatMap(s => s.members))];
+  return all.find(n => swapEmpOv(n).email.toLowerCase() === e) || null;
+}
+function swapAllOperators() {
+  return [...new Set(SECTIONS.flatMap(s => s.members))].filter(n => swapGroupOf(n) && !(dismissedEmployees && dismissedEmployees[n]));
+}
+function swapFmtH(h) { return `${String(((h % 24) + 24) % 24).padStart(2,'0')}:00`; }
+function swapFmtRange(s, e) { return `${swapFmtH(s)}-${swapFmtH(e)}${e > 24 ? ' (+1д)' : ''}`; }
+
+// Тип смены оператора на произвольную дату (в текущем месяце с учётом overrides, вне месяца только по паттерну)
+function swapShiftOnDate(name, date) {
+  if (date.getFullYear() === YEAR && date.getMonth() + 1 === MONTH) {
+    return getShift(name, date.getDate() - 1);
+  }
+  const p = getPatternShift(name, date);
+  return p ?? 'off';
+}
+
+// Интервалы занятости (часы относительно 00:00 базовой даты) на день до, день смены и день после
+function swapBusyIntervals(name, baseDate) {
+  const res = [];
+  for (let off = -1; off <= 1; off++) {
+    const d = new Date(baseDate); d.setDate(d.getDate() + off);
+    const t = swapShiftOnDate(name, d);
+    let ovr = null;
+    if (d.getFullYear() === YEAR && d.getMonth() + 1 === MONTH) {
+      ovr = scheduleOverrides[`${name}:${dateStr(d.getDate())}`];
+    }
+    if (t === 'nk') { res.push([off * 24, off * 24 + 24]); continue; }
+    const takeWins = (ovr?.extraEvents || []).filter(e => e.type === 'extra_swap_take' && Array.isArray(e.win)).map(e => e.win);
+    if (t && t.startsWith('extra_') && takeWins.length) {
+      // доп-смена получена свапом: занят только в реально взятые окна
+      takeWins.forEach(w => res.push([off * 24 + w[0], off * 24 + w[1]]));
+      continue;
+    }
+    const w = SWAP_BUSY_WINDOWS[t];
+    if (w) res.push([off * 24 + w[0], off * 24 + w[1]]);
+    takeWins.forEach(w2 => res.push([off * 24 + w2[0], off * 24 + w2[1]]));
+  }
+  return res;
+}
+
+// Сколько часов у отдающего ещё доступно к отдаче в этот день
+function swapRemainingHours(name, dNum, type) {
+  const ovr = scheduleOverrides[`${name}:${dateStr(dNum)}`];
+  let base = ovr?.customHours || getHours(type) || 0;
+  let minus = 0;
+  (ovr?.extraEvents || []).forEach(ev => {
+    if (ev.hours > 0 && ev.type.startsWith('loss_')) minus += ev.hours;
+  });
+  return Math.max(0, base - minus);
+}
+
+function swapCandidateOk(cand, giver, dateObj, win, shiftType) {
+  if (cand === giver) return false;
+  const g1 = swapGroupOf(giver), g2 = swapGroupOf(cand);
+  if (!g1 || g1 !== g2) return false;
+  const dayType = swapShiftOnDate(cand, dateObj);
+  if (SWAP_BLOCK_DAY.has(dayType)) return false;
+  // ночь накануне блокирует любую дневную смену
+  const prev = new Date(dateObj); prev.setDate(prev.getDate() - 1);
+  if (SWAP_NIGHT_TYPES.has(swapShiftOnDate(cand, prev)) && !SWAP_NIGHT_TYPES.has(shiftType)) return false;
+  // пересечения и минимальный отдых 6ч в обе стороны
+  for (const [s, e] of swapBusyIntervals(cand, dateObj)) {
+    if (!(e + SWAP_MIN_REST <= win[0] || win[1] + SWAP_MIN_REST <= s)) return false;
+  }
+  return true;
+}
+
+function initSwapUi() {
+  const btn = document.getElementById('swap-btn');
+  if (!btn) return;
+  const myName = swapFindMyName();
+  btn.style.display = (isAdmin || (myName && swapGroupOf(myName))) ? 'flex' : 'none';
+}
+
+function openSwapPanel() {
+  const myName = swapFindMyName();
+  const giverSel = document.getElementById('swap-giver');
+  if (isAdmin) {
+    const ops = swapAllOperators();
+    giverSel.innerHTML = ops.map(n => `<option value="${n}" ${n === myName ? 'selected' : ''}>${n}</option>`).join('');
+    giverSel.disabled = false;
+  } else {
+    if (!myName || !swapGroupOf(myName)) { showToast('Ваш email не привязан к оператору в графике', 'err'); return; }
+    giverSel.innerHTML = `<option value="${myName}">${myName}</option>`;
+    giverSel.disabled = true;
+  }
+  document.getElementById('swap-comment').value = '';
+  document.getElementById('swap-msg').className = 'save-msg';
+  swapOnGiverChange();
+  document.getElementById('swap-overlay').classList.add('open');
+}
+
+function closeSwapPanel() {
+  document.getElementById('swap-overlay').classList.remove('open');
+}
+
+function swapShiftLabelOf(type) {
+  const t = SHIFT_TYPES_ALL.find(x => x.type === type);
+  return t ? `${t.group ? t.group + ' ' : ''}${t.label} (${t.time})` : type;
+}
+
+function swapOnGiverChange() {
+  const giver = document.getElementById('swap-giver').value;
+  const dateSel = document.getElementById('swap-date');
+  let minDay = 1;
+  const isCurrent = TODAY_REAL_DATE.getFullYear() === YEAR && TODAY_REAL_DATE.getMonth() + 1 === MONTH;
+  const isPast = new Date(YEAR, MONTH - 1, 1) < new Date(TODAY_REAL_DATE.getFullYear(), TODAY_REAL_DATE.getMonth(), 1);
+  if (isCurrent) minDay = TODAY_REAL_DATE.getDate();
+  const opts = [];
+  if (!isPast) {
+    for (let d = minDay; d <= DAYS.length; d++) {
+      const type = getShift(giver, d - 1);
+      if (!SWAP_GIVABLE[type]) continue;
+      if (swapRemainingHours(giver, d, type) <= 0) continue;
+      opts.push(`<option value="${d}|${type}">${String(d).padStart(2,'0')}.${String(MONTH).padStart(2,'0')} · ${swapShiftLabelOf(type)}</option>`);
+    }
+  }
+  dateSel.innerHTML = opts.length ? opts.join('') : '<option value="">Нет смен для отдачи</option>';
+  swapOnDateChange();
+}
+
+function swapSelectedDateInfo() {
+  const v = document.getElementById('swap-date').value;
+  if (!v) return null;
+  const [dStr, type] = v.split('|');
+  const d = parseInt(dStr, 10);
+  return { d, type, dateObj: new Date(YEAR, MONTH - 1, d), win: SWAP_GIVABLE[type] };
+}
+
+function swapOnDateChange() {
+  const info = swapSelectedDateInfo();
+  const fromSel = document.getElementById('swap-from');
+  const toSel = document.getElementById('swap-to');
+  if (!info) {
+    fromSel.innerHTML = ''; toSel.innerHTML = '';
+    swapOnRangeChange();
+    return;
+  }
+  const [w0, w1] = info.win;
+  let f = '';
+  for (let h = w0; h < w1; h++) f += `<option value="${h}">${swapFmtH(h)}</option>`;
+  fromSel.innerHTML = f;
+  fromSel.value = String(w0);
+  swapOnFromChange(true);
+}
+
+function swapOnFromChange(keepFull) {
+  const info = swapSelectedDateInfo();
+  const toSel = document.getElementById('swap-to');
+  if (!info) { toSel.innerHTML = ''; swapOnRangeChange(); return; }
+  const [, w1] = info.win;
+  const from = parseInt(document.getElementById('swap-from').value, 10);
+  let t = '';
+  for (let h = from + 1; h <= w1; h++) t += `<option value="${h}">${swapFmtH(h)}${h > 24 ? ' (+1д)' : ''}</option>`;
+  toSel.innerHTML = t;
+  toSel.value = String(w1);
+  swapOnRangeChange();
+}
+
+function swapComputedHours() {
+  const info = swapSelectedDateInfo();
+  if (!info) return { hours: 0, remaining: 0, from: 0, to: 0 };
+  const from = parseInt(document.getElementById('swap-from').value, 10);
+  const to = parseInt(document.getElementById('swap-to').value, 10);
+  const remaining = swapRemainingHours(document.getElementById('swap-giver').value, info.d, info.type);
+  if (isNaN(from) || isNaN(to) || to <= from) return { hours: 0, remaining, from: 0, to: 0 };
+  return { hours: Math.min(to - from, remaining), remaining, from, to };
+}
+
+function swapOnRangeChange() {
+  const { hours, remaining } = swapComputedHours();
+  const lbl = document.getElementById('swap-hours-label');
+  lbl.textContent = hours > 0 ? `Будет передано: ${hours}ч (доступно ${remaining}ч)` : 'Выберите корректный диапазон';
+  swapRebuildRecipients();
+}
+
+function swapRebuildRecipients() {
+  const sel = document.getElementById('swap-recipient');
+  const hint = document.getElementById('swap-cand-hint');
+  const info = swapSelectedDateInfo();
+  const { hours, from, to } = swapComputedHours();
+  if (!info || hours <= 0) { sel.innerHTML = '<option value="">·</option>'; hint.textContent = ''; return; }
+  const giver = document.getElementById('swap-giver').value;
+  const all = swapAllOperators();
+  const ok = all.filter(c => swapCandidateOk(c, giver, info.dateObj, [from, to], info.type));
+  sel.innerHTML = ok.length
+    ? ok.map(n => `<option value="${n}">${n}</option>`).join('')
+    : '<option value="">Нет доступных получателей</option>';
+  hint.textContent = `Доступно получателей: ${ok.length} из ${all.length - 1} (учтены конфликты, ночь накануне, отдых ${SWAP_MIN_REST}ч)`;
+}
+
+async function submitSwapRequest() {
+  const info = swapSelectedDateInfo();
+  const { hours, from, to } = swapComputedHours();
+  const giver = document.getElementById('swap-giver').value;
+  const recipient = document.getElementById('swap-recipient').value;
+  const msg = document.getElementById('swap-msg');
+  const btn = document.getElementById('swap-submit');
+
+  if (!info || hours <= 0) { msg.textContent = 'Выберите смену и корректный диапазон часов'; msg.className = 'save-msg err show'; return; }
+  if (!recipient) { msg.textContent = 'Выберите получателя'; msg.className = 'save-msg err show'; return; }
+  const recipientEmail = swapEmpOv(recipient).email;
+  if (!recipientEmail) { msg.textContent = `У ${recipient} не указан email в профиле`; msg.className = 'save-msg err show'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Отправка...';
+  msg.className = 'save-msg';
+
+  try {
+    const res = await fetch(`${API}/swap-request`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: SWAP_PROJECT,
+        month: `${YEAR}-${String(MONTH).padStart(2,'0')}`,
+        date: dateStr(info.d),
+        giver,
+        recipient,
+        recipientEmail,
+        shiftType: info.type,
+        shiftLabel: swapShiftLabelOf(info.type),
+        range: swapFmtRange(from, to),
+        hours,
+        win: [from, to],
+        comment: document.getElementById('swap-comment').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      closeSwapPanel();
+      showToast('Заявка отправлена ТЛ-ам на рассмотрение', 'ok');
+    } else {
+      msg.textContent = data.error || 'Ошибка отправки заявки';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Отправить заявку';
+  }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Pattern Modal ──
+let patternModalName = null;
+
+function togglePatternDropdown() {
+  document.getElementById('pattern-select-dropdown').classList.toggle('open');
+}
+
+function selectPatternOption(el) {
+  const value = el.dataset.value;
+  const label = el.textContent;
+  document.getElementById('pattern-preset-select').value = value;
+  document.getElementById('pattern-select-display').textContent = label;
+  document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('pattern-select-dropdown').classList.remove('open');
+}
+
+// Закрываем дропдаун при клике вне
+document.addEventListener('click', (e) => {
+  const wrapper = document.getElementById('pattern-select-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    document.getElementById('pattern-select-dropdown')?.classList.remove('open');
+  }
+});
+
+const PATTERN_PRESET_LABELS = {
+  'morning_evening': '09-21 / 21-09 (день первый)',
+  'evening_morning': '21-09 / 09-21 (ночь первой)',
+  'shift1200':       '12-00 / выходной 2/2',
+  'vip_day_night':   'VIP день/ночь (день первый)',
+  'vip_night_day':   'VIP ночь/день (ночь первой)',
+  'vip_1200':        'VIP 12-00 / выходной 2/2',
+  'off':             'Выходной (нет смен)',
+  'custom':          'Кастомный (не менять)',
+};
+
+function openPatternModal(name) {
+  patternModalName = name;
+  document.getElementById('pattern-modal-title').textContent = `Паттерн: ${name}`;
+  
+  const patterns = scheduleSettings.operatorPatterns || {};
+  const existing = patterns[name];
+  
+  // Определяем текущий пресет
+  let currentPreset = 'morning_evening';
+  if (existing?.pattern) {
+    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(','));
+    currentPreset = found || 'custom';
+  }
+  // Устанавливаем значение кастомного селекта
+  document.getElementById('pattern-preset-select').value = currentPreset;
+  const optEl = document.querySelector(`#pattern-select-dropdown [data-value="${currentPreset}"]`);
+  if (optEl) {
+    document.getElementById('pattern-select-display').textContent = optEl.textContent;
+    document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
+    optEl.classList.add('selected');
+  }
+  
+  document.getElementById('pattern-cycle-start').value = existing ? existing.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+  
+  document.getElementById('pattern-modal-overlay').classList.add('open');
+}
+
+function closePatternModal() {
+  document.getElementById('pattern-modal-overlay').classList.remove('open');
+  patternModalName = null;
+}
+
+async function savePattern() {
+  if (!patternModalName) return;
+  
+  const presetKey = document.getElementById('pattern-preset-select').value;
+  const cycleStart = document.getElementById('pattern-cycle-start').value;
+  
+  if (!cycleStart) {
+    alert('Укажите дату начала цикла');
+    return;
+  }
+  
+  if (presetKey === 'custom') {
+    closePatternModal();
+    return;
+  }
+
+  // Supervisor auto — удаляем кастомный паттерн, возвращаем к BASE_PATTERNS/getSuperTeamShift
+  if (presetKey === 'supervisor_auto') {
+    const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
+    delete newPatterns[patternModalName];
+    const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
+    try {
+      const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+      const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: 'паттерн сброшен', target: patternModalName }] })
+      });
+      const data = await res.json();
+      if (res.status === 409) { showStaleWarning(); return; }
+      if (res.ok && data.ok) {
+        if (data.version) scheduleVersion = data.version;
+        if (data.log) scheduleLog = data.log;
+        scheduleSettings = newSettings;
+        renderAll();
+        closePatternModal();
+        showToast(`Паттерн ${patternModalName} сброшен`, 'ok');
+      } else {
+        showToast('Ошибка сохранения', 'err');
+      }
+    } catch { showToast('Ошибка сети', 'err'); }
+    return;
+  }
+
+  const pattern = PATTERN_PRESETS[presetKey];
+  if (!pattern) return;
+  
+  const newSettings = {
+    ...scheduleSettings,
+    operatorPatterns: {
+      ...(scheduleSettings.operatorPatterns || {}),
+      [patternModalName]: { pattern, cycleStart }
+    }
+  };
+  
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: `паттерн: ${presetKey}`, target: patternModalName }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      renderAll();
+      closePatternModal();
+      showToast(`Паттерн ${patternModalName} сохранён`, 'ok');
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
+  }
+}
+</script>
+
+<!-- Pattern Modal -->
+<div class="pattern-modal-overlay" id="pattern-modal-overlay">
+  <div class="pattern-modal">
+    <h3 id="pattern-modal-title">Паттерн</h3>
+    <label>Тип паттерна</label>
+    <div class="custom-select-wrapper" id="pattern-select-wrapper">
+      <div class="custom-select-selected" id="pattern-select-display" onclick="togglePatternDropdown()">09-21 / 21-09 (день первый)</div>
+      <div class="custom-select-dropdown" id="pattern-select-dropdown">
+        <div class="custom-select-option selected" data-value="morning_evening" onclick="selectPatternOption(this)">09-21 / 21-09 (день первый)</div>
+        <div class="custom-select-option" data-value="evening_morning" onclick="selectPatternOption(this)">21-09 / 09-21 (ночь первой)</div>
+        <div class="custom-select-option" data-value="shift1200" onclick="selectPatternOption(this)">12-00 / выходной 2/2</div>
+        <div class="custom-select-option" data-value="vip_day_night" onclick="selectPatternOption(this)">VIP день/ночь (день первый)</div>
+        <div class="custom-select-option" data-value="vip_night_day" onclick="selectPatternOption(this)">VIP ночь/день (ночь первой)</div>
+        <div class="custom-select-option" data-value="vip_1200" onclick="selectPatternOption(this)">VIP 12-00 / выходной 2/2</div>
+        <div class="custom-select-option" data-value="off" onclick="selectPatternOption(this)">Выходной (нет смен)</div>
+        <div class="custom-select-option" data-value="supervisor_auto" onclick="selectPatternOption(this)">Supervisor (авто, сбросить)</div>
+        <div class="custom-select-option" data-value="super_day_only" onclick="selectPatternOption(this)">Sup день 2/2 (фиксированный)</div>
+        <div class="custom-select-option" data-value="super_night_only" onclick="selectPatternOption(this)">Sup ночь 2/2 (фиксированный)</div>
+        <div class="custom-select-option" data-value="team1_0" onclick="selectPatternOption(this)">Team1 позиция 0 (как Irma)</div>
+        <div class="custom-select-option" data-value="team1_1" onclick="selectPatternOption(this)">Team1 позиция 1 (как Solomon)</div>
+        <div class="custom-select-option" data-value="team1_2" onclick="selectPatternOption(this)">Team1 позиция 2 (как Toby)</div>
+        <div class="custom-select-option" data-value="team2_0" onclick="selectPatternOption(this)">Team2 позиция 0 (как Curtis)</div>
+        <div class="custom-select-option" data-value="team2_1" onclick="selectPatternOption(this)">Team2 позиция 1 (как Manuel)</div>
+        <div class="custom-select-option" data-value="team2_2" onclick="selectPatternOption(this)">Team2 позиция 2 (как Reggie)</div>
+        <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
+      </div>
+      <input type="hidden" id="pattern-preset-select" value="morning_evening" />
+    </div>
+    <label>Дата начала цикла</label>
+    <input type="date" id="pattern-cycle-start" />
+    <div style="font-size:11px;color:var(--text-sub);margin-top:6px">
+      День 0 цикла = эта дата. Паттерн продолжается бесконечно.
+    </div>
+    <div class="pattern-modal-footer">
+      <button class="btn-cancel" onclick="closePatternModal()">Отмена</button>
+      <button class="btn-save" onclick="savePattern()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Panel -->
+<div class="history-overlay" id="history-overlay" onclick="historyOverlayClick(event)">
+  <div class="history-panel">
+    <div class="history-panel-header">
+      <span class="history-panel-title">🕐 История изменений</span>
+      <button class="close-btn" onclick="closeHistoryPanel()">✕</button>
+    </div>
+    <div class="history-panel-body" id="history-panel-body"></div>
+    <div class="history-pagination">
+      <span class="history-page-info" id="history-page-info"></span>
+      <div class="history-page-btns">
+        <button class="history-page-btn" id="history-prev" onclick="historyPrevPage()">← Назад</button>
+        <button class="history-page-btn" id="history-next" onclick="historyNextPage()">Вперёд →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const HISTORY_PER_PAGE = 50;
+let historyPage = 0;
+
+function openHistoryPanel() {
+  historyPage = 0;
+  renderHistoryPage();
+  document.getElementById('history-overlay').classList.add('open');
+}
+
+function closeHistoryPanel() {
+  document.getElementById('history-overlay').classList.remove('open');
+}
+
+function historyOverlayClick(e) {
+  if (e.target === document.getElementById('history-overlay')) closeHistoryPanel();
+}
+
+function historyPrevPage() {
+  if (historyPage > 0) { historyPage--; renderHistoryPage(); }
+}
+
+function historyNextPage() {
+  const total = scheduleLog.length;
+  const maxPage = Math.max(0, Math.ceil(total / HISTORY_PER_PAGE) - 1);
+  if (historyPage < maxPage) { historyPage++; renderHistoryPage(); }
+}
+
+function renderHistoryPage() {
+  const body = document.getElementById('history-panel-body');
+  const info = document.getElementById('history-page-info');
+  const prevBtn = document.getElementById('history-prev');
+  const nextBtn = document.getElementById('history-next');
+
+  // Лог показываем в обратном порядке (новые сверху)
+  const sorted = [...scheduleLog].reverse();
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / HISTORY_PER_PAGE));
+  const start = historyPage * HISTORY_PER_PAGE;
+  const page = sorted.slice(start, start + HISTORY_PER_PAGE);
+
+  info.textContent = total > 0
+    ? `стр. ${historyPage + 1} из ${totalPages} · всего ${total}`
+    : '';
+
+  prevBtn.disabled = historyPage === 0;
+  nextBtn.disabled = historyPage >= totalPages - 1;
+
+  if (total === 0) {
+    body.innerHTML = '<div class="history-empty">Нет записей</div>';
+    return;
+  }
+
+  body.innerHTML = page.map(e => {
+    const date = new Date(e.at);
+    const dateStr = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    const timeStr = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const by = e.by ? e.by.replace(/@.*/, '') : '—';
+    return `<div class="history-entry">
+      <div class="history-entry-main">
+        <span class="history-entry-target">${e.target || '—'}</span>
+        <span class="history-entry-action">${e.action || ''}</span>
+        <span class="history-entry-by">${by}</span>
+      </div>
+      <span class="history-entry-time">${dateStr}<br>${timeStr}</span>
+    </div>`;
+  }).join('');
+}
+</script>
+
+</body>
+</html>

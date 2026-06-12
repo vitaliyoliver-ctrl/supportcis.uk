@@ -1530,8 +1530,8 @@ const collapsedSections = new Set();
             s.members = scheduleSettings.customOrder[s.key];
           }
         });
-        updateGroupsFromSections();
       }
+      updateGroupsFromSections();
       dismissedEmployees = scheduleSettings.dismissed || {};
     }
   } catch {}
@@ -2219,23 +2219,22 @@ function moveOperator(srcName, fromKey, toKey, beforeName, insertAfter) {
   updateColumnHighlight();
 }
 
+// Супервайзер определяется по полю "Позиция" профиля (employeeOverrides приоритетнее EMPLOYEES)
+function isSupervisorPosition(name) {
+  const ov = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const p = String(ov.position ?? EMPLOYEES[name]?.position ?? '').trim().toLowerCase();
+  return p === 'supervisor' || p === 'vip sup' || p === 'vip supervisor' || p.startsWith('supervisor');
+}
+
 function updateGroupsFromSections() {
   SECTIONS.forEach(s => {
     if (s.key === 'regular_support') {
-      GROUPS.regular.members = s.members.filter(n =>
-        !['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
-      );
-      GROUPS.supervisors.members = s.members.filter(n =>
-        ['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
-      );
+      GROUPS.supervisors.members = s.members.filter(isSupervisorPosition);
+      GROUPS.regular.members     = s.members.filter(n => !isSupervisorPosition(n));
     }
     if (s.key === 'vip_support') {
-      GROUPS.vip.members = s.members.filter(n =>
-        !['Adam','Amelia','Lucas'].includes(n)
-      );
-      GROUPS.vip_supervisors.members = s.members.filter(n =>
-        ['Adam','Amelia','Lucas'].includes(n)
-      );
+      GROUPS.vip_supervisors.members = s.members.filter(isSupervisorPosition);
+      GROUPS.vip.members             = s.members.filter(n => !isSupervisorPosition(n));
     }
     if (s.key === 'management') GROUPS.management.members = [...s.members];
     if (s.key === 'qa') GROUPS.qa.members = [...s.members];
@@ -3011,7 +3010,9 @@ async function saveProfile() {
       if (data.version) scheduleVersion = data.version;
       if (data.log) scheduleLog = data.log;
       scheduleSettings = newSettings;
+      updateGroupsFromSections();
       renderAll();
+      updateStats();
       closeProfilePanel();
       showToast(`Профиль ${name} обновлён`, 'ok');
     } else {

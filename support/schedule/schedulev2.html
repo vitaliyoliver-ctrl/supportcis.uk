@@ -1001,6 +1001,14 @@
         <div class="admin-label">Email</div>
         <input type="text" class="admin-input" id="profile-email" placeholder="name@velvix.org" maxlength="80" />
       </div>
+      <div class="admin-field">
+        <div class="admin-label">В компании с</div>
+        <input type="date" class="admin-input" id="profile-since" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часов в смене по умолчанию</div>
+        <input type="number" class="admin-input" id="profile-hours" min="0" max="16" step="0.5" placeholder="пусто = по типу смены" />
+      </div>
       <div class="save-msg" id="profile-save-msg"></div>
     </div>
     <div class="admin-panel-footer">
@@ -1722,8 +1730,24 @@ const SHIFT_DEFS = {
 // Дефолтные часы по типу смены (выводятся из реестра, отдельно не редактировать)
 const DEFAULT_HOURS = Object.fromEntries(Object.entries(SHIFT_DEFS).map(([t, d]) => [t, d.hours]));
 
-// Персональные дефолтные часы оператора (раньше Adam=8 был захардкожен внутри shiftLabel)
-const OPERATOR_HOURS = { 'Adam': 8 };
+// Сид персональных часов (используется, пока в профиле сотрудника не задано своё значение)
+const OPERATOR_HOURS_SEED = { 'Adam': 8 };
+
+// ── ЕДИНЫЙ ДОСТУП К ДАННЫМ СОТРУДНИКА ──
+// Правки из UI (settings.employeeOverrides) приоритетнее статичного сида EMPLOYEES.
+// Все места, читающие email/позицию/дату/часы, обязаны ходить только сюда.
+function getEmp(name) {
+  const ov  = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const emp = EMPLOYEES[name] || {};
+  const hRaw = ov.hours ?? OPERATOR_HOURS_SEED[name];
+  const hNum = (hRaw === undefined || hRaw === null || hRaw === '') ? NaN : Number(hRaw);
+  return {
+    email:    String(ov.email ?? emp.email ?? '').trim(),
+    position: String(ov.position ?? emp.position ?? '').trim(),
+    since:    ov.since ?? emp.since ?? '',
+    hours:    Number.isFinite(hNum) ? hNum : undefined,
+  };
+}
 
 // Минимумы людей на смене: шапка таблицы, красная точка у даты, панель дня
 const MIN_STAFF = { day: 4, night: 3, d12: 2 };
@@ -1741,8 +1765,10 @@ function calcDayHours(type, override, name) {
   }
   let h;
   if (override?.customHours !== undefined) h = override.customHours;
-  else if (name && OPERATOR_HOURS[name] !== undefined && SHIFT_DEFS[type]?.window) h = OPERATOR_HOURS[name];
-  else h = getHours(type);
+  else {
+    const ph = name ? getEmp(name).hours : undefined;
+    h = (ph !== undefined && SHIFT_DEFS[type]?.window) ? ph : getHours(type);
+  }
 
   const events = (override?.extraEvents || []).filter(e => e.hours > 0);
   if (events.length) {
@@ -1953,19 +1979,22 @@ function renderSection(s) {
 
   thead.innerHTML = thCountHTML + thHTML;
 
-  const DIVIDERS = {
-    regular_support: { after: 'Toby',  label: 'Операторы' },
-    vip_support:     { after: 'Lucas', label: 'VIP Операторы' },
-  };
-  const dividerConfig = DIVIDERS[s.key];
+  // Разделитель ставится после последнего супервайзера секции (по полю "Позиция")
+  const DIVIDER_LABELS = { regular_support: 'Операторы', vip_support: 'VIP Операторы' };
+  let dividerConfig = null;
+  if (DIVIDER_LABELS[s.key]) {
+    const sups = s.members.filter(isSupervisorPosition);
+    if (sups.length && sups.length < s.members.length) {
+      dividerConfig = { after: sups[sups.length - 1], label: DIVIDER_LABELS[s.key] };
+    }
+  }
 
   const tbody = document.createElement('tbody');
   s.members.forEach(name => {
-    const emp = EMPLOYEES[name] || {};
-    const empOv = (scheduleSettings.employeeOverrides || {})[name] || {};
-    const pos   = empOv.position || emp.position || '';
-    const email = empOv.email    || emp.email    || '';
-    const since = emp.since ? emp.since.slice(0,10) : '';
+    const emp = getEmp(name);
+    const pos   = emp.position;
+    const email = emp.email;
+    const since = emp.since ? String(emp.since).slice(0,10) : '';
 
     const tr = document.createElement('tr');
     tr.dataset.name = name;
@@ -2276,8 +2305,7 @@ function moveOperator(srcName, fromKey, toKey, beforeName, insertAfter) {
 
 // Супервайзер определяется по полю "Позиция" профиля (employeeOverrides приоритетнее EMPLOYEES)
 function isSupervisorPosition(name) {
-  const ov = (scheduleSettings.employeeOverrides || {})[name] || {};
-  const p = String(ov.position ?? EMPLOYEES[name]?.position ?? '').trim().toLowerCase();
+  const p = getEmp(name).position.toLowerCase();
   return p === 'supervisor' || p === 'vip sup' || p === 'vip supervisor' || p.startsWith('supervisor');
 }
 
@@ -2294,6 +2322,35 @@ function updateGroupsFromSections() {
     if (s.key === 'management') GROUPS.management.members = [...s.members];
     if (s.key === 'qa') GROUPS.qa.members = [...s.members];
   });
+}
+
+// Сохраняет состав/порядок секций и employeeOverrides в KV одним запросом
+async function persistPeople(action, target) {
+  const customOrder = {};
+  SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
+  const newSettings = { ...scheduleSettings, customOrder };
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        overrides: scheduleOverrides,
+        settings: newSettings,
+        version: scheduleVersion,
+        logEntries: [{ action, target }],
+      })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return false; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      return true;
+    }
+  } catch {}
+  showToast('Ошибка сохранения', 'err');
+  return false;
 }
 
 async function savePositions() {
@@ -2403,7 +2460,7 @@ function closeAddEmployeeModal() {
   document.getElementById('add-employee-overlay').classList.remove('open');
 }
 
-function addEmployee() {
+async function addEmployee() {
   const name = document.getElementById('new-emp-name').value.trim();
   const email = document.getElementById('new-emp-email').value.trim();
   const position = document.getElementById('new-emp-position').value.trim();
@@ -2422,33 +2479,56 @@ function addEmployee() {
     return;
   }
 
-  // Добавляем в EMPLOYEES
+  // Сид текущей сессии + персист в настройки (после перезагрузки данные придут из employeeOverrides)
   EMPLOYEES[name] = { email, position, since };
+  const prevOverrides = scheduleSettings.employeeOverrides || {};
+  scheduleSettings.employeeOverrides = { ...prevOverrides, [name]: { email, position, since } };
 
-  // Добавляем в секцию
   const sec = SECTIONS.find(s => s.key === sectionKey);
   if (sec) sec.members.push(name);
 
-  // Добавляем паттерн (пустой — всё будет через overrides)
+  // Пустой паттерн: смены нового сотрудника задаются через overrides
   OPERATOR_BASE_SHIFTS[name] = () => 'off';
+
+  const ok = await persistPeople('добавлен сотрудник', name);
+  if (!ok) {
+    // откат
+    if (sec) sec.members.pop();
+    delete EMPLOYEES[name];
+    scheduleSettings.employeeOverrides = prevOverrides;
+    msgEl.textContent = 'Не удалось сохранить, попробуй ещё раз';
+    msgEl.className = 'save-msg err';
+    return;
+  }
 
   updateGroupsFromSections();
   closeAddEmployeeModal();
   renderAll();
   updateColumnHighlight();
-  showToast(`${name} добавлен`, 'ok');
+  updateStats();
+  showToast(`${name} добавлен и сохранён`, 'ok');
 }
 
-function deleteEmployee(name, sectionKey) {
+async function deleteEmployee(name, sectionKey) {
   if (!confirm(`Удалить ${name} из графика?`)) return;
   const sec = SECTIONS.find(s => s.key === sectionKey);
+  let idx = -1;
   if (sec) {
-    const idx = sec.members.indexOf(name);
+    idx = sec.members.indexOf(name);
     if (idx !== -1) sec.members.splice(idx, 1);
   }
+
+  const ok = await persistPeople('удалён сотрудник', name);
+  if (!ok) {
+    if (sec && idx !== -1) sec.members.splice(idx, 0, name); // откат
+    renderAll();
+    return;
+  }
+
   updateGroupsFromSections();
   renderAll();
   updateColumnHighlight();
+  updateStats();
   showToast(`${name} удалён`, 'ok');
 }
 
@@ -3025,12 +3105,12 @@ function overlayClick(e) {
 function openProfilePanel() {
   const name = document.getElementById('ap-operator').value;
   if (!name) return;
-  const overrides = scheduleSettings.employeeOverrides || {};
-  const emp = EMPLOYEES[name] || {};
-  const ov  = overrides[name] || {};
+  const emp = getEmp(name);
   document.getElementById('profile-name-label').textContent = name;
-  document.getElementById('profile-position').value = ov.position ?? emp.position ?? '';
-  document.getElementById('profile-email').value    = ov.email    ?? emp.email    ?? '';
+  document.getElementById('profile-position').value = emp.position;
+  document.getElementById('profile-email').value    = emp.email;
+  document.getElementById('profile-since').value    = emp.since ? String(emp.since).slice(0,10) : '';
+  document.getElementById('profile-hours').value    = emp.hours ?? '';
   document.getElementById('profile-save-msg').className = 'save-msg';
   document.getElementById('profile-panel').style.display = 'flex';
 }
@@ -3045,17 +3125,25 @@ async function saveProfile() {
   const email    = document.getElementById('profile-email').value.trim();
   const msg      = document.getElementById('profile-save-msg');
 
-  if (!position && !email) {
-    msg.textContent = 'Заполните хотя бы одно поле';
+  const since    = document.getElementById('profile-since').value;
+  const hoursRaw = document.getElementById('profile-hours').value.trim();
+  if (hoursRaw !== '' && !Number.isFinite(Number(hoursRaw))) {
+    msg.textContent = 'Часы: некорректное число';
     msg.className = 'save-msg err show';
     return;
   }
+
+  // Merge с существующей записью, чтобы не затирать поля
+  const prev = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const entry = { ...prev, position, email };
+  if (since) entry.since = since; else delete entry.since;
+  if (hoursRaw !== '') entry.hours = Number(hoursRaw); else delete entry.hours;
 
   const newSettings = {
     ...scheduleSettings,
     employeeOverrides: {
       ...(scheduleSettings.employeeOverrides || {}),
-      [name]: { position, email }
+      [name]: entry
     }
   };
 
@@ -3288,7 +3376,7 @@ function exportToExcel() {
 
   // Все сотрудники по секциям
   const allMembers = SECTIONS.flatMap(s => s.members.map(name => ({
-    name, section: s.label, position: EMPLOYEES[name]?.position || ''
+    name, section: s.label, position: getEmp(name).position
   })));
 
   // ── Лист 1: График ──
@@ -3457,11 +3545,7 @@ Object.entries(SHIFT_DEFS).forEach(([t, d]) => {
 });
 const SWAP_BLOCK_DAY = new Set(['vacation','sick','nk','birthday','dismissed']);
 
-function swapEmpOv(name) {
-  const ov = (scheduleSettings.employeeOverrides || {})[name] || {};
-  const emp = EMPLOYEES[name] || {};
-  return { position: String(ov.position ?? emp.position ?? '').trim(), email: String(ov.email ?? emp.email ?? '').trim() };
-}
+function swapEmpOv(name) { return getEmp(name); }
 function swapGroupOf(name) {
   const p = swapEmpOv(name).position.toLowerCase();
   if (p === 'support') return 'support';

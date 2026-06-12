@@ -2082,28 +2082,41 @@ function updateStats() {
       return false;
     };
     const onlineNames = allMembers.filter(isOnlineNow);
-    online = onlineNames.length;
 
-    // Тултип: кто именно на смене, сгруппировано по окну
+    // Дробный счёт: человек вносит свои часы / 11 (неполная смена = доля, переработка не больше 1)
+    const onlineWeight = (name, di2) => {
+      const t = getShift(name, di2);
+      const hrs = calcDayHours(t, scheduleOverrides[`${name}:${dateStr(DAYS[di2].d)}`], name);
+      return Math.min(1, hrs / 11);
+    };
+    // di дня, к которому относится текущая смена человека (сегодня или вчерашняя ночная)
+    const onlineDi = (name) => {
+      const def = SHIFT_DEFS[getShift(name, todayDi)];
+      if (def?.window && h >= def.window[0] && h < Math.min(def.window[1], 24)) return todayDi;
+      return todayDi - 1;
+    };
+    online = Math.round(onlineNames.reduce((sum, n) => sum + onlineWeight(n, onlineDi(n)), 0) * 10) / 10;
+
+    // Тултип: кто именно на смене, сгруппировано по окну, с часами у неполных смен
     const tipEl = document.getElementById('online-tip');
     if (tipEl) {
       const groups = {};
       onlineNames.forEach(name => {
-        let t = getShift(name, todayDi);
-        let def = SHIFT_DEFS[t];
-        // если сегодня окна нет, значит человек на хвосте вчерашней ночной
-        if (!def?.window || !(h >= def.window[0] && h < Math.min(def.window[1], 24))) {
-          t = getShift(name, todayDi - 1);
-          def = SHIFT_DEFS[t];
-        }
+        const di2 = onlineDi(name);
+        const t = getShift(name, di2);
+        const def = SHIFT_DEFS[t];
+        const hrs = calcDayHours(t, scheduleOverrides[`${name}:${dateStr(DAYS[di2].d)}`], name);
         const key = def?.label || t;
-        (groups[key] = groups[key] || []).push(name);
+        (groups[key] = groups[key] || { names: [], w: 0 });
+        groups[key].names.push(hrs === 11 ? name : `${name} (${hrs}ч)`);
+        groups[key].w += Math.min(1, hrs / 11);
       });
+      const fmtW = (v) => { const r = Math.round(v * 10) / 10; return Number.isInteger(r) ? r : r.toFixed(1); };
       tipEl.innerHTML = Object.keys(groups).length
-        ? Object.entries(groups).map(([label, names]) => `
+        ? Object.entries(groups).map(([label, g]) => `
             <div class="online-tip-group">
-              <div class="online-tip-title">${label} · ${names.length}</div>
-              <div class="online-tip-names">${names.join(', ')}</div>
+              <div class="online-tip-title">${label} · ${fmtW(g.w)}</div>
+              <div class="online-tip-names">${g.names.join(', ')}</div>
             </div>`).join('')
         : '<div class="online-tip-names">Сейчас на смене никого нет</div>';
     }
@@ -2113,7 +2126,7 @@ function updateStats() {
   const regularCount = GROUPS.regular.members.length;
   const vipCount = GROUPS.vip.members.length;
 
-  document.getElementById('stat-online').textContent = todayDi >= 0 ? online : '—';
+  document.getElementById('stat-online').textContent = todayDi >= 0 ? (Number.isInteger(online) ? online : online.toFixed(1)) : '—';
   document.getElementById('stat-regular').textContent = regularCount;
   document.getElementById('stat-vip').textContent = vipCount;
   document.getElementById('stat-total').textContent = totalStaff;

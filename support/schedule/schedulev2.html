@@ -391,6 +391,21 @@
     html.light .stat-label { color: #6b7280; }
     html.light .stat-sub { color: #9ca3af; }
     html.light .stat-card { background: #fff; border-color: rgba(0,0,0,0.08); }
+    .stat-card.has-tip { cursor: default; }
+    .online-tip {
+      display: none; position: absolute; top: calc(100% + 8px); left: 12px; z-index: 50;
+      min-width: 220px; max-width: 320px; padding: 12px 14px;
+      background: var(--surface, #111318); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+      font-size: 11px; line-height: 1.5; text-align: left;
+    }
+    .stat-card.has-tip { position: relative; }
+    .stat-card.has-tip:hover .online-tip { display: block; }
+    .online-tip-group { margin-bottom: 8px; }
+    .online-tip-group:last-child { margin-bottom: 0; }
+    .online-tip-title { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted, #6b7280); margin-bottom: 3px; }
+    .online-tip-names { color: var(--text, #e5e7eb); font-weight: 500; }
+    html.light .online-tip { background: #fff; border-color: rgba(0,0,0,0.12); box-shadow: 0 12px 32px rgba(0,0,0,0.15); }
     html.light .name-pos { color: #6b7280; }
     html.light .name-email { color: #6b7280; }
     html.light .name-since { color: #9ca3af; }
@@ -820,10 +835,11 @@
 
     <!-- STATS -->
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card has-tip">
         <div class="stat-label">Операторов онлайн</div>
         <div class="stat-val" id="stat-online">—</div>
         <div class="stat-sub">сейчас на смене</div>
+        <div class="online-tip" id="online-tip"></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Regular Support</div>
@@ -2044,7 +2060,8 @@ function updateStats() {
     ? TODAY_REAL_DATE.getDate() - 1 : -1;
 
   if (todayDi >= 0) {
-    const allMembers = SECTIONS.flatMap(s => s.members);
+    // Только операторы (Regular + VIP Support): суперы, менеджмент, QA и НК в счётчик не входят
+    const allMembers = [...GROUPS.regular.members, ...GROUPS.vip.members];
     const isOnlineNow = (name) => {
       // сегодняшняя смена в своём окне
       const t = getShift(name, todayDi);
@@ -2064,7 +2081,32 @@ function updateStats() {
       }
       return false;
     };
-    allMembers.forEach(name => { if (isOnlineNow(name)) online++; });
+    const onlineNames = allMembers.filter(isOnlineNow);
+    online = onlineNames.length;
+
+    // Тултип: кто именно на смене, сгруппировано по окну
+    const tipEl = document.getElementById('online-tip');
+    if (tipEl) {
+      const groups = {};
+      onlineNames.forEach(name => {
+        let t = getShift(name, todayDi);
+        let def = SHIFT_DEFS[t];
+        // если сегодня окна нет, значит человек на хвосте вчерашней ночной
+        if (!def?.window || !(h >= def.window[0] && h < Math.min(def.window[1], 24))) {
+          t = getShift(name, todayDi - 1);
+          def = SHIFT_DEFS[t];
+        }
+        const key = def?.label || t;
+        (groups[key] = groups[key] || []).push(name);
+      });
+      tipEl.innerHTML = Object.keys(groups).length
+        ? Object.entries(groups).map(([label, names]) => `
+            <div class="online-tip-group">
+              <div class="online-tip-title">${label} · ${names.length}</div>
+              <div class="online-tip-names">${names.join(', ')}</div>
+            </div>`).join('')
+        : '<div class="online-tip-names">Сейчас на смене никого нет</div>';
+    }
   }
 
   const totalStaff = SECTIONS.flatMap(s => s.members).length;

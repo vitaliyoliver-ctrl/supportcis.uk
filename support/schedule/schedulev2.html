@@ -2451,36 +2451,43 @@ function showDayInfo(ds, di) {
 
   const ALL_OPS = SECTIONS.flatMap(s => s.members);
   // Человек считается на смене, если у него остались оплачиваемые часы (частичная отдача не выкидывает целиком)
-  const stillOn = (name) => calcDayHours(getShift(name, di), scheduleOverrides[`${name}:${ds}`], name) > 0;
-  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di)) && stillOn(n)).length;
-  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di)) && stillOn(n)).length;
-  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di)) && stillOn(n)).length;
-  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di)) && stillOn(n)).length;
-  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di)) && stillOn(n)).length;
-  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200'].includes(getShift(n, di)) && stillOn(n)).length;
+  // Дробный счёт, как в шапке таблицы: сумма часов операторов на смене / 11
+  const fracCount = (types) => {
+    const raw = ALL_OPS
+      .filter(n => types.includes(getShift(n, di)))
+      .reduce((sum, n) => sum + calcDayHours(getShift(n, di), scheduleOverrides[`${n}:${ds}`], n), 0) / 11;
+    return Math.round(raw * 10) / 10;
+  };
+  const regM  = fracCount(['morning','extra_morning']);
+  const regE  = fracCount(['evening','extra_evening']);
+  const reg12 = fracCount(['shift1200','extra_1200']);
+  const vipM  = fracCount(['vip_evening','extra_vip_evening']);
+  const vipE  = fracCount(['vip_morning','extra_vip_morning']);
+  const vip12 = fracCount(['vip_1200','extra_vip_1200']);
+  const fmtC = (v) => Number.isInteger(v) ? v : v.toFixed(1);
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
 
   const countBlock = (label, m, e, n12, mColor, eColor, n12Color) => `
     <div class="day-info-block">
       <div class="day-info-block-title">${label}</div>
-      <div class="day-info-count" style="${low(m,MIN_STAFF.day)}">${m+e+n12}</div>
+      <div class="day-info-count" style="${low(m,MIN_STAFF.day)}">${fmtC(Math.round((m+e+n12)*10)/10)}</div>
       <div style="font-size:10px;color:var(--muted);margin-top:2px">всего на смене</div>
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
         <div style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${mColor};flex-shrink:0"></span>
           <span style="font-size:10px;color:${mColor}">09–21</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(m,MIN_STAFF.day)}">${m}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(m,MIN_STAFF.day)}">${fmtC(m)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${eColor};flex-shrink:0"></span>
           <span style="font-size:10px;color:${eColor}">21–09</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(e,MIN_STAFF.night)}">${e}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(e,MIN_STAFF.night)}">${fmtC(e)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${n12Color};flex-shrink:0"></span>
           <span style="font-size:10px;color:${n12Color}">12–00</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(n12,MIN_STAFF.d12)}">${n12}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(n12,MIN_STAFF.d12)}">${fmtC(n12)}</span>
         </div>
       </div>
     </div>

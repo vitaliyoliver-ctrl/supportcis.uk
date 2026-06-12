@@ -1688,10 +1688,10 @@ const SHIFT_DEFS = {
   super_day:   { hours: 11, window: [9,21],  label: 'Sup День', cat: 'Sup', givable: true },
   super_night: { hours: 11, window: [21,33], label: 'Sup Ночь', cat: 'Sup', isNight: true, givable: true },
   super_day8:  { hours: 8,  window: [10,19], label: 'Sup 8ч',   cat: 'Sup', givable: true },
-  // У доп смен супервайзеров базовые часы исторически НЕ нулевые (так лежат данные в KV). Не обнулять без миграции.
-  extra_sup_day:   { hours: 11, window: [9,21],  label: '+Доп Sup День', cat: 'Sup', isExtra: true, base: 'super_day' },
-  extra_sup_night: { hours: 11, window: [21,33], label: '+Доп Sup Ночь', cat: 'Sup', isExtra: true, isNight: true, base: 'super_night' },
-  extra_sup_day8:  { hours: 8,  window: [10,19], label: '+Доп Sup 8ч',   cat: 'Sup', isExtra: true, base: 'super_day8' },
+  // Доп смены: база всегда 0, часы приходят только из событий (+Доп часы) или кастомных часов
+  extra_sup_day:   { hours: 0, window: [9,21],  label: '+Доп Sup День', cat: 'Sup', isExtra: true, base: 'super_day' },
+  extra_sup_night: { hours: 0, window: [21,33], label: '+Доп Sup Ночь', cat: 'Sup', isExtra: true, isNight: true, base: 'super_night' },
+  extra_sup_day8:  { hours: 0, window: [10,19], label: '+Доп Sup 8ч',   cat: 'Sup', isExtra: true, base: 'super_day8' },
   // Прочее
   work8:     { hours: 8,  window: [9,18], label: '8ч офис', cat: 'Mgmt' },
   nk:        { hours: 11, window: null,  label: 'НК', busyAllDay: true },

@@ -816,6 +816,7 @@
       <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="history-btn" onclick="openHistoryPanel()" style="display:none;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa">🕐 История</button>
       <button class="admin-btn" id="swap-btn" onclick="openSwapPanel()" style="display:none;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#34d399">🔄 Отдать смену</button>
+      <button class="admin-btn" id="migrate-patterns-btn" onclick="migrateHardcodedPatterns()" style="display:none;background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60a5fa" title="Перенести захардкоженные паттерны в настройки">📌 Паттерны</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
       <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
       <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
@@ -1326,8 +1327,7 @@ let TODAY_STR = getTodayStr();
 let selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
 
 // (мёртвый блок EXACT_SHIFTS удалён: нигде не использовался)
-function getMgmtShift(dayIndex) {
-  const date = DAYS[dayIndex].date;
+function getMgmtShift(date) {
   const dow = date.getDay();
   return (dow === 0 || dow === 6) ? 'off' : 'work8';
 }
@@ -1390,9 +1390,8 @@ const BASE_PATTERNS = {
 Object.keys(BASE_PATTERNS).forEach(name => {
   const pattern = BASE_PATTERNS[name];
   const cycleLen = pattern.length;
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
+    const globalDi = Math.round((date - CYCLE_START) / 86400000);
     const pos = ((globalDi % cycleLen) + cycleLen) % cycleLen;
     return pattern[pos];
   };
@@ -1451,36 +1450,31 @@ const TEAM1 = ['Irma', 'Solomon', 'Toby'];
 const TEAM2 = ['Curtis', 'Manuel', 'Richard'];
 
 TEAM1.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
+    const globalDi = Math.round((date - CYCLE_START) / 86400000);
     return getSuperTeamShift(globalDi, 0, i);
   };
 });
 TEAM2.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
+    const globalDi = Math.round((date - CYCLE_START) / 86400000);
     return getSuperTeamShift(globalDi, 1, i);
   };
 });
 // VIP Supervisors:
 // Adam: 5/2 по будням (часы оператора заданы в OPERATOR_HOURS)
 // Amelia и Lucas: чередование блоками, цикл 4 дня от CYCLE_START: A,L,L,A
-OPERATOR_BASE_SHIFTS['Adam'] = (di) => {
-  const date = DAYS[di].date;
+OPERATOR_BASE_SHIFTS['Adam'] = (date) => {
   const dow = date.getDay();
   return (dow === 0 || dow === 6) ? 'off' : 'super_day';
 };
-OPERATOR_BASE_SHIFTS['Amelia'] = (di) => {
-  const date = DAYS[di].date;
-  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+OPERATOR_BASE_SHIFTS['Amelia'] = (date) => {
+  const globalDi = Math.round((date - CYCLE_START) / 86400000);
   const pos = ((globalDi % 4) + 4) % 4;
   return (pos === 0 || pos === 3) ? 'super_day' : 'off';
 };
-OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
-  const date = DAYS[di].date;
-  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+OPERATOR_BASE_SHIFTS['Lucas'] = (date) => {
+  const globalDi = Math.round((date - CYCLE_START) / 86400000);
   const pos = ((globalDi % 4) + 4) % 4;
   return (pos === 1 || pos === 2) ? 'super_day' : 'off';
 };
@@ -1489,7 +1483,7 @@ OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
 // Management / QA
 ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita',
  'Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'].forEach(name => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => getMgmtShift(di);
+  OPERATOR_BASE_SHIFTS[name] = (date) => getMgmtShift(date);
 });
 
 // ── State ──
@@ -1530,6 +1524,7 @@ const collapsedSections = new Set();
         document.getElementById('dismiss-nav-btn').style.display = 'flex';
         document.getElementById('positions-btn').style.display = 'flex';
         document.getElementById('history-btn').style.display = 'flex';
+        document.getElementById('migrate-patterns-btn').style.display = 'flex';
       }
       if (isSupervisor) {
         document.getElementById('admin-btn').classList.add('visible');
@@ -1660,28 +1655,60 @@ const PATTERN_PRESETS = {
   'team2_2': ['off','off','super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day'],
 };
 
+// ── Паттерны: история записей на оператора ──
+// Запись: { pattern: [...], cycleStart: 'YYYY-MM-DD', v: 2 }. На дату действует
+// последняя запись с cycleStart <= даты, поэтому смена паттерна с середины месяца
+// не ломает уже прошедшие дни.
+// Легаси-записи (без v) парсились старым кодом как UTC и реально стартовали на день
+// позже своего cycleStart — при чтении нормализуем сдвигом +1 день, чтобы видимый
+// график не изменился.
+function parseLocalDate(s) {
+  const [y, m, d] = String(s).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function localDs(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function plusDays(ds, n) {
+  const d = parseLocalDate(ds);
+  d.setDate(d.getDate() + n);
+  return localDs(d);
+}
+
+function getPatternEntries(name) {
+  const raw = (scheduleSettings.operatorPatterns || {})[name];
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr
+    .filter(e => e && Array.isArray(e.pattern) && e.pattern.length && e.cycleStart)
+    .map(e => (e.v >= 2 ? e : { ...e, cycleStart: plusDays(e.cycleStart, 1), v: 2 }))
+    .sort((a, b) => (a.cycleStart < b.cycleStart ? -1 : 1));
+}
+
 function getPatternShift(name, date) {
-  const patterns = scheduleSettings.operatorPatterns || {};
-  const op = patterns[name];
-  if (!op || !op.pattern || !op.cycleStart) return null;
-  const start = new Date(op.cycleStart);
-  // До даты начала — паттерн не применяется, fallback на BASE_PATTERNS
-  if (date < start) return null;
-  const diffDays = Math.floor((date - start) / 86400000);
-  const cycle = op.pattern.length;
-  const pos = ((diffDays % cycle) + cycle) % cycle;
-  return op.pattern[pos];
+  const entries = getPatternEntries(name);
+  if (!entries.length) return null;
+  const ds = localDs(date);
+  let active = null;
+  for (const e of entries) { if (e.cycleStart <= ds) active = e; }
+  if (!active) return null; // до начала первого паттерна — fallback на хардкод
+  const diffDays = Math.round((parseLocalDate(ds) - parseLocalDate(active.cycleStart)) / 86400000);
+  const cycle = active.pattern.length;
+  return active.pattern[((diffDays % cycle) + cycle) % cycle];
 }
 
 function getShift(name, dayIndex) {
   const key = `${name}:${dateStr(DAYS[dayIndex].d)}`;
   if (scheduleOverrides[key]) return scheduleOverrides[key].type;
-  // Сначала проверяем operatorPatterns из settings
+  // Уволенные: после последнего рабочего дня график обрезается в любом месяце
+  const dis = dismissedEmployees[name];
+  if (dis && dateStr(DAYS[dayIndex].d) > dis) return 'dismissed';
+  // Паттерны из настроек
   const patternShift = getPatternShift(name, DAYS[dayIndex].date);
   if (patternShift !== null) return patternShift;
-  // Fallback на захардкоженные паттерны июня
+  // Fallback на захардкоженные паттерны (исчезнет после миграции)
   const fn = OPERATOR_BASE_SHIFTS[name];
-  return fn ? fn(dayIndex) : 'off';
+  return fn ? fn(DAYS[dayIndex].date) : 'off';
 }
 
 // ────────────────────────────────────────────
@@ -2533,19 +2560,22 @@ async function deleteEmployee(name, sectionKey) {
 }
 
 async function restoreDismissed(name) {
-  // Убираем все dismissed overrides для этого оператора
+  // Убираем dismissed-overrides и запись из карты уволенных
   const newOverrides = { ...scheduleOverrides };
   Object.keys(newOverrides).forEach(key => {
     if (key.startsWith(`${name}:`) && newOverrides[key].type === 'dismissed') {
       delete newOverrides[key];
     }
   });
+  const newDismissed = { ...dismissedEmployees };
+  delete newDismissed[name];
+  const newSettings = { ...scheduleSettings, dismissed: newDismissed };
 
   try {
     const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: 'восстановлен', target: name }] })
+      body: JSON.stringify({ overrides: newOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: 'восстановлен', target: name }] })
     });
     const data = await res.json();
     if (res.status === 409) { showStaleWarning(); return; }
@@ -2553,6 +2583,8 @@ async function restoreDismissed(name) {
       if (data.version) scheduleVersion = data.version;
       if (data.log) scheduleLog = data.log;
       scheduleOverrides = newOverrides;
+      scheduleSettings = newSettings;
+      dismissedEmployees = newDismissed;
       renderAll();
       updateColumnHighlight();
       closeAdmin();
@@ -2827,19 +2859,14 @@ async function applyDismissal() {
     msgEl.className = 'save-msg err'; return;
   }
 
+  // Пометки по дням больше не нужны: getShift сам режет график после даты увольнения
+  // в любом месяце. Чистим только ручные overrides ПОСЛЕ даты увольнения, чтобы они
+  // не перекрывали увольнение.
   const newOverrides = { ...scheduleOverrides };
-  const lastDate = new Date(lastDay);
-
-  // Помечаем все рабочие смены после lastDay как 'dismissed'
-  DAYS.forEach((d, di) => {
-    const dt = new Date(`${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`);
-    if (dt <= lastDate) return; // до увольнения не трогаем
-    const baseType = OPERATOR_BASE_SHIFTS[name] ? OPERATOR_BASE_SHIFTS[name](di) : 'off';
-    if (baseType === 'off') return; // выходные не трогаем
-    const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-    const existing = newOverrides[key] || {};
-    if (existing.type === 'off') return;
-    newOverrides[key] = { ...existing, type: 'dismissed', customHours: 0, editedAt: new Date().toISOString() };
+  Object.keys(newOverrides).forEach(key => {
+    if (!key.startsWith(`${name}:`)) return;
+    const ds = key.slice(name.length + 1);
+    if (ds > lastDay) delete newOverrides[key];
   });
 
   const newDismissed = { ...dismissedEmployees, [name]: lastDay };
@@ -3244,7 +3271,7 @@ function selectShiftType(btn) {
     if (opName && dateFrom) {
       const dt = new Date(dateFrom);
       const di = dt.getDate() - 1;
-      const prevType = OPERATOR_BASE_SHIFTS[opName] ? OPERATOR_BASE_SHIFTS[opName](di) : null;
+      const prevType = OPERATOR_BASE_SHIFTS[opName] ? OPERATOR_BASE_SHIFTS[opName](DAYS[di].date) : null;
       if (prevType && DEFAULT_HOURS[prevType]) defaultH = DEFAULT_HOURS[prevType];
     }
     // Добавляем потерю если ещё нет
@@ -3569,8 +3596,12 @@ function swapShiftOnDate(name, date) {
   if (date.getFullYear() === YEAR && date.getMonth() + 1 === MONTH) {
     return getShift(name, date.getDate() - 1);
   }
+  const dis = dismissedEmployees[name];
+  if (dis && localDs(date) > dis) return 'dismissed';
   const p = getPatternShift(name, date);
-  return p ?? 'off';
+  if (p !== null) return p;
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  return fn ? fn(date) : 'off';
 }
 
 // Интервалы занятости (часы относительно 00:00 базовой даты) на день до, день смены и день после
@@ -3824,6 +3855,9 @@ function selectPatternOption(el) {
   document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   document.getElementById('pattern-select-dropdown').classList.remove('open');
+  document.getElementById('pattern-builder').style.display = value === 'custom' ? 'block' : 'none';
+  if (value === 'custom') rebuildPatternBuilder();
+  updatePatternPreview();
 }
 
 // Закрываем дропдаун при клике вне
@@ -3845,20 +3879,82 @@ const PATTERN_PRESET_LABELS = {
   'custom':          'Кастомный (не менять)',
 };
 
+// ── МИГРАЦИЯ: фиксируем захардкоженные паттерны в settings.operatorPatterns ──
+// Вычисляет цикл оператора сэмплированием его базовой функции от CYCLE_START
+function deriveBasePattern(name) {
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  if (!fn) return null;
+  const N = 336; // 2 полных НОК-цикла (НОК(4,7,8,12) = 168)
+  const sample = [];
+  for (let i = 0; i < N; i++) {
+    const d = new Date(CYCLE_START);
+    d.setDate(d.getDate() + i);
+    sample.push(fn(d));
+  }
+  for (let p = 1; p <= 84; p++) {
+    let ok = true;
+    for (let i = 0; i + p < N; i++) {
+      if (sample[i] !== sample[i + p]) { ok = false; break; }
+    }
+    if (ok) return { pattern: sample.slice(0, p), cycleStart: localDs(CYCLE_START), v: 2 };
+  }
+  return null;
+}
+
+async function migrateHardcodedPatterns() {
+  const all = [...new Set(SECTIONS.flatMap(s => s.members))];
+  const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
+  let added = 0, skipped = 0;
+  const failed = [];
+
+  all.forEach(name => {
+    if (getPatternEntries(name).length || dismissedEmployees[name]) { skipped++; return; }
+    const entry = deriveBasePattern(name);
+    if (!entry) { failed.push(name); return; }
+    newPatterns[name] = [entry];
+    added++;
+  });
+
+  if (!added && !failed.length) { showToast('Все паттерны уже зафиксированы в настройках', 'ok'); return; }
+  const summary = `Зафиксировать паттерны в настройках?\n\nБудет записано: ${added}\nУже есть в настройках / уволены: ${skipped}` +
+    (failed.length ? `\nНе удалось вычислить цикл: ${failed.join(', ')}` : '');
+  if (!confirm(summary)) return;
+
+  const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: `миграция паттернов (${added})`, target: null }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      renderAll();
+      showToast(`Паттерны зафиксированы: ${added}`, 'ok');
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch { showToast('Ошибка сети', 'err'); }
+}
+
 function openPatternModal(name) {
   patternModalName = name;
   document.getElementById('pattern-modal-title').textContent = `Паттерн: ${name}`;
-  
-  const patterns = scheduleSettings.operatorPatterns || {};
-  const existing = patterns[name];
-  
-  // Определяем текущий пресет
+
+  // Текущий паттерн = последняя запись истории (если нет — последний хардкод)
+  const entries = getPatternEntries(name);
+  const latest = entries.length ? entries[entries.length - 1] : null;
+
   let currentPreset = 'morning_evening';
-  if (existing?.pattern) {
-    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(','));
+  let currentPattern = latest?.pattern || null;
+  if (currentPattern) {
+    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === currentPattern.join(','));
     currentPreset = found || 'custom';
   }
-  // Устанавливаем значение кастомного селекта
   document.getElementById('pattern-preset-select').value = currentPreset;
   const optEl = document.querySelector(`#pattern-select-dropdown [data-value="${currentPreset}"]`);
   if (optEl) {
@@ -3866,10 +3962,90 @@ function openPatternModal(name) {
     document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
     optEl.classList.add('selected');
   }
-  
-  document.getElementById('pattern-cycle-start').value = existing ? existing.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
-  
+
+  document.getElementById('pattern-cycle-start').value = latest ? latest.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+
+  // Билдер: заполняем текущим кастомным паттерном (или дефолтом)
+  patternBuilderSeed = (currentPreset === 'custom' && currentPattern) ? [...currentPattern] : null;
+  document.getElementById('pattern-builder').style.display = currentPreset === 'custom' ? 'block' : 'none';
+  rebuildPatternBuilder();
+
+  updatePatternPreview();
   document.getElementById('pattern-modal-overlay').classList.add('open');
+}
+
+// ── Конструктор и превью паттерна ──
+let patternBuilderSeed = null;
+
+function patternTypeOptions() {
+  const opts = Object.entries(SHIFT_DEFS)
+    .filter(([t, d]) => !d.isExtra && !d.legacy && (d.window || d.busyAllDay))
+    .map(([t, d]) => ({ t, label: d.label }));
+  opts.push({ t: 'off', label: 'Выходной' });
+  return opts;
+}
+
+function rebuildPatternBuilder() {
+  const lenEl = document.getElementById('pattern-builder-len');
+  const cellsEl = document.getElementById('pattern-builder-cells');
+  let len = parseInt(lenEl.value, 10);
+  if (!(len >= 1 && len <= 14)) { len = 4; lenEl.value = 4; }
+  if (patternBuilderSeed) { len = patternBuilderSeed.length; lenEl.value = len; }
+
+  const prev = readBuilderPattern() || patternBuilderSeed || [];
+  const opts = patternTypeOptions();
+  let html = '';
+  for (let i = 0; i < len; i++) {
+    const cur = prev[i] || 'off';
+    html += `<div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--text-sub);width:52px">День ${i + 1}</span>
+      <select class="admin-select pattern-cell" style="flex:1" onchange="updatePatternPreview()">
+        ${opts.map(o => `<option value="${o.t}" ${o.t === cur ? 'selected' : ''}>${o.label}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  cellsEl.innerHTML = html;
+  patternBuilderSeed = null;
+  updatePatternPreview();
+}
+
+function readBuilderPattern() {
+  const cells = document.querySelectorAll('#pattern-builder-cells .pattern-cell');
+  if (!cells.length) return null;
+  return Array.from(cells).map(c => c.value);
+}
+
+function currentModalPattern() {
+  const presetKey = document.getElementById('pattern-preset-select').value;
+  if (presetKey === 'custom') return readBuilderPattern();
+  if (presetKey === 'supervisor_auto') return null;
+  return PATTERN_PRESETS[presetKey] || null;
+}
+
+function updatePatternPreview() {
+  const box = document.getElementById('pattern-preview');
+  if (!box) return;
+  const pattern = currentModalPattern();
+  const startStr = document.getElementById('pattern-cycle-start').value;
+  if (!pattern || !pattern.length || !startStr) {
+    box.innerHTML = '<span style="font-size:11px;color:var(--text-sub)">Выберите паттерн и дату начала</span>';
+    return;
+  }
+  const DOW = ['вс','пн','вт','ср','чт','пт','сб'];
+  let html = '';
+  for (let i = 0; i < 14; i++) {
+    const d = parseLocalDate(startStr);
+    d.setDate(d.getDate() + i);
+    const t = pattern[i % pattern.length];
+    const def = SHIFT_DEFS[t];
+    const isOff = t === 'off';
+    const label = isOff ? '—' : (def?.label || t);
+    html += `<div style="width:64px;padding:4px 2px;border:1px solid rgba(128,128,128,0.25);border-radius:6px;text-align:center;${isOff ? 'opacity:0.45' : ''}">
+      <div style="font-size:9px;color:var(--text-sub)">${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')} ${DOW[d.getDay()]}</div>
+      <div style="font-size:10px;font-weight:600;margin-top:2px">${label}</div>
+    </div>`;
+  }
+  box.innerHTML = html;
 }
 
 function closePatternModal() {
@@ -3888,10 +4064,6 @@ async function savePattern() {
     return;
   }
   
-  if (presetKey === 'custom') {
-    closePatternModal();
-    return;
-  }
 
   // Supervisor auto — удаляем кастомный паттерн, возвращаем к BASE_PATTERNS/getSuperTeamShift
   if (presetKey === 'supervisor_auto') {
@@ -3921,14 +4093,20 @@ async function savePattern() {
     return;
   }
 
-  const pattern = PATTERN_PRESETS[presetKey];
-  if (!pattern) return;
-  
+  const pattern = presetKey === 'custom' ? readBuilderPattern() : PATTERN_PRESETS[presetKey];
+  if (!pattern || !pattern.length) { alert('Соберите паттерн в конструкторе'); return; }
+
+  // История: прошлые даты остаются на прежних записях, новая запись действует с cycleStart.
+  // Запись с той же датой начала заменяется.
+  const entries = getPatternEntries(patternModalName).filter(e => e.cycleStart !== cycleStart);
+  entries.push({ pattern, cycleStart, v: 2 });
+  entries.sort((a, b) => (a.cycleStart < b.cycleStart ? -1 : 1));
+
   const newSettings = {
     ...scheduleSettings,
     operatorPatterns: {
       ...(scheduleSettings.operatorPatterns || {}),
-      [patternModalName]: { pattern, cycleStart }
+      [patternModalName]: entries.slice(-12)
     }
   };
   
@@ -3982,15 +4160,25 @@ async function savePattern() {
         <div class="custom-select-option" data-value="team2_0" onclick="selectPatternOption(this)">Team2 позиция 0 (как Curtis)</div>
         <div class="custom-select-option" data-value="team2_1" onclick="selectPatternOption(this)">Team2 позиция 1 (как Manuel)</div>
         <div class="custom-select-option" data-value="team2_2" onclick="selectPatternOption(this)">Team2 позиция 2 (как Reggie)</div>
-        <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
+        <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (конструктор)</div>
       </div>
       <input type="hidden" id="pattern-preset-select" value="morning_evening" />
     </div>
-    <label>Дата начала цикла</label>
-    <input type="date" id="pattern-cycle-start" />
-    <div style="font-size:11px;color:var(--text-sub);margin-top:6px">
-      День 0 цикла = эта дата. Паттерн продолжается бесконечно.
+    <div id="pattern-builder" style="display:none;margin-top:12px">
+      <label>Конструктор цикла</label>
+      <div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+        <span style="font-size:11px;color:var(--text-sub)">Длина цикла (дней):</span>
+        <input type="number" class="admin-input" id="pattern-builder-len" min="1" max="14" value="4" style="width:70px" onchange="rebuildPatternBuilder()" />
+      </div>
+      <div id="pattern-builder-cells" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
     </div>
+    <label style="margin-top:12px;display:block">Дата начала цикла</label>
+    <input type="date" id="pattern-cycle-start" onchange="updatePatternPreview()" />
+    <div style="font-size:11px;color:var(--text-sub);margin-top:6px">
+      Первый день цикла = эта дата. Прошлые даты остаются на прежнем паттерне (история сохраняется).
+    </div>
+    <label style="margin-top:12px;display:block">Превью: 14 дней от начала цикла</label>
+    <div id="pattern-preview" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
     <div class="pattern-modal-footer">
       <button class="btn-cancel" onclick="closePatternModal()">Отмена</button>
       <button class="btn-save" onclick="savePattern()">Сохранить</button>

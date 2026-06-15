@@ -612,13 +612,10 @@
     /* Positions mode */
     .note-dot {
       position: absolute; bottom: 2px; right: 2px;
-      width: 5px; height: 5px; border-radius: 50%;
+      width: 8px; height: 8px; border-radius: 50%;
       background: #fbbf24; pointer-events: none; z-index: 1;
-    }
-    .swap-dot {
-      position: absolute; bottom: 2px; left: 2px;
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #34d399; pointer-events: none; z-index: 1;
+      border: 1.5px solid var(--bg-card, #0a0c10);
+      box-shadow: 0 0 4px rgba(251,191,36,0.9);
     }
     .btn-delete-row {
       display: none; position: absolute; right: 4px; top: 50%;
@@ -819,7 +816,7 @@
         <span class="theme-toggle-label" id="theme-label">Светлая</span>
       </button>
       <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
-      <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
+      <button class="filter-btn" id="export-btn" onclick="exportToExcel()" style="display:none;font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="history-btn" onclick="openHistoryPanel()" style="display:none;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa">🕐 История</button>
       <button class="admin-btn" id="swap-btn" onclick="openSwapPanel()" style="display:none;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#34d399">🔄 Отдать смену</button>
       <button class="admin-btn" id="migrate-patterns-btn" onclick="migrateHardcodedPatterns()" style="display:none;background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60a5fa" title="Перенести захардкоженные паттерны в настройки">📌 Паттерны</button>
@@ -1553,10 +1550,12 @@ const collapsedSections = new Set();
         document.getElementById('positions-btn').style.display = 'flex';
         document.getElementById('history-btn').style.display = 'flex';
         document.getElementById('migrate-patterns-btn').style.display = 'flex';
+        document.getElementById('export-btn').style.display = 'inline-flex';
       }
       if (isSupervisor) {
         document.getElementById('admin-btn').classList.add('visible');
         document.getElementById('history-btn').style.display = 'flex';
+        document.getElementById('export-btn').style.display = 'inline-flex';
       }
     }
   } catch {}
@@ -2106,15 +2105,15 @@ function renderSection(s) {
       const cls = shiftClass(type);
       const key = `${name}:${ds}`;
       const override = scheduleOverrides[key];
-      const note = override?.note || '';
+      const manualNote = override?.note || '';
       const swapNote = swapAnnotation(override);
-      const tip = [swapNote, note].filter(Boolean).join(' · ');
+      // Комментарий обмена показываем тем же механизмом заметок, что и ручные.
+      const tip = [swapNote, manualNote].filter(Boolean).join(' · ');
       const hasPaidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
       const todayCls = isToday ? ' is-today' : '';
       const editAttr = isAdmin ? ` style="cursor:pointer" title="${tip || 'Редактировать'}"` : (tip ? ` title="${tip}"` : '');
       const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
-      const noteDot = note ? `<span class="note-dot"></span>` : '';
-      const swapDot = swapNote ? `<span class="swap-dot"></span>` : '';
+      const noteDot = tip ? `<span class="note-dot"></span>` : '';
 
       tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
       if (type === 'off') {
@@ -2123,7 +2122,6 @@ function renderSection(s) {
         tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
       }
       tdHTML += noteDot;
-      tdHTML += swapDot;
       tdHTML += `</td>`;
     });
 
@@ -3644,8 +3642,9 @@ const SWAP_BLOCK_DAY = new Set(['vacation','sick','nk','birthday','dismissed']);
 function swapEmpOv(name) { return getEmp(name); }
 function swapGroupOf(name) {
   const p = swapEmpOv(name).position.toLowerCase();
-  if (p === 'support') return 'support';
-  if (p === 'supervisor') return 'supervisor';
+  // Support и VIP меняются между собой; Supervisor и VIP Sup — между собой.
+  if (p === 'support' || p === 'vip')        return 'support';
+  if (p === 'supervisor' || p === 'vip sup') return 'supervisor';
   return null;
 }
 function swapFindMyName() {

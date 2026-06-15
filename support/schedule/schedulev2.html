@@ -3537,16 +3537,18 @@ function exportToExcel() {
       }
     });
 
-    const total = Object.values(extraTotals).reduce((a,b) => a+b, 0);
-    if (total > 0) {
+    // Net: плюсовые события прибавляем, loss_* (отданные/минусовые) вычитаем — как в calcDayHours.
+    const total = Object.entries(extraTotals).reduce(
+      (a, [type, h]) => a + (PLUS_EVENT_TYPES.has(type) ? h : -h), 0);
+    if (Object.keys(extraTotals).length) {
       summaryRows.push([
         name, section, position,
         extraTotals.extra_vacation_cover || 0,
         extraTotals.extra_sick_cover || 0,
         extraTotals.extra_critical || 0,
-        extraTotals.extra_dismissal || 0,
-        extraTotals.extra_org || 0,
-        extraTotals.extra_swap_give || 0,
+        extraTotals.loss_dismissal || 0,
+        (extraTotals.extra_org_plus || 0) - (extraTotals.loss_org || 0),
+        extraTotals.loss_swap_give || 0,
         extraTotals.extra_swap_take || 0,
         total
       ]);

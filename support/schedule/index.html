@@ -391,6 +391,21 @@
     html.light .stat-label { color: #6b7280; }
     html.light .stat-sub { color: #9ca3af; }
     html.light .stat-card { background: #fff; border-color: rgba(0,0,0,0.08); }
+    .stat-card.has-tip { cursor: default; }
+    .online-tip {
+      display: none; position: absolute; top: calc(100% + 8px); left: 12px; z-index: 50;
+      min-width: 220px; max-width: 320px; padding: 12px 14px;
+      background: var(--surface, #111318); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+      font-size: 11px; line-height: 1.5; text-align: left;
+    }
+    .stat-card.has-tip { position: relative; }
+    .stat-card.has-tip:hover .online-tip { display: block; }
+    .online-tip-group { margin-bottom: 8px; }
+    .online-tip-group:last-child { margin-bottom: 0; }
+    .online-tip-title { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted, #6b7280); margin-bottom: 3px; }
+    .online-tip-names { color: var(--text, #e5e7eb); font-weight: 500; }
+    html.light .online-tip { background: #fff; border-color: rgba(0,0,0,0.12); box-shadow: 0 12px 32px rgba(0,0,0,0.15); }
     html.light .name-pos { color: #6b7280; }
     html.light .name-email { color: #6b7280; }
     html.light .name-since { color: #9ca3af; }
@@ -600,6 +615,12 @@
       width: 5px; height: 5px; border-radius: 50%;
       background: #fbbf24; pointer-events: none; z-index: 1;
     }
+    .swap-dot {
+      position: absolute; bottom: 2px; left: 2px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #34d399; pointer-events: none; z-index: 1;
+    }
+    .btn-delete-row {
       display: none; position: absolute; right: 4px; top: 50%;
       transform: translateY(-50%);
       width: 20px; height: 20px; border-radius: 50%;
@@ -800,6 +821,8 @@
       <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
       <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="history-btn" onclick="openHistoryPanel()" style="display:none;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa">🕐 История</button>
+      <button class="admin-btn" id="swap-btn" onclick="openSwapPanel()" style="display:none;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#34d399">🔄 Отдать смену</button>
+      <button class="admin-btn" id="migrate-patterns-btn" onclick="migrateHardcodedPatterns()" style="display:none;background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60a5fa" title="Перенести захардкоженные паттерны в настройки">📌 Паттерны</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
       <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
       <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
@@ -819,10 +842,11 @@
 
     <!-- STATS -->
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card has-tip">
         <div class="stat-label">Операторов онлайн</div>
         <div class="stat-val" id="stat-online">—</div>
         <div class="stat-sub">сейчас на смене</div>
+        <div class="online-tip" id="online-tip"></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Regular Support</div>
@@ -984,6 +1008,14 @@
         <div class="admin-label">Email</div>
         <input type="text" class="admin-input" id="profile-email" placeholder="name@velvix.org" maxlength="80" />
       </div>
+      <div class="admin-field">
+        <div class="admin-label">В компании с</div>
+        <input type="date" class="admin-input" id="profile-since" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часов в смене по умолчанию</div>
+        <input type="number" class="admin-input" id="profile-hours" min="0" max="16" step="0.5" placeholder="пусто = по типу смены" />
+      </div>
       <div class="save-msg" id="profile-save-msg"></div>
     </div>
     <div class="admin-panel-footer">
@@ -1020,6 +1052,48 @@
 </div>
 
 <!-- CLEAR SHIFTS MODAL -->
+<!-- ОБМЕН СМЕНАМИ -->
+<div class="admin-overlay" id="swap-overlay" onclick="if(event.target===this)closeSwapPanel()">
+  <div class="admin-panel" style="width:420px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">🔄 Отдать смену</div>
+      <button class="close-btn" onclick="closeSwapPanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Кто отдаёт</div>
+        <select class="admin-select" id="swap-giver" onchange="swapOnGiverChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата и смена</div>
+        <select class="admin-select" id="swap-date" onchange="swapOnDateChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часы (с / по)</div>
+        <div style="display:flex;gap:8px">
+          <select class="admin-select" id="swap-from" onchange="swapOnFromChange()" style="flex:1"></select>
+          <select class="admin-select" id="swap-to" onchange="swapOnRangeChange()" style="flex:1"></select>
+        </div>
+        <div class="admin-label" id="swap-hours-label" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Кому отдать</div>
+        <select class="admin-select" id="swap-recipient"></select>
+        <div class="admin-label" id="swap-cand-hint" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Комментарий (необязательно)</div>
+        <input type="text" class="admin-input" id="swap-comment" maxlength="300" placeholder="Причина обмена..." />
+      </div>
+      <div class="save-msg" id="swap-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeSwapPanel()">Отмена</button>
+      <button class="btn-save" id="swap-submit" onclick="submitSwapRequest()">Отправить заявку</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-overlay" id="clear-shifts-overlay" onclick="if(event.target===this)closeClearShiftsModal()">
   <div class="admin-panel" style="width:360px">
     <div class="admin-panel-header">
@@ -1092,21 +1166,43 @@ const API = '/api';
 
 // ── Навигация по месяцам ──
 const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
-const AVAILABLE_MONTHS = [
-  { year: 2026, month: 6,  label: 'Июнь 2026' },
-  { year: 2026, month: 7,  label: 'Июль 2026' },
-  { year: 2026, month: 8,  label: 'Август 2026' },
-  { year: 2026, month: 9,  label: 'Сентябрь 2026' },
-  { year: 2026, month: 10, label: 'Октябрь 2026' },
-  { year: 2026, month: 11, label: 'Ноябрь 2026' },
-  { year: 2026, month: 12, label: 'Декабрь 2026' },
-];
+// Сколько месяцев истории и наперёд показывать в навигации.
+// В июне 2026 (PAST=3, AHEAD=6) окно = Июнь..Декабрь 2026 (как было в хардкоде),
+// но дальше оно само едет вперёд от реального месяца — «бомба 2027» обезврежена.
+const MONTHS_PAST  = 3;
+const MONTHS_AHEAD = 6;
+
+const RU_MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                   'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+// Абсолютный индекс месяца — чтобы корректно ходить через границу года
+function monthIndex(year, month) { return year * 12 + (month - 1); }
+function fromMonthIndex(idx) { return { year: Math.floor(idx / 12), month: (idx % 12) + 1 }; }
 
 const TODAY_REAL = new Date();
-let MONTH = TODAY_REAL.getFullYear() === 2026 ? TODAY_REAL.getMonth() + 1 : 6;
-if (MONTH < 6) MONTH = 6;
-if (MONTH > 12) MONTH = 12;
-let YEAR = 2026;
+const AVAILABLE_MONTHS = (() => {
+  const curIdx   = monthIndex(TODAY_REAL.getFullYear(), TODAY_REAL.getMonth() + 1);
+  const floorIdx = monthIndex(CYCLE_START.getFullYear(), CYCLE_START.getMonth() + 1);
+  const startIdx = Math.max(floorIdx, curIdx - MONTHS_PAST);
+  const endIdx   = Math.max(startIdx, curIdx + MONTHS_AHEAD);
+  const out = [];
+  for (let i = startIdx; i <= endIdx; i++) {
+    const { year, month } = fromMonthIndex(i);
+    out.push({ year, month, label: `${RU_MONTHS[month - 1]} ${year}` });
+  }
+  return out;
+})();
+
+// Стартуем на текущем месяце, но не выходим за пределы окна
+let YEAR, MONTH;
+{
+  const curIdx   = monthIndex(TODAY_REAL.getFullYear(), TODAY_REAL.getMonth() + 1);
+  const firstIdx = monthIndex(AVAILABLE_MONTHS[0].year, AVAILABLE_MONTHS[0].month);
+  const lastIdx  = monthIndex(AVAILABLE_MONTHS[AVAILABLE_MONTHS.length - 1].year, AVAILABLE_MONTHS[AVAILABLE_MONTHS.length - 1].month);
+  const clamped  = fromMonthIndex(Math.min(Math.max(curIdx, firstIdx), lastIdx));
+  YEAR  = clamped.year;
+  MONTH = clamped.month;
+}
 
 // ── Данные сотрудников: email, дата, позиция ──
 const EMPLOYEES = {
@@ -1258,69 +1354,15 @@ function getTodayStr() {
 let TODAY_STR = getTodayStr();
 let selectedDateStr = TODAY_STR || `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
 
-// ── Точные паттерны смен из графика (июнь 2026) ──
-const EXACT_SHIFTS = {
-  'Will':     ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
-  'Bridget':  ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
-  'Fletcher': ['shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off'],
-  'Kenzo':    ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
-  'Nora':     ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
-  'Robert':   ['off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200','shift1200','off','off','shift1200'],
-  'Florence': ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Charles':  ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','evening'],
-  'Earl':     ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
-  'Rudy':     ['off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
-  'Balfour':  ['off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning'],
-  'Jonathan': ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','vacation','vacation','vacation','vacation','vacation'],
-  'Bill':     ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
-  'Gross':    ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
-  'Meadow':   ['off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening'],
-  'Robin':    ['evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Bob':      ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Lex':      ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','morning','morning','off'],
-  'Calvin':   ['morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Mike':     ['evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off'],
-  'Hardy':    ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Murphy':   ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Joseph':   ['morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','evening','evening','off'],
-  'Bowen':    ['off','evening','evening','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning','morning','off','off','evening','evening','off','off','morning','morning','off','off','morning'],
-  'Scott':    ['vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
-  'Tom':      ['off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
-  'Simon':    ['off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200'],
-  'Skylar':   ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off'],
-  'Felicia':  ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_evening','vip_evening','off','off','vip_1200','vip_1200','off'],
-  'Nolan':    ['vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off','off','vip_1200','vip_1200','off'],
-  'Casper':   ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Elijah':   ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'Holly':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  'River':    ['off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vip_evening'],
-  'Chadwick': ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Fabio':    ['off','vip_evening','vip_evening','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Plover':   ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  'Morgan':   ['vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_morning'],
-  'Reggie':   ['off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening'],
-  'Wade':     ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Ashton':   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Trinity':  ['vacation','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Christine':['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Isaac':    ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off'],
-  'Warren':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-  'Alexia':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off'],
-  'Kiana':    ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','vacation','off','off','vip_morning','vip_morning','off'],
-  'Denzel':   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning','vip_morning','off'],
-};
-
-// Management / QA: 8h пн-пт
-function getMgmtShift(dayIndex) {
-  const date = DAYS[dayIndex].date;
+// (мёртвый блок EXACT_SHIFTS удалён: нигде не использовался)
+function getMgmtShift(date) {
   const dow = date.getDay();
   return (dow === 0 || dow === 6) ? 'off' : 'work8';
 }
 
 const OPERATOR_BASE_SHIFTS = {};
 
-// Базовые циклы операторов, вычислены из EXACT_SHIFTS июня
-// CYCLE_START = 2026-06-01 (день 0)
+// Базовые циклы операторов (точка отсчёта CYCLE_START = 2026-06-01)
 const BASE_PATTERNS = {
   'Will':      ['shift1200','off','off','shift1200'],
   'Bridget':   ['shift1200','off','off','shift1200'],
@@ -1376,9 +1418,8 @@ const BASE_PATTERNS = {
 Object.keys(BASE_PATTERNS).forEach(name => {
   const pattern = BASE_PATTERNS[name];
   const cycleLen = pattern.length;
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
+    const globalDi = Math.round((date - CYCLE_START) / 86400000);
     const pos = ((globalDi % cycleLen) + cycleLen) % cycleLen;
     return pattern[pos];
   };
@@ -1437,52 +1478,31 @@ const TEAM1 = ['Irma', 'Solomon', 'Toby'];
 const TEAM2 = ['Curtis', 'Manuel', 'Richard'];
 
 TEAM1.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
+    const globalDi = Math.round((date - CYCLE_START) / 86400000);
     return getSuperTeamShift(globalDi, 0, i);
   };
 });
 TEAM2.forEach((name, i) => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
-    const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
+    const globalDi = Math.round((date - CYCLE_START) / 86400000);
     return getSuperTeamShift(globalDi, 1, i);
   };
 });
 // VIP Supervisors:
-// Adam: 5/2 по будням, 09-21
-// Amelia и Lucas: чередуются по 1 дню, 12h 09-21
-// 1 июня = Amelia, 2,3 = Lucas, 4,5 = Amelia, 6,7 = Lucas...
-// То есть Amelia работает нечётные числа (1,3,5...), Lucas чётные (2,3 — нет, по описанию: 1=Amelia, 2-3=Lucas, 4-5=Amelia)
-// Значит: чередуются блоками по 1/2? Нет — "1 числа работает Amelia, 2,3 Lucas, 4,5 Amelia"
-// Паттерн: 1 день Amelia, 2 дня Lucas, 2 дня Amelia, 2 дня Lucas... = цикл 3? нет
-// Точный паттерн из описания: 1=A, 2=L, 3=L, 4=A, 5=A, 6=L, 7=L, 8=A... цикл 4: A,L,L,A → нет
-// "1 числа Amelia, 2,3 Lucas, 4,5 Amelia" = A(1день) + L(2дня) + A(2дня) + L(2дня)...
-// Значит цикл: первый день = 1 (Amelia одна), потом блоки по 2
-// Упрощаем: dayIndex=0(1июня)=A, 1,2=L, 3,4=A, 5,6=L... цикл 3 со смещением
-// pos в цикле 3: 0=A, 1=L, 2=L → Amelia работает когда pos%3===0, Lucas когда pos%3===1 или 2
-// Проверка: день 0(1июня)→pos0→A✓, день1(2)→pos1→L✓, день2(3)→pos2→L✓, день3(4)→pos0→A✓, день4(5)→pos1→... нет
-// Правильно: pos = dayIndex % 3: 0=A, 1=L, 2=L → дни: 1=A,2=L,3=L,4=A,5=L,6=L — но нужно 4,5=Amelia
-// Значит цикл 4: A,L,L,A → нет, "4,5 Amelia" = 2 дня подряд
-// Итого цикл 4: pos0=A, pos1=L, pos2=L, pos3=A? нет тогда 4=A,5=L
-// Попробуем: день1→A, день2→L, день3→L, день4→A, день5→A, день6→L, день7→L...
-// Цикл 4 со смещением -1: dayIndex%4: 0(д1)=0→A, 1(д2)=1→L, 2(д3)=2→L, 3(д4)=3→A, 4(д5)=0→A ✓!
-// Цикл 4: pos0=A, pos1=L, pos2=L, pos3=A
-OPERATOR_BASE_SHIFTS['Adam'] = (di) => {
-  const date = DAYS[di].date;
+// Adam: 5/2 по будням (часы оператора заданы в OPERATOR_HOURS)
+// Amelia и Lucas: чередование блоками, цикл 4 дня от CYCLE_START: A,L,L,A
+OPERATOR_BASE_SHIFTS['Adam'] = (date) => {
   const dow = date.getDay();
   return (dow === 0 || dow === 6) ? 'off' : 'super_day';
 };
-OPERATOR_BASE_SHIFTS['Amelia'] = (di) => {
-  const date = DAYS[di].date;
-  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+OPERATOR_BASE_SHIFTS['Amelia'] = (date) => {
+  const globalDi = Math.round((date - CYCLE_START) / 86400000);
   const pos = ((globalDi % 4) + 4) % 4;
   return (pos === 0 || pos === 3) ? 'super_day' : 'off';
 };
-OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
-  const date = DAYS[di].date;
-  const globalDi = Math.floor((date - CYCLE_START) / 86400000);
+OPERATOR_BASE_SHIFTS['Lucas'] = (date) => {
+  const globalDi = Math.round((date - CYCLE_START) / 86400000);
   const pos = ((globalDi % 4) + 4) % 4;
   return (pos === 1 || pos === 2) ? 'super_day' : 'off';
 };
@@ -1491,7 +1511,7 @@ OPERATOR_BASE_SHIFTS['Lucas'] = (di) => {
 // Management / QA
 ['Oliver','Jordan','Naomi','Matthew','Reed','Jayden','Anna','Nikita',
  'Оксана','Аня','Айгерим','Анастасия','Натия','Сарвар','Зумруд','Roger'].forEach(name => {
-  OPERATOR_BASE_SHIFTS[name] = (di) => getMgmtShift(di);
+  OPERATOR_BASE_SHIFTS[name] = (date) => getMgmtShift(date);
 });
 
 // ── State ──
@@ -1532,6 +1552,7 @@ const collapsedSections = new Set();
         document.getElementById('dismiss-nav-btn').style.display = 'flex';
         document.getElementById('positions-btn').style.display = 'flex';
         document.getElementById('history-btn').style.display = 'flex';
+        document.getElementById('migrate-patterns-btn').style.display = 'flex';
       }
       if (isSupervisor) {
         document.getElementById('admin-btn').classList.add('visible');
@@ -1556,8 +1577,8 @@ const collapsedSections = new Set();
             s.members = scheduleSettings.customOrder[s.key];
           }
         });
-        updateGroupsFromSections();
       }
+      updateGroupsFromSections();
       dismissedEmployees = scheduleSettings.dismissed || {};
     }
   } catch {}
@@ -1572,6 +1593,7 @@ const collapsedSections = new Set();
   populateOperatorSelect();
   updateColumnHighlight();
   setTimeout(initStickyDatesBar, 0);
+  initSwapUi();
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -1614,6 +1636,7 @@ async function switchMonth(year, month) {
   updateStats();
   updateColumnHighlight();
   setTimeout(initStickyDatesBar, 0);
+  initSwapUi();
 }
 
 function updateMonthNav() {
@@ -1660,42 +1683,190 @@ const PATTERN_PRESETS = {
   'team2_2': ['off','off','super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day'],
 };
 
+// ── Паттерны: история записей на оператора ──
+// Запись: { pattern: [...], cycleStart: 'YYYY-MM-DD', v: 2 }. На дату действует
+// последняя запись с cycleStart <= даты, поэтому смена паттерна с середины месяца
+// не ломает уже прошедшие дни.
+// Легаси-записи (без v) парсились старым кодом как UTC и реально стартовали на день
+// позже своего cycleStart — при чтении нормализуем сдвигом +1 день, чтобы видимый
+// график не изменился.
+function parseLocalDate(s) {
+  const [y, m, d] = String(s).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function localDs(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function plusDays(ds, n) {
+  const d = parseLocalDate(ds);
+  d.setDate(d.getDate() + n);
+  return localDs(d);
+}
+
+function getPatternEntries(name) {
+  const raw = (scheduleSettings.operatorPatterns || {})[name];
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr
+    .filter(e => e && Array.isArray(e.pattern) && e.pattern.length && e.cycleStart)
+    .map(e => (e.v >= 2 ? e : { ...e, cycleStart: plusDays(e.cycleStart, 1), v: 2 }))
+    .sort((a, b) => (a.cycleStart < b.cycleStart ? -1 : 1));
+}
+
 function getPatternShift(name, date) {
-  const patterns = scheduleSettings.operatorPatterns || {};
-  const op = patterns[name];
-  if (!op || !op.pattern || !op.cycleStart) return null;
-  const start = new Date(op.cycleStart);
-  // До даты начала — паттерн не применяется, fallback на BASE_PATTERNS
-  if (date < start) return null;
-  const diffDays = Math.floor((date - start) / 86400000);
-  const cycle = op.pattern.length;
-  const pos = ((diffDays % cycle) + cycle) % cycle;
-  return op.pattern[pos];
+  const entries = getPatternEntries(name);
+  if (!entries.length) return null;
+  const ds = localDs(date);
+  let active = null;
+  for (const e of entries) { if (e.cycleStart <= ds) active = e; }
+  if (!active) return null; // до начала первого паттерна — fallback на хардкод
+  const diffDays = Math.round((parseLocalDate(ds) - parseLocalDate(active.cycleStart)) / 86400000);
+  const cycle = active.pattern.length;
+  return active.pattern[((diffDays % cycle) + cycle) % cycle];
 }
 
 function getShift(name, dayIndex) {
   const key = `${name}:${dateStr(DAYS[dayIndex].d)}`;
   if (scheduleOverrides[key]) return scheduleOverrides[key].type;
-  // Сначала проверяем operatorPatterns из settings
+  // Уволенные: после последнего рабочего дня график обрезается в любом месяце
+  const dis = dismissedEmployees[name];
+  if (dis && dateStr(DAYS[dayIndex].d) > dis) return 'dismissed';
+  // Паттерны из настроек
   const patternShift = getPatternShift(name, DAYS[dayIndex].date);
   if (patternShift !== null) return patternShift;
-  // Fallback на захардкоженные паттерны июня
+  // Fallback на захардкоженные паттерны (исчезнет после миграции)
   const fn = OPERATOR_BASE_SHIFTS[name];
-  return fn ? fn(dayIndex) : 'off';
+  return fn ? fn(DAYS[dayIndex].date) : 'off';
 }
 
-// Дефолтные часы по типу смены
-const DEFAULT_HOURS = {
-  morning: 11, evening: 11, night: 11,
-  vip_morning: 11, vip_evening: 11, vip_1200: 11,
-  super_day: 11, super_night: 11, super_day8: 8,
-  shift1200: 11, work8: 8,
-  extra_morning: 0, extra_evening: 0, extra_1200: 0,
-  extra_vip_morning: 0, extra_vip_evening: 0, extra_vip_1200: 0,
-  extra_sup_day: 11, extra_sup_night: 11, extra_sup_day8: 8,
-  nk: 11,
-  vacation: 0, sick: 0, off: 0, birthday: 0
+// ────────────────────────────────────────────
+// ── ЕДИНЫЙ РЕЕСТР ТИПОВ СМЕН ──
+// window: [начало, конец] в часах от 00:00 дня смены; конец > 24 = смена заканчивается на следующий день.
+// hours: базовые оплачиваемые часы. isNight: после этой смены нельзя брать дневную на след. день.
+// isExtra: доп смена (часы приходят из событий). base: базовый тип для доп смены (статистика, экспорт).
+// givable: смену можно отдавать через обмен. legacy: тип старого графика, не создаётся, оставлен для данных.
+// ВНИМАНИЕ: имена vip-типов исторически перевёрнуты (vip_morning = ночь, vip_evening = день). Семантику
+// определяют ТОЛЬКО поля этого реестра, на имя типа в коде ориентироваться нельзя.
+// ────────────────────────────────────────────
+const SHIFT_DEFS = {
+  // Regular
+  morning:       { hours: 11, window: [9,21],  label: 'День',          cat: 'Regular', givable: true },
+  evening:       { hours: 11, window: [21,33], label: 'Ночь',          cat: 'Regular', isNight: true, givable: true },
+  shift1200:     { hours: 11, window: [12,24], label: '12-00',         cat: 'Regular', givable: true },
+  extra_morning: { hours: 0,  window: [9,21],  label: '+Доп День',     cat: 'Regular', isExtra: true, base: 'morning' },
+  extra_evening: { hours: 0,  window: [21,33], label: '+Доп Ночь',     cat: 'Regular', isExtra: true, isNight: true, base: 'evening' },
+  extra_1200:    { hours: 0,  window: [12,24], label: '+Доп 12-00',    cat: 'Regular', isExtra: true, base: 'shift1200' },
+  // VIP
+  vip_evening:       { hours: 11, window: [9,21],  label: 'VIP День',       cat: 'VIP', givable: true },
+  vip_morning:       { hours: 11, window: [21,33], label: 'VIP Ночь',       cat: 'VIP', isNight: true, givable: true },
+  vip_1200:          { hours: 11, window: [12,24], label: 'VIP 12-00',      cat: 'VIP', givable: true },
+  extra_vip_evening: { hours: 0,  window: [9,21],  label: '+Доп VIP День',  cat: 'VIP', isExtra: true, base: 'vip_evening' },
+  extra_vip_morning: { hours: 0,  window: [21,33], label: '+Доп VIP Ночь',  cat: 'VIP', isExtra: true, isNight: true, base: 'vip_morning' },
+  extra_vip_1200:    { hours: 0,  window: [12,24], label: '+Доп VIP 12-00', cat: 'VIP', isExtra: true, base: 'vip_1200' },
+  // Supervisors
+  super_day:   { hours: 11, window: [9,21],  label: 'Sup День', cat: 'Sup', givable: true },
+  super_night: { hours: 11, window: [21,33], label: 'Sup Ночь', cat: 'Sup', isNight: true, givable: true },
+  super_day8:  { hours: 8,  window: [10,19], label: 'Sup 8ч',   cat: 'Sup', givable: true },
+  // Доп смены: база всегда 0, часы приходят только из событий (+Доп часы) или кастомных часов
+  extra_sup_day:   { hours: 0, window: [9,21],  label: '+Доп Sup День', cat: 'Sup', isExtra: true, base: 'super_day' },
+  extra_sup_night: { hours: 0, window: [21,33], label: '+Доп Sup Ночь', cat: 'Sup', isExtra: true, isNight: true, base: 'super_night' },
+  extra_sup_day8:  { hours: 0, window: [10,19], label: '+Доп Sup 8ч',   cat: 'Sup', isExtra: true, base: 'super_day8' },
+  // Прочее
+  work8:     { hours: 8,  window: [9,18], label: '8ч офис', cat: 'Mgmt' },
+  nk:        { hours: 11, window: null,  label: 'НК', busyAllDay: true },
+  night:     { hours: 11, window: [21,33], label: 'Ночь (легаси)', isNight: true, legacy: true },
+  vacation:  { hours: 0, label: 'Отпуск' },
+  sick:      { hours: 0, label: 'Больничный' },
+  birthday:  { hours: 0, label: 'Выходной ДР' },
+  off:       { hours: 0, label: 'Выходной' },
+  dismissed: { hours: 0, label: 'Уволен' },
 };
+
+// Дефолтные часы по типу смены (выводятся из реестра, отдельно не редактировать)
+const DEFAULT_HOURS = Object.fromEntries(Object.entries(SHIFT_DEFS).map(([t, d]) => [t, d.hours]));
+
+// Сид персональных часов (используется, пока в профиле сотрудника не задано своё значение)
+const OPERATOR_HOURS_SEED = { 'Adam': 8 };
+
+// ── ЕДИНЫЙ ДОСТУП К ДАННЫМ СОТРУДНИКА ──
+// Правки из UI (settings.employeeOverrides) приоритетнее статичного сида EMPLOYEES.
+// Все места, читающие email/позицию/дату/часы, обязаны ходить только сюда.
+function getEmp(name) {
+  const ov  = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const emp = EMPLOYEES[name] || {};
+  const hRaw = ov.hours ?? OPERATOR_HOURS_SEED[name];
+  const hNum = (hRaw === undefined || hRaw === null || hRaw === '') ? NaN : Number(hRaw);
+  return {
+    email:    String(ov.email ?? emp.email ?? '').trim(),
+    position: String(ov.position ?? emp.position ?? '').trim(),
+    since:    ov.since ?? emp.since ?? '',
+    hours:    Number.isFinite(hNum) ? hNum : undefined,
+  };
+}
+
+// Минимумы людей на смене: шапка таблицы, красная точка у даты, панель дня
+const MIN_STAFF = { day: 4, night: 3, d12: 2 };
+
+// ── ЕДИНЫЙ ПОДСЧЁТ ЧАСОВ ЗА ДЕНЬ ──
+// Все потребители (ИТОГО, счётчики шапки, пилюли, экспорт, панель дня, статистика, обмены)
+// обязаны считать часы только через эту функцию.
+const PLUS_EVENT_TYPES = new Set(['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid']);
+
+function calcDayHours(type, override, name) {
+  if (!type || type === 'off' || type === 'vacation' || type === 'dismissed') return 0;
+  if (type === 'sick') {
+    const paid = (override?.extraEvents || []).find(e => e.type === 'extra_sick_paid' && e.hours > 0);
+    return paid ? paid.hours : 0;
+  }
+  let h;
+  if (override?.customHours !== undefined) h = override.customHours;
+  else {
+    const ph = name ? getEmp(name).hours : undefined;
+    h = (ph !== undefined && SHIFT_DEFS[type]?.window) ? ph : getHours(type);
+  }
+
+  const events = (override?.extraEvents || []).filter(e => e.hours > 0);
+  if (events.length) {
+    const isExtra = !!SHIFT_DEFS[type]?.isExtra;
+    const takes = events.filter(e => e.type === 'extra_swap_take');
+    if (isExtra && takes.length) {
+      // Доп смена, полученная обменом: база не считается, только полученные часы плюс прочие события
+      h = takes.reduce((s, e) => s + e.hours, 0);
+      events.forEach(e => {
+        if (e.type === 'extra_swap_take') return;
+        h += PLUS_EVENT_TYPES.has(e.type) ? e.hours : -e.hours;
+      });
+    } else {
+      events.forEach(e => { h += PLUS_EVENT_TYPES.has(e.type) ? e.hours : -e.hours; });
+    }
+  }
+  return Math.max(0, h);
+}
+
+// Аннотация обмена сменами для ячейки: «Отдал → кому» / «Забрал ← у кого».
+// Данные берём из событий, которые пишет swap-бот (loss_swap_give / extra_swap_take).
+function swapAnnotation(override) {
+  const parts = [];
+  (override?.extraEvents || []).forEach(e => {
+    if (e.type === 'loss_swap_give' && e.swapWith)  parts.push(`🔄 Отдал ${e.hours}ч → ${e.swapWith}`);
+    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч ← ${e.swapWith}`);
+  });
+  return parts.join(' · ');
+}
+
+// Список обменов за конкретный день (со стороны отдающего), для панели дня.
+function daySwaps(ds) {
+  const out = [];
+  const suffix = `:${ds}`;
+  for (const [key, ov] of Object.entries(scheduleOverrides)) {
+    if (!key.endsWith(suffix)) continue;
+    const giver = key.slice(0, -suffix.length);
+    (ov.extraEvents || []).forEach(e => {
+      if (e.type === 'loss_swap_give' && e.swapWith) out.push({ giver, recipient: e.swapWith, hours: e.hours });
+    });
+  }
+  return out;
+}
 
 function getHours(type) {
   if (scheduleSettings.customHours && scheduleSettings.customHours[type] !== undefined) {
@@ -1720,44 +1891,10 @@ function shiftLabel(type, name, ds) {
     return '🤒';
   }
 
-  // Базовые часы
-  let baseHours;
-  if (name && ds) {
-    const key = `${name}:${ds}`;
-    const override = scheduleOverrides[key];
-    if (override?.customHours !== undefined && override.customHours === 0) return '🚫';
-    if (override?.customHours) baseHours = override.customHours;
-  }
-  if (!baseHours) {
-    if (name === 'Adam') baseHours = 8;
-    else {
-      const defaults = {
-        morning:11, evening:11, night:11,
-        vip_morning:11, vip_evening:11, vip_1200:11,
-        super_day:11, super_night:11, shift1200:11, work8:8
-      };
-      baseHours = defaults[type] || 0;
-    }
-  }
-
-  // Считаем дельту от доп событий
-  // Оплачиваемый больничный НЕ добавляет часы к рабочей смене, только компенсирует потери
-  let delta = 0;
-  if (name && ds) {
-    const key = `${name}:${ds}`;
-    const override = scheduleOverrides[key];
-    if (override?.extraEvents?.length) {
-      const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
-      override.extraEvents.forEach(ev => {
-        if (ev.hours > 0) {
-          if (plusTypes.includes(ev.type)) delta += ev.hours;
-          else delta -= ev.hours;
-        }
-      });
-    }
-  }
-
-  const total = baseHours + delta;
+  // Часы: единый расчёт
+  const override = (name && ds) ? scheduleOverrides[`${name}:${ds}`] : null;
+  if (override?.customHours === 0) return '🚫';
+  const total = calcDayHours(type, override, name);
   return total > 0 ? String(total) : '0';
 }
 
@@ -1841,14 +1978,14 @@ function renderSection(s) {
   let thCountHTML = '';
   if (isOpSection) {
     const shiftRowsReg = [
-      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: 4 },
-      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: 3 },
-      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: 2 },
+      { types: ['morning', 'extra_morning'],           label: '09–21', color: 'var(--shift-morning)', min: MIN_STAFF.day },
+      { types: ['evening', 'extra_evening'],           label: '21–09', color: 'var(--shift-evening)', min: MIN_STAFF.night },
+      { types: ['shift1200','extra_1200'],              label: '12–00', color: '#f59e0b',              min: MIN_STAFF.d12 },
     ];
     const shiftRowsVip = [
-      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: 4 },
-      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: 3 },
-      { types: ['vip_1200','extra_vip_1200','d12'],    label: '12–00', color: '#f59e0b',                  min: 2 },
+      { types: ['vip_evening','extra_vip_evening'],    label: '09–21', color: 'var(--shift-vip-evening)', min: MIN_STAFF.day },
+      { types: ['vip_morning','extra_vip_morning'],    label: '21–09', color: 'var(--shift-vip-morning)', min: MIN_STAFF.night },
+      { types: ['vip_1200','extra_vip_1200'],          label: '12–00', color: '#f59e0b',                  min: MIN_STAFF.d12 },
     ];
     const shiftRows = s.key === 'regular_support' ? shiftRowsReg : shiftRowsVip;
     shiftRows.forEach(({ types, label, color, min }) => {
@@ -1865,27 +2002,12 @@ function renderSection(s) {
         const isWeekend = dow === 0 || dow === 6;
         const isToday = dateStr(d) === TODAY_STR;
         const baseCls = isToday ? 'today' : isWeekend ? 'weekend' : '';
-        // Считаем по ВСЕМ операторам — кто работает эту смену
-        // Исключаем тех у кого loss_swap_give (отдал смену)
-        const isSwappedOut = (name, dayIdx) => {
-          const key = `${name}:${dateStr(DAYS[dayIdx].d)}`;
-          const ov = scheduleOverrides[key];
-          return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
-        };
+        // Дробный headcount: суммарные часы операторов на этой смене / 11
         const countRaw = allOperators
           .filter(n => types.includes(getShift(n, di)))
           .reduce((sum, n) => {
-            const key = `${n}:${dateStr(DAYS[di].d)}`;
-            const ov = scheduleOverrides[key];
-            let h = getHours(getShift(n, di));
-            if (ov?.customHours !== undefined) h = ov.customHours;
-            if (ov?.extraEvents?.length) {
-              const plusTypes = ['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid'];
-              ov.extraEvents.forEach(ev => {
-                if (ev.hours > 0) h += plusTypes.includes(ev.type) ? ev.hours : -ev.hours;
-              });
-            }
-            return sum + Math.max(0, h);
+            const ov = scheduleOverrides[`${n}:${dateStr(DAYS[di].d)}`];
+            return sum + calcDayHours(getShift(n, di), ov, n);
           }, 0) / 11;
         const count = Math.round(countRaw * 10) / 10;
         const countDisplay = Number.isInteger(count) ? count : count.toFixed(1);
@@ -1919,7 +2041,7 @@ function renderSection(s) {
         : ['vip_morning','extra_vip_morning'];
       const dayCount = allOperators.filter(n => dayTypes.includes(getShift(n,di))).length;
       const nightCount = allOperators.filter(n => nightTypes.includes(getShift(n,di))).length;
-      if (dayCount < 4 || nightCount < 3) {
+      if (dayCount < MIN_STAFF.day || nightCount < MIN_STAFF.night) {
         redDot = `<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#f87171;margin-left:2px;vertical-align:middle"></span>`;
       }
     }
@@ -1937,19 +2059,22 @@ function renderSection(s) {
 
   thead.innerHTML = thCountHTML + thHTML;
 
-  const DIVIDERS = {
-    regular_support: { after: 'Toby',  label: 'Операторы' },
-    vip_support:     { after: 'Lucas', label: 'VIP Операторы' },
-  };
-  const dividerConfig = DIVIDERS[s.key];
+  // Разделитель ставится после последнего супервайзера секции (по полю "Позиция")
+  const DIVIDER_LABELS = { regular_support: 'Операторы', vip_support: 'VIP Операторы' };
+  let dividerConfig = null;
+  if (DIVIDER_LABELS[s.key]) {
+    const sups = s.members.filter(isSupervisorPosition);
+    if (sups.length && sups.length < s.members.length) {
+      dividerConfig = { after: sups[sups.length - 1], label: DIVIDER_LABELS[s.key] };
+    }
+  }
 
   const tbody = document.createElement('tbody');
   s.members.forEach(name => {
-    const emp = EMPLOYEES[name] || {};
-    const empOv = (scheduleSettings.employeeOverrides || {})[name] || {};
-    const pos   = empOv.position || emp.position || '';
-    const email = empOv.email    || emp.email    || '';
-    const since = emp.since ? emp.since.slice(0,10) : '';
+    const emp = getEmp(name);
+    const pos   = emp.position;
+    const email = emp.email;
+    const since = emp.since ? String(emp.since).slice(0,10) : '';
 
     const tr = document.createElement('tr');
     tr.dataset.name = name;
@@ -1982,11 +2107,14 @@ function renderSection(s) {
       const key = `${name}:${ds}`;
       const override = scheduleOverrides[key];
       const note = override?.note || '';
+      const swapNote = swapAnnotation(override);
+      const tip = [swapNote, note].filter(Boolean).join(' · ');
       const hasPaidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
       const todayCls = isToday ? ' is-today' : '';
-      const editAttr = isAdmin ? ` style="cursor:pointer" title="${note || 'Редактировать'}"` : (note ? ` title="${note}"` : '');
+      const editAttr = isAdmin ? ` style="cursor:pointer" title="${tip || 'Редактировать'}"` : (tip ? ` title="${tip}"` : '');
       const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
       const noteDot = note ? `<span class="note-dot"></span>` : '';
+      const swapDot = swapNote ? `<span class="swap-dot"></span>` : '';
 
       tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
       if (type === 'off') {
@@ -1995,49 +2123,16 @@ function renderSection(s) {
         tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
       }
       tdHTML += noteDot;
+      tdHTML += swapDot;
       tdHTML += `</td>`;
     });
 
-    // Считаем итого часов за месяц
+    // Итого часов за месяц: единый расчёт
     let totalHours = 0;
-    const plusTypesSet = new Set(['extra_critical','extra_vacation_cover','extra_sick_cover','extra_swap_take','extra_org_plus','extra_sick_paid']);
     DAYS.forEach((d, di) => {
       const ds2 = dateStr(d.d);
       const type = getShift(name, di);
-      if (['off','vacation','dismissed'].includes(type)) return;
-      const key = `${name}:${ds2}`;
-      const override = scheduleOverrides[key];
-
-      // Для больничного: базовые часы = 0, если есть оплачиваемый — добавляем его часы
-      let h = 0;
-      if (type === 'sick') {
-        if (override?.extraEvents?.length) {
-          const paidSick = override.extraEvents.find(e => e.type === 'extra_sick_paid');
-          if (paidSick) h = paidSick.hours;
-        }
-        totalHours += h;
-        return;
-      }
-
-      h = override?.customHours || DEFAULT_HOURS[type] || 0;
-      if (override?.extraEvents?.length) {
-        // Если доп смена + есть extra_swap_take — базовые часы не считаем, только swap_take
-        const isExtraShift = type.startsWith('extra_');
-        const swapTake = override.extraEvents.filter(e => e.type === 'extra_swap_take' && e.hours > 0);
-        if (isExtraShift && swapTake.length > 0) {
-          h = swapTake.reduce((sum, e) => sum + e.hours, 0);
-          // Остальные плюс/минус события кроме swap_take
-          override.extraEvents.forEach(ev => {
-            if (ev.type === 'extra_swap_take') return;
-            if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
-          });
-        } else {
-          override.extraEvents.forEach(ev => {
-            if (ev.hours > 0) h += plusTypesSet.has(ev.type) ? ev.hours : -ev.hours;
-          });
-        }
-      }
-      totalHours += Math.max(0, h);
+      totalHours += calcDayHours(type, scheduleOverrides[`${name}:${ds2}`], name);
     });
 
     tdHTML += `<td style="border-left:1px solid rgba(255,255,255,0.15);font-weight:800;font-size:12px;color:var(--text);padding:0 4px;text-align:center">${totalHours}</td>`;
@@ -2078,23 +2173,73 @@ function updateStats() {
     ? TODAY_REAL_DATE.getDate() - 1 : -1;
 
   if (todayDi >= 0) {
-    const allMembers = SECTIONS.flatMap(s => s.members);
-    allMembers.forEach(name => {
-      const type = getShift(name, todayDi);
-      if (type === 'morning' && h >= 6 && h < 15) online++;
-      if (type === 'evening' && h >= 15) online++;
-      if (type === 'night' && h < 10) online++;
-      if (type === 'super_day' && h >= 9 && h < 21) online++;
-      if (type === 'super_night' && (h >= 21 || h < 9)) online++;
-      if (type === 'work8' && h >= 9 && h < 18) online++;
-    });
+    // Только операторы (Regular + VIP Support): суперы, менеджмент, QA и НК в счётчик не входят
+    const allMembers = [...GROUPS.regular.members, ...GROUPS.vip.members];
+    const isOnlineNow = (name) => {
+      // сегодняшняя смена в своём окне
+      const t = getShift(name, todayDi);
+      const def = SHIFT_DEFS[t];
+      if (def?.window) {
+        const ov = scheduleOverrides[`${name}:${dateStr(DAYS[todayDi].d)}`];
+        if (calcDayHours(t, ov, name) > 0 && h >= def.window[0] && h < Math.min(def.window[1], 24)) return true;
+      }
+      // хвост вчерашней ночной после полуночи
+      if (todayDi > 0) {
+        const ty = getShift(name, todayDi - 1);
+        const dy = SHIFT_DEFS[ty];
+        if (dy?.window && dy.window[1] > 24 && h < dy.window[1] - 24) {
+          const ovY = scheduleOverrides[`${name}:${dateStr(DAYS[todayDi - 1].d)}`];
+          if (calcDayHours(ty, ovY, name) > 0) return true;
+        }
+      }
+      return false;
+    };
+    const onlineNames = allMembers.filter(isOnlineNow);
+
+    // Дробный счёт: человек вносит свои часы / 11 (неполная смена = доля, переработка не больше 1)
+    const onlineWeight = (name, di2) => {
+      const t = getShift(name, di2);
+      const hrs = calcDayHours(t, scheduleOverrides[`${name}:${dateStr(DAYS[di2].d)}`], name);
+      return Math.min(1, hrs / 11);
+    };
+    // di дня, к которому относится текущая смена человека (сегодня или вчерашняя ночная)
+    const onlineDi = (name) => {
+      const def = SHIFT_DEFS[getShift(name, todayDi)];
+      if (def?.window && h >= def.window[0] && h < Math.min(def.window[1], 24)) return todayDi;
+      return todayDi - 1;
+    };
+    online = Math.round(onlineNames.reduce((sum, n) => sum + onlineWeight(n, onlineDi(n)), 0) * 10) / 10;
+
+    // Тултип: кто именно на смене, сгруппировано по окну, с часами у неполных смен
+    const tipEl = document.getElementById('online-tip');
+    if (tipEl) {
+      const groups = {};
+      onlineNames.forEach(name => {
+        const di2 = onlineDi(name);
+        const t = getShift(name, di2);
+        const def = SHIFT_DEFS[t];
+        const hrs = calcDayHours(t, scheduleOverrides[`${name}:${dateStr(DAYS[di2].d)}`], name);
+        const key = def?.label || t;
+        (groups[key] = groups[key] || { names: [], w: 0 });
+        groups[key].names.push(hrs === 11 ? name : `${name} (${hrs}ч)`);
+        groups[key].w += Math.min(1, hrs / 11);
+      });
+      const fmtW = (v) => { const r = Math.round(v * 10) / 10; return Number.isInteger(r) ? r : r.toFixed(1); };
+      tipEl.innerHTML = Object.keys(groups).length
+        ? Object.entries(groups).map(([label, g]) => `
+            <div class="online-tip-group">
+              <div class="online-tip-title">${label} · ${fmtW(g.w)}</div>
+              <div class="online-tip-names">${g.names.join(', ')}</div>
+            </div>`).join('')
+        : '<div class="online-tip-names">Сейчас на смене никого нет</div>';
+    }
   }
 
   const totalStaff = SECTIONS.flatMap(s => s.members).length;
   const regularCount = GROUPS.regular.members.length;
   const vipCount = GROUPS.vip.members.length;
 
-  document.getElementById('stat-online').textContent = todayDi >= 0 ? online : '—';
+  document.getElementById('stat-online').textContent = todayDi >= 0 ? (Number.isInteger(online) ? online : online.toFixed(1)) : '—';
   document.getElementById('stat-regular').textContent = regularCount;
   document.getElementById('stat-vip').textContent = vipCount;
   document.getElementById('stat-total').textContent = totalStaff;
@@ -2242,27 +2387,54 @@ function moveOperator(srcName, fromKey, toKey, beforeName, insertAfter) {
   updateColumnHighlight();
 }
 
+// Супервайзер определяется по полю "Позиция" профиля (employeeOverrides приоритетнее EMPLOYEES)
+function isSupervisorPosition(name) {
+  const p = getEmp(name).position.toLowerCase();
+  return p === 'supervisor' || p === 'vip sup' || p === 'vip supervisor' || p.startsWith('supervisor');
+}
+
 function updateGroupsFromSections() {
   SECTIONS.forEach(s => {
     if (s.key === 'regular_support') {
-      GROUPS.regular.members = s.members.filter(n =>
-        !['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
-      );
-      GROUPS.supervisors.members = s.members.filter(n =>
-        ['Curtis','Manuel','Irma','Solomon','Richard','Toby'].includes(n)
-      );
+      GROUPS.supervisors.members = s.members.filter(isSupervisorPosition);
+      GROUPS.regular.members     = s.members.filter(n => !isSupervisorPosition(n));
     }
     if (s.key === 'vip_support') {
-      GROUPS.vip.members = s.members.filter(n =>
-        !['Adam','Amelia','Lucas'].includes(n)
-      );
-      GROUPS.vip_supervisors.members = s.members.filter(n =>
-        ['Adam','Amelia','Lucas'].includes(n)
-      );
+      GROUPS.vip_supervisors.members = s.members.filter(isSupervisorPosition);
+      GROUPS.vip.members             = s.members.filter(n => !isSupervisorPosition(n));
     }
     if (s.key === 'management') GROUPS.management.members = [...s.members];
     if (s.key === 'qa') GROUPS.qa.members = [...s.members];
   });
+}
+
+// Сохраняет состав/порядок секций и employeeOverrides в KV одним запросом
+async function persistPeople(action, target) {
+  const customOrder = {};
+  SECTIONS.forEach(s => { customOrder[s.key] = [...s.members]; });
+  const newSettings = { ...scheduleSettings, customOrder };
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        overrides: scheduleOverrides,
+        settings: newSettings,
+        version: scheduleVersion,
+        logEntries: [{ action, target }],
+      })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return false; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      return true;
+    }
+  } catch {}
+  showToast('Ошибка сохранения', 'err');
+  return false;
 }
 
 async function savePositions() {
@@ -2372,7 +2544,7 @@ function closeAddEmployeeModal() {
   document.getElementById('add-employee-overlay').classList.remove('open');
 }
 
-function addEmployee() {
+async function addEmployee() {
   const name = document.getElementById('new-emp-name').value.trim();
   const email = document.getElementById('new-emp-email').value.trim();
   const position = document.getElementById('new-emp-position').value.trim();
@@ -2391,50 +2563,76 @@ function addEmployee() {
     return;
   }
 
-  // Добавляем в EMPLOYEES
+  // Сид текущей сессии + персист в настройки (после перезагрузки данные придут из employeeOverrides)
   EMPLOYEES[name] = { email, position, since };
+  const prevOverrides = scheduleSettings.employeeOverrides || {};
+  scheduleSettings.employeeOverrides = { ...prevOverrides, [name]: { email, position, since } };
 
-  // Добавляем в секцию
   const sec = SECTIONS.find(s => s.key === sectionKey);
   if (sec) sec.members.push(name);
 
-  // Добавляем паттерн (пустой — всё будет через overrides)
+  // Пустой паттерн: смены нового сотрудника задаются через overrides
   OPERATOR_BASE_SHIFTS[name] = () => 'off';
+
+  const ok = await persistPeople('добавлен сотрудник', name);
+  if (!ok) {
+    // откат
+    if (sec) sec.members.pop();
+    delete EMPLOYEES[name];
+    scheduleSettings.employeeOverrides = prevOverrides;
+    msgEl.textContent = 'Не удалось сохранить, попробуй ещё раз';
+    msgEl.className = 'save-msg err';
+    return;
+  }
 
   updateGroupsFromSections();
   closeAddEmployeeModal();
   renderAll();
   updateColumnHighlight();
-  showToast(`${name} добавлен`, 'ok');
+  updateStats();
+  showToast(`${name} добавлен и сохранён`, 'ok');
 }
 
-function deleteEmployee(name, sectionKey) {
+async function deleteEmployee(name, sectionKey) {
   if (!confirm(`Удалить ${name} из графика?`)) return;
   const sec = SECTIONS.find(s => s.key === sectionKey);
+  let idx = -1;
   if (sec) {
-    const idx = sec.members.indexOf(name);
+    idx = sec.members.indexOf(name);
     if (idx !== -1) sec.members.splice(idx, 1);
   }
+
+  const ok = await persistPeople('удалён сотрудник', name);
+  if (!ok) {
+    if (sec && idx !== -1) sec.members.splice(idx, 0, name); // откат
+    renderAll();
+    return;
+  }
+
   updateGroupsFromSections();
   renderAll();
   updateColumnHighlight();
+  updateStats();
   showToast(`${name} удалён`, 'ok');
 }
 
 async function restoreDismissed(name) {
-  // Убираем все dismissed overrides для этого оператора
+  // Убираем dismissed-overrides и запись из карты уволенных
   const newOverrides = { ...scheduleOverrides };
   Object.keys(newOverrides).forEach(key => {
     if (key.startsWith(`${name}:`) && newOverrides[key].type === 'dismissed') {
       delete newOverrides[key];
     }
   });
+  const newDismissed = { ...dismissedEmployees };
+  delete newDismissed[name];
+  const newSettings = { ...scheduleSettings, dismissed: newDismissed };
 
   try {
     const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: newOverrides, settings: scheduleSettings, version: scheduleVersion, logEntries: [{ action: 'восстановлен', target: name }] })
+      body: JSON.stringify({ overrides: newOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: 'восстановлен', target: name }] })
     });
     const data = await res.json();
     if (res.status === 409) { showStaleWarning(); return; }
@@ -2442,6 +2640,8 @@ async function restoreDismissed(name) {
       if (data.version) scheduleVersion = data.version;
       if (data.log) scheduleLog = data.log;
       scheduleOverrides = newOverrides;
+      scheduleSettings = newSettings;
+      dismissedEmployees = newDismissed;
       renderAll();
       updateColumnHighlight();
       closeAdmin();
@@ -2474,40 +2674,44 @@ function showDayInfo(ds, di) {
   const VIP_SUPS = GROUPS.vip_supervisors.members;
 
   const ALL_OPS = SECTIONS.flatMap(s => s.members);
-  const hasSwappedOut = (name) => {
-    const key = `${name}:${ds}`;
-    const ov = scheduleOverrides[key];
-    return ov?.extraEvents?.some(e => e.type === 'loss_swap_give' && e.hours > 0);
+  // Человек считается на смене, если у него остались оплачиваемые часы (частичная отдача не выкидывает целиком)
+  // Дробный счёт, как в шапке таблицы: сумма часов операторов на смене / 11
+  const fracCount = (types) => {
+    const raw = ALL_OPS
+      .filter(n => types.includes(getShift(n, di)))
+      .reduce((sum, n) => sum + calcDayHours(getShift(n, di), scheduleOverrides[`${n}:${ds}`], n), 0) / 11;
+    return Math.round(raw * 10) / 10;
   };
-  const regM  = ALL_OPS.filter(n => ['morning','extra_morning'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
-  const regE  = ALL_OPS.filter(n => ['evening','extra_evening'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
-  const reg12 = ALL_OPS.filter(n => ['shift1200','extra_1200'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
-  const vipM  = ALL_OPS.filter(n => ['vip_evening','extra_vip_evening'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
-  const vipE  = ALL_OPS.filter(n => ['vip_morning','extra_vip_morning'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
-  const vip12 = ALL_OPS.filter(n => ['vip_1200','extra_vip_1200','d12'].includes(getShift(n, di)) && !hasSwappedOut(n)).length;
+  const regM  = fracCount(['morning','extra_morning']);
+  const regE  = fracCount(['evening','extra_evening']);
+  const reg12 = fracCount(['shift1200','extra_1200']);
+  const vipM  = fracCount(['vip_evening','extra_vip_evening']);
+  const vipE  = fracCount(['vip_morning','extra_vip_morning']);
+  const vip12 = fracCount(['vip_1200','extra_vip_1200']);
+  const fmtC = (v) => Number.isInteger(v) ? v : v.toFixed(1);
 
   const low = (v, min) => v < min ? 'color:#f87171;font-weight:700' : 'color:var(--text)';
 
   const countBlock = (label, m, e, n12, mColor, eColor, n12Color) => `
     <div class="day-info-block">
       <div class="day-info-block-title">${label}</div>
-      <div class="day-info-count" style="${low(m,4)}">${m+e+n12}</div>
+      <div class="day-info-count" style="${low(m,MIN_STAFF.day)}">${fmtC(Math.round((m+e+n12)*10)/10)}</div>
       <div style="font-size:10px;color:var(--muted);margin-top:2px">всего на смене</div>
       <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
         <div style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${mColor};flex-shrink:0"></span>
           <span style="font-size:10px;color:${mColor}">09–21</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(m,4)}">${m}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(m,MIN_STAFF.day)}">${fmtC(m)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${eColor};flex-shrink:0"></span>
           <span style="font-size:10px;color:${eColor}">21–09</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(e,3)}">${e}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(e,MIN_STAFF.night)}">${fmtC(e)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="width:8px;height:8px;border-radius:50%;background:${n12Color};flex-shrink:0"></span>
           <span style="font-size:10px;color:${n12Color}">12–00</span>
-          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(n12,2)}">${n12}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:4px;${low(n12,MIN_STAFF.d12)}">${fmtC(n12)}</span>
         </div>
       </div>
     </div>
@@ -2552,6 +2756,16 @@ function showDayInfo(ds, di) {
         }).join('') : `<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>`}
       </div>
     </div>
+    ${(() => {
+      const swaps = daySwaps(ds);
+      if (!swaps.length) return '';
+      return `<div class="day-info-block">
+        <div class="day-info-block-title">🔄 Обмены смен</div>
+        <div class="day-info-names">
+          ${swaps.map(s => `<div class="day-info-name"><span class="day-info-dot" style="background:#34d399"></span>${s.giver} → ${s.recipient} <span style="font-size:9px;color:var(--muted)">${s.hours}ч</span></div>`).join('')}
+        </div>
+      </div>`;
+    })()}
   `;
 
   document.getElementById('day-info-panel').classList.add('open');
@@ -2712,19 +2926,14 @@ async function applyDismissal() {
     msgEl.className = 'save-msg err'; return;
   }
 
+  // Пометки по дням больше не нужны: getShift сам режет график после даты увольнения
+  // в любом месяце. Чистим только ручные overrides ПОСЛЕ даты увольнения, чтобы они
+  // не перекрывали увольнение.
   const newOverrides = { ...scheduleOverrides };
-  const lastDate = new Date(lastDay);
-
-  // Помечаем все рабочие смены после lastDay как 'dismissed'
-  DAYS.forEach((d, di) => {
-    const dt = new Date(`${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`);
-    if (dt <= lastDate) return; // до увольнения не трогаем
-    const baseType = OPERATOR_BASE_SHIFTS[name] ? OPERATOR_BASE_SHIFTS[name](di) : 'off';
-    if (baseType === 'off') return; // выходные не трогаем
-    const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-    const existing = newOverrides[key] || {};
-    if (existing.type === 'off') return;
-    newOverrides[key] = { ...existing, type: 'dismissed', customHours: 0, editedAt: new Date().toISOString() };
+  Object.keys(newOverrides).forEach(key => {
+    if (!key.startsWith(`${name}:`)) return;
+    const ds = key.slice(name.length + 1);
+    if (ds > lastDay) delete newOverrides[key];
   });
 
   const newDismissed = { ...dismissedEmployees, [name]: lastDay };
@@ -2990,12 +3199,12 @@ function overlayClick(e) {
 function openProfilePanel() {
   const name = document.getElementById('ap-operator').value;
   if (!name) return;
-  const overrides = scheduleSettings.employeeOverrides || {};
-  const emp = EMPLOYEES[name] || {};
-  const ov  = overrides[name] || {};
+  const emp = getEmp(name);
   document.getElementById('profile-name-label').textContent = name;
-  document.getElementById('profile-position').value = ov.position ?? emp.position ?? '';
-  document.getElementById('profile-email').value    = ov.email    ?? emp.email    ?? '';
+  document.getElementById('profile-position').value = emp.position;
+  document.getElementById('profile-email').value    = emp.email;
+  document.getElementById('profile-since').value    = emp.since ? String(emp.since).slice(0,10) : '';
+  document.getElementById('profile-hours').value    = emp.hours ?? '';
   document.getElementById('profile-save-msg').className = 'save-msg';
   document.getElementById('profile-panel').style.display = 'flex';
 }
@@ -3010,17 +3219,25 @@ async function saveProfile() {
   const email    = document.getElementById('profile-email').value.trim();
   const msg      = document.getElementById('profile-save-msg');
 
-  if (!position && !email) {
-    msg.textContent = 'Заполните хотя бы одно поле';
+  const since    = document.getElementById('profile-since').value;
+  const hoursRaw = document.getElementById('profile-hours').value.trim();
+  if (hoursRaw !== '' && !Number.isFinite(Number(hoursRaw))) {
+    msg.textContent = 'Часы: некорректное число';
     msg.className = 'save-msg err show';
     return;
   }
+
+  // Merge с существующей записью, чтобы не затирать поля
+  const prev = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const entry = { ...prev, position, email };
+  if (since) entry.since = since; else delete entry.since;
+  if (hoursRaw !== '') entry.hours = Number(hoursRaw); else delete entry.hours;
 
   const newSettings = {
     ...scheduleSettings,
     employeeOverrides: {
       ...(scheduleSettings.employeeOverrides || {}),
-      [name]: { position, email }
+      [name]: entry
     }
   };
 
@@ -3037,7 +3254,9 @@ async function saveProfile() {
       if (data.version) scheduleVersion = data.version;
       if (data.log) scheduleLog = data.log;
       scheduleSettings = newSettings;
+      updateGroupsFromSections();
       renderAll();
+      updateStats();
       closeProfilePanel();
       showToast(`Профиль ${name} обновлён`, 'ok');
     } else {
@@ -3119,7 +3338,7 @@ function selectShiftType(btn) {
     if (opName && dateFrom) {
       const dt = new Date(dateFrom);
       const di = dt.getDate() - 1;
-      const prevType = OPERATOR_BASE_SHIFTS[opName] ? OPERATOR_BASE_SHIFTS[opName](di) : null;
+      const prevType = OPERATOR_BASE_SHIFTS[opName] ? OPERATOR_BASE_SHIFTS[opName](DAYS[di].date) : null;
       if (prevType && DEFAULT_HOURS[prevType]) defaultH = DEFAULT_HOURS[prevType];
     }
     // Добавляем потерю если ещё нет
@@ -3245,17 +3464,13 @@ function exportToExcel() {
 
   const EXTRA_LABELS = ALL_EXTRA_LABELS;
 
-  const SHIFT_LABELS = {
-    morning: 'Утро', evening: 'Вечер', night: 'Ночь',
-    super_day: 'Sup День', super_night: 'Sup Ночь',
-    work8: '8h', vacation: 'Отпуск', sick: 'Больничный', off: '—'
-  };
-
-  const DEFAULT_H = { morning:11, evening:11, night:11, vip_morning:11, vip_evening:11, vip_1200:11, super_day:11, super_night:11, shift1200:11, work8:8 };
+  // Лейблы из единого реестра
+  const SHIFT_LABELS = Object.fromEntries(Object.entries(SHIFT_DEFS).map(([t, d]) => [t, d.label]));
+  SHIFT_LABELS.off = '—';
 
   // Все сотрудники по секциям
   const allMembers = SECTIONS.flatMap(s => s.members.map(name => ({
-    name, section: s.label, position: EMPLOYEES[name]?.position || ''
+    name, section: s.label, position: getEmp(name).position
   })));
 
   // ── Лист 1: График ──
@@ -3278,7 +3493,9 @@ function exportToExcel() {
   // ── Лист 2: Статистика часов ──
   const statsHeader = [
     'Сотрудник', 'Отдел', 'Позиция',
-    'Всего часов', 'Смен', 'Утро', 'Вечер', 'Ночь', 'Sup День', 'Sup Ночь', '8h',
+    'Всего часов', 'Смен',
+    'День', 'Ночь', '12-00', 'VIP День', 'VIP Ночь', 'VIP 12-00',
+    'Sup День', 'Sup Ночь', 'Sup 8ч', '8ч офис', 'НК',
     'Отпусков', 'Больничных', 'Выходных'
   ];
   const statsRows = [statsHeader];
@@ -3290,21 +3507,22 @@ function exportToExcel() {
 
     DAYS.forEach((d, di) => {
       const type = getShift(name, di);
-      counts[type] = (counts[type] || 0) + 1;
+      // Доп смены засчитываем в колонку базового типа
+      const statType = SHIFT_DEFS[type]?.base || type;
+      counts[statType] = (counts[statType] || 0) + 1;
 
-      // Кастомные часы или дефолт
       const key = `${name}:${YEAR}-${String(MONTH).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-      const override = scheduleOverrides[key];
-      const h = override?.customHours || DEFAULT_H[type] || 0;
-      totalHours += h;
-      if (!['off','vacation','sick'].includes(type)) totalShifts++;
+      totalHours += calcDayHours(type, scheduleOverrides[key], name);
+      if (!['off','vacation','sick','birthday','dismissed'].includes(type)) totalShifts++;
     });
 
     statsRows.push([
       name, section, position,
       totalHours, totalShifts,
-      counts.morning || 0, counts.evening || 0, counts.night || 0,
-      counts.super_day || 0, counts.super_night || 0, counts.work8 || 0,
+      counts.morning || 0, (counts.evening || 0) + (counts.night || 0), counts.shift1200 || 0,
+      counts.vip_evening || 0, counts.vip_morning || 0, counts.vip_1200 || 0,
+      counts.super_day || 0, counts.super_night || 0, counts.super_day8 || 0,
+      counts.work8 || 0, counts.nk || 0,
       counts.vacation || 0, counts.sick || 0, counts.off || 0
     ]);
   });
@@ -3364,16 +3582,18 @@ function exportToExcel() {
       }
     });
 
-    const total = Object.values(extraTotals).reduce((a,b) => a+b, 0);
-    if (total > 0) {
+    // Net: плюсовые события прибавляем, loss_* (отданные/минусовые) вычитаем — как в calcDayHours.
+    const total = Object.entries(extraTotals).reduce(
+      (a, [type, h]) => a + (PLUS_EVENT_TYPES.has(type) ? h : -h), 0);
+    if (Object.keys(extraTotals).length) {
       summaryRows.push([
         name, section, position,
         extraTotals.extra_vacation_cover || 0,
         extraTotals.extra_sick_cover || 0,
         extraTotals.extra_critical || 0,
-        extraTotals.extra_dismissal || 0,
-        extraTotals.extra_org || 0,
-        extraTotals.extra_swap_give || 0,
+        extraTotals.loss_dismissal || 0,
+        (extraTotals.extra_org_plus || 0) - (extraTotals.loss_org || 0),
+        extraTotals.loss_swap_give || 0,
         extraTotals.extra_swap_take || 0,
         total
       ]);
@@ -3404,6 +3624,284 @@ function showStaleWarning() {
   document.body.appendChild(el);
 }
 
+// ────────────────────────────────────────────
+// ── ОБМЕН СМЕНАМИ (заявки через ТГ-бота) ──
+// ────────────────────────────────────────────
+const SWAP_PROJECT = 'sg';
+const SWAP_MIN_REST = 6; // минимальный отдых между сменами, часов
+
+// Окна, ночные типы и отдаваемые смены выводятся из единого реестра SHIFT_DEFS
+const SWAP_GIVABLE = {};
+const SWAP_BUSY_WINDOWS = {};
+const SWAP_NIGHT_TYPES = new Set();
+Object.entries(SHIFT_DEFS).forEach(([t, d]) => {
+  if (d.window) SWAP_BUSY_WINDOWS[t] = d.window;
+  if (d.givable) SWAP_GIVABLE[t] = d.window;
+  if (d.isNight) SWAP_NIGHT_TYPES.add(t);
+});
+const SWAP_BLOCK_DAY = new Set(['vacation','sick','nk','birthday','dismissed']);
+
+function swapEmpOv(name) { return getEmp(name); }
+function swapGroupOf(name) {
+  const p = swapEmpOv(name).position.toLowerCase();
+  if (p === 'support') return 'support';
+  if (p === 'supervisor') return 'supervisor';
+  return null;
+}
+function swapFindMyName() {
+  if (!currentUser?.email) return null;
+  const e = currentUser.email.toLowerCase();
+  const all = [...new Set(SECTIONS.flatMap(s => s.members))];
+  return all.find(n => swapEmpOv(n).email.toLowerCase() === e) || null;
+}
+function swapAllOperators() {
+  return [...new Set(SECTIONS.flatMap(s => s.members))].filter(n => swapGroupOf(n) && !(dismissedEmployees && dismissedEmployees[n]));
+}
+function swapFmtH(h) { return `${String(((h % 24) + 24) % 24).padStart(2,'0')}:00`; }
+function swapFmtRange(s, e) { return `${swapFmtH(s)}-${swapFmtH(e)}${e > 24 ? ' (+1д)' : ''}`; }
+
+// Тип смены оператора на произвольную дату (в текущем месяце с учётом overrides, вне месяца только по паттерну)
+function swapShiftOnDate(name, date) {
+  if (date.getFullYear() === YEAR && date.getMonth() + 1 === MONTH) {
+    return getShift(name, date.getDate() - 1);
+  }
+  const dis = dismissedEmployees[name];
+  if (dis && localDs(date) > dis) return 'dismissed';
+  const p = getPatternShift(name, date);
+  if (p !== null) return p;
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  return fn ? fn(date) : 'off';
+}
+
+// Интервалы занятости (часы относительно 00:00 базовой даты) на день до, день смены и день после
+function swapBusyIntervals(name, baseDate) {
+  const res = [];
+  for (let off = -1; off <= 1; off++) {
+    const d = new Date(baseDate); d.setDate(d.getDate() + off);
+    const t = swapShiftOnDate(name, d);
+    let ovr = null;
+    if (d.getFullYear() === YEAR && d.getMonth() + 1 === MONTH) {
+      ovr = scheduleOverrides[`${name}:${dateStr(d.getDate())}`];
+    }
+    if (t === 'nk') { res.push([off * 24, off * 24 + 24]); continue; }
+    const takeWins = (ovr?.extraEvents || []).filter(e => e.type === 'extra_swap_take' && Array.isArray(e.win)).map(e => e.win);
+    if (t && t.startsWith('extra_') && takeWins.length) {
+      // доп-смена получена свапом: занят только в реально взятые окна
+      takeWins.forEach(w => res.push([off * 24 + w[0], off * 24 + w[1]]));
+      continue;
+    }
+    const w = SWAP_BUSY_WINDOWS[t];
+    if (w) res.push([off * 24 + w[0], off * 24 + w[1]]);
+    takeWins.forEach(w2 => res.push([off * 24 + w2[0], off * 24 + w2[1]]));
+  }
+  return res;
+}
+
+// Сколько часов у отдающего ещё доступно к отдаче в этот день
+function swapRemainingHours(name, dNum, type) {
+  const ovr = scheduleOverrides[`${name}:${dateStr(dNum)}`];
+  let base = ovr?.customHours || getHours(type) || 0;
+  let minus = 0;
+  (ovr?.extraEvents || []).forEach(ev => {
+    if (ev.hours > 0 && ev.type.startsWith('loss_')) minus += ev.hours;
+  });
+  return Math.max(0, base - minus);
+}
+
+function swapCandidateOk(cand, giver, dateObj, win, shiftType) {
+  if (cand === giver) return false;
+  const g1 = swapGroupOf(giver), g2 = swapGroupOf(cand);
+  if (!g1 || g1 !== g2) return false;
+  const dayType = swapShiftOnDate(cand, dateObj);
+  if (SWAP_BLOCK_DAY.has(dayType)) return false;
+  // ночь накануне блокирует любую дневную смену
+  const prev = new Date(dateObj); prev.setDate(prev.getDate() - 1);
+  if (SWAP_NIGHT_TYPES.has(swapShiftOnDate(cand, prev)) && !SWAP_NIGHT_TYPES.has(shiftType)) return false;
+  // пересечения и минимальный отдых 6ч в обе стороны
+  for (const [s, e] of swapBusyIntervals(cand, dateObj)) {
+    if (!(e + SWAP_MIN_REST <= win[0] || win[1] + SWAP_MIN_REST <= s)) return false;
+  }
+  return true;
+}
+
+function initSwapUi() {
+  const btn = document.getElementById('swap-btn');
+  if (!btn) return;
+  const myName = swapFindMyName();
+  btn.style.display = (isAdmin || (myName && swapGroupOf(myName))) ? 'flex' : 'none';
+}
+
+function openSwapPanel() {
+  const myName = swapFindMyName();
+  const giverSel = document.getElementById('swap-giver');
+  if (isAdmin) {
+    const ops = swapAllOperators();
+    giverSel.innerHTML = ops.map(n => `<option value="${n}" ${n === myName ? 'selected' : ''}>${n}</option>`).join('');
+    giverSel.disabled = false;
+  } else {
+    if (!myName || !swapGroupOf(myName)) { showToast('Ваш email не привязан к оператору в графике', 'err'); return; }
+    giverSel.innerHTML = `<option value="${myName}">${myName}</option>`;
+    giverSel.disabled = true;
+  }
+  document.getElementById('swap-comment').value = '';
+  document.getElementById('swap-msg').className = 'save-msg';
+  swapOnGiverChange();
+  document.getElementById('swap-overlay').classList.add('open');
+}
+
+function closeSwapPanel() {
+  document.getElementById('swap-overlay').classList.remove('open');
+}
+
+function swapShiftLabelOf(type) {
+  const t = SHIFT_TYPES_ALL.find(x => x.type === type);
+  return t ? `${t.group ? t.group + ' ' : ''}${t.label} (${t.time})` : type;
+}
+
+function swapOnGiverChange() {
+  const giver = document.getElementById('swap-giver').value;
+  const dateSel = document.getElementById('swap-date');
+  let minDay = 1;
+  const isCurrent = TODAY_REAL_DATE.getFullYear() === YEAR && TODAY_REAL_DATE.getMonth() + 1 === MONTH;
+  const isPast = new Date(YEAR, MONTH - 1, 1) < new Date(TODAY_REAL_DATE.getFullYear(), TODAY_REAL_DATE.getMonth(), 1);
+  if (isCurrent) minDay = TODAY_REAL_DATE.getDate();
+  const opts = [];
+  if (!isPast) {
+    for (let d = minDay; d <= DAYS.length; d++) {
+      const type = getShift(giver, d - 1);
+      if (!SWAP_GIVABLE[type]) continue;
+      if (swapRemainingHours(giver, d, type) <= 0) continue;
+      opts.push(`<option value="${d}|${type}">${String(d).padStart(2,'0')}.${String(MONTH).padStart(2,'0')} · ${swapShiftLabelOf(type)}</option>`);
+    }
+  }
+  dateSel.innerHTML = opts.length ? opts.join('') : '<option value="">Нет смен для отдачи</option>';
+  swapOnDateChange();
+}
+
+function swapSelectedDateInfo() {
+  const v = document.getElementById('swap-date').value;
+  if (!v) return null;
+  const [dStr, type] = v.split('|');
+  const d = parseInt(dStr, 10);
+  return { d, type, dateObj: new Date(YEAR, MONTH - 1, d), win: SWAP_GIVABLE[type] };
+}
+
+function swapOnDateChange() {
+  const info = swapSelectedDateInfo();
+  const fromSel = document.getElementById('swap-from');
+  const toSel = document.getElementById('swap-to');
+  if (!info) {
+    fromSel.innerHTML = ''; toSel.innerHTML = '';
+    swapOnRangeChange();
+    return;
+  }
+  const [w0, w1] = info.win;
+  let f = '';
+  for (let h = w0; h < w1; h++) f += `<option value="${h}">${swapFmtH(h)}</option>`;
+  fromSel.innerHTML = f;
+  fromSel.value = String(w0);
+  swapOnFromChange(true);
+}
+
+function swapOnFromChange(keepFull) {
+  const info = swapSelectedDateInfo();
+  const toSel = document.getElementById('swap-to');
+  if (!info) { toSel.innerHTML = ''; swapOnRangeChange(); return; }
+  const [, w1] = info.win;
+  const from = parseInt(document.getElementById('swap-from').value, 10);
+  let t = '';
+  for (let h = from + 1; h <= w1; h++) t += `<option value="${h}">${swapFmtH(h)}${h > 24 ? ' (+1д)' : ''}</option>`;
+  toSel.innerHTML = t;
+  toSel.value = String(w1);
+  swapOnRangeChange();
+}
+
+function swapComputedHours() {
+  const info = swapSelectedDateInfo();
+  if (!info) return { hours: 0, remaining: 0, from: 0, to: 0 };
+  const from = parseInt(document.getElementById('swap-from').value, 10);
+  const to = parseInt(document.getElementById('swap-to').value, 10);
+  const remaining = swapRemainingHours(document.getElementById('swap-giver').value, info.d, info.type);
+  if (isNaN(from) || isNaN(to) || to <= from) return { hours: 0, remaining, from: 0, to: 0 };
+  return { hours: Math.min(to - from, remaining), remaining, from, to };
+}
+
+function swapOnRangeChange() {
+  const { hours, remaining } = swapComputedHours();
+  const lbl = document.getElementById('swap-hours-label');
+  lbl.textContent = hours > 0 ? `Будет передано: ${hours}ч (доступно ${remaining}ч)` : 'Выберите корректный диапазон';
+  swapRebuildRecipients();
+}
+
+function swapRebuildRecipients() {
+  const sel = document.getElementById('swap-recipient');
+  const hint = document.getElementById('swap-cand-hint');
+  const info = swapSelectedDateInfo();
+  const { hours, from, to } = swapComputedHours();
+  if (!info || hours <= 0) { sel.innerHTML = '<option value="">·</option>'; hint.textContent = ''; return; }
+  const giver = document.getElementById('swap-giver').value;
+  const all = swapAllOperators();
+  const ok = all.filter(c => swapCandidateOk(c, giver, info.dateObj, [from, to], info.type));
+  sel.innerHTML = ok.length
+    ? ok.map(n => `<option value="${n}">${n}</option>`).join('')
+    : '<option value="">Нет доступных получателей</option>';
+  hint.textContent = `Доступно получателей: ${ok.length} из ${all.length - 1} (учтены конфликты, ночь накануне, отдых ${SWAP_MIN_REST}ч)`;
+}
+
+async function submitSwapRequest() {
+  const info = swapSelectedDateInfo();
+  const { hours, from, to } = swapComputedHours();
+  const giver = document.getElementById('swap-giver').value;
+  const recipient = document.getElementById('swap-recipient').value;
+  const msg = document.getElementById('swap-msg');
+  const btn = document.getElementById('swap-submit');
+
+  if (!info || hours <= 0) { msg.textContent = 'Выберите смену и корректный диапазон часов'; msg.className = 'save-msg err show'; return; }
+  if (!recipient) { msg.textContent = 'Выберите получателя'; msg.className = 'save-msg err show'; return; }
+  const recipientEmail = swapEmpOv(recipient).email;
+  if (!recipientEmail) { msg.textContent = `У ${recipient} не указан email в профиле`; msg.className = 'save-msg err show'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Отправка...';
+  msg.className = 'save-msg';
+
+  try {
+    const res = await fetch(`${API}/swap-request`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: SWAP_PROJECT,
+        month: `${YEAR}-${String(MONTH).padStart(2,'0')}`,
+        date: dateStr(info.d),
+        giver,
+        recipient,
+        recipientEmail,
+        shiftType: info.type,
+        shiftLabel: swapShiftLabelOf(info.type),
+        range: swapFmtRange(from, to),
+        hours,
+        win: [from, to],
+        comment: document.getElementById('swap-comment').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      closeSwapPanel();
+      showToast('Заявка отправлена ТЛ-ам на рассмотрение', 'ok');
+    } else {
+      msg.textContent = data.error || 'Ошибка отправки заявки';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Отправить заявку';
+  }
+}
+
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -3426,6 +3924,9 @@ function selectPatternOption(el) {
   document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   document.getElementById('pattern-select-dropdown').classList.remove('open');
+  document.getElementById('pattern-builder').style.display = value === 'custom' ? 'block' : 'none';
+  if (value === 'custom') rebuildPatternBuilder();
+  updatePatternPreview();
 }
 
 // Закрываем дропдаун при клике вне
@@ -3447,20 +3948,82 @@ const PATTERN_PRESET_LABELS = {
   'custom':          'Кастомный (не менять)',
 };
 
+// ── МИГРАЦИЯ: фиксируем захардкоженные паттерны в settings.operatorPatterns ──
+// Вычисляет цикл оператора сэмплированием его базовой функции от CYCLE_START
+function deriveBasePattern(name) {
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  if (!fn) return null;
+  const N = 336; // 2 полных НОК-цикла (НОК(4,7,8,12) = 168)
+  const sample = [];
+  for (let i = 0; i < N; i++) {
+    const d = new Date(CYCLE_START);
+    d.setDate(d.getDate() + i);
+    sample.push(fn(d));
+  }
+  for (let p = 1; p <= 84; p++) {
+    let ok = true;
+    for (let i = 0; i + p < N; i++) {
+      if (sample[i] !== sample[i + p]) { ok = false; break; }
+    }
+    if (ok) return { pattern: sample.slice(0, p), cycleStart: localDs(CYCLE_START), v: 2 };
+  }
+  return null;
+}
+
+async function migrateHardcodedPatterns() {
+  const all = [...new Set(SECTIONS.flatMap(s => s.members))];
+  const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
+  let added = 0, skipped = 0;
+  const failed = [];
+
+  all.forEach(name => {
+    if (getPatternEntries(name).length || dismissedEmployees[name]) { skipped++; return; }
+    const entry = deriveBasePattern(name);
+    if (!entry) { failed.push(name); return; }
+    newPatterns[name] = [entry];
+    added++;
+  });
+
+  if (!added && !failed.length) { showToast('Все паттерны уже зафиксированы в настройках', 'ok'); return; }
+  const summary = `Зафиксировать паттерны в настройках?\n\nБудет записано: ${added}\nУже есть в настройках / уволены: ${skipped}` +
+    (failed.length ? `\nНе удалось вычислить цикл: ${failed.join(', ')}` : '');
+  if (!confirm(summary)) return;
+
+  const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: `миграция паттернов (${added})`, target: null }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      renderAll();
+      showToast(`Паттерны зафиксированы: ${added}`, 'ok');
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch { showToast('Ошибка сети', 'err'); }
+}
+
 function openPatternModal(name) {
   patternModalName = name;
   document.getElementById('pattern-modal-title').textContent = `Паттерн: ${name}`;
-  
-  const patterns = scheduleSettings.operatorPatterns || {};
-  const existing = patterns[name];
-  
-  // Определяем текущий пресет
+
+  // Текущий паттерн = последняя запись истории (если нет — последний хардкод)
+  const entries = getPatternEntries(name);
+  const latest = entries.length ? entries[entries.length - 1] : null;
+
   let currentPreset = 'morning_evening';
-  if (existing?.pattern) {
-    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(','));
+  let currentPattern = latest?.pattern || null;
+  if (currentPattern) {
+    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === currentPattern.join(','));
     currentPreset = found || 'custom';
   }
-  // Устанавливаем значение кастомного селекта
   document.getElementById('pattern-preset-select').value = currentPreset;
   const optEl = document.querySelector(`#pattern-select-dropdown [data-value="${currentPreset}"]`);
   if (optEl) {
@@ -3468,10 +4031,90 @@ function openPatternModal(name) {
     document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
     optEl.classList.add('selected');
   }
-  
-  document.getElementById('pattern-cycle-start').value = existing ? existing.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
-  
+
+  document.getElementById('pattern-cycle-start').value = latest ? latest.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+
+  // Билдер: заполняем текущим кастомным паттерном (или дефолтом)
+  patternBuilderSeed = (currentPreset === 'custom' && currentPattern) ? [...currentPattern] : null;
+  document.getElementById('pattern-builder').style.display = currentPreset === 'custom' ? 'block' : 'none';
+  rebuildPatternBuilder();
+
+  updatePatternPreview();
   document.getElementById('pattern-modal-overlay').classList.add('open');
+}
+
+// ── Конструктор и превью паттерна ──
+let patternBuilderSeed = null;
+
+function patternTypeOptions() {
+  const opts = Object.entries(SHIFT_DEFS)
+    .filter(([t, d]) => !d.isExtra && !d.legacy && (d.window || d.busyAllDay))
+    .map(([t, d]) => ({ t, label: d.label }));
+  opts.push({ t: 'off', label: 'Выходной' });
+  return opts;
+}
+
+function rebuildPatternBuilder() {
+  const lenEl = document.getElementById('pattern-builder-len');
+  const cellsEl = document.getElementById('pattern-builder-cells');
+  let len = parseInt(lenEl.value, 10);
+  if (!(len >= 1 && len <= 14)) { len = 4; lenEl.value = 4; }
+  if (patternBuilderSeed) { len = patternBuilderSeed.length; lenEl.value = len; }
+
+  const prev = readBuilderPattern() || patternBuilderSeed || [];
+  const opts = patternTypeOptions();
+  let html = '';
+  for (let i = 0; i < len; i++) {
+    const cur = prev[i] || 'off';
+    html += `<div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--text-sub);width:52px">День ${i + 1}</span>
+      <select class="admin-select pattern-cell" style="flex:1" onchange="updatePatternPreview()">
+        ${opts.map(o => `<option value="${o.t}" ${o.t === cur ? 'selected' : ''}>${o.label}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  cellsEl.innerHTML = html;
+  patternBuilderSeed = null;
+  updatePatternPreview();
+}
+
+function readBuilderPattern() {
+  const cells = document.querySelectorAll('#pattern-builder-cells .pattern-cell');
+  if (!cells.length) return null;
+  return Array.from(cells).map(c => c.value);
+}
+
+function currentModalPattern() {
+  const presetKey = document.getElementById('pattern-preset-select').value;
+  if (presetKey === 'custom') return readBuilderPattern();
+  if (presetKey === 'supervisor_auto') return null;
+  return PATTERN_PRESETS[presetKey] || null;
+}
+
+function updatePatternPreview() {
+  const box = document.getElementById('pattern-preview');
+  if (!box) return;
+  const pattern = currentModalPattern();
+  const startStr = document.getElementById('pattern-cycle-start').value;
+  if (!pattern || !pattern.length || !startStr) {
+    box.innerHTML = '<span style="font-size:11px;color:var(--text-sub)">Выберите паттерн и дату начала</span>';
+    return;
+  }
+  const DOW = ['вс','пн','вт','ср','чт','пт','сб'];
+  let html = '';
+  for (let i = 0; i < 14; i++) {
+    const d = parseLocalDate(startStr);
+    d.setDate(d.getDate() + i);
+    const t = pattern[i % pattern.length];
+    const def = SHIFT_DEFS[t];
+    const isOff = t === 'off';
+    const label = isOff ? '—' : (def?.label || t);
+    html += `<div style="width:64px;padding:4px 2px;border:1px solid rgba(128,128,128,0.25);border-radius:6px;text-align:center;${isOff ? 'opacity:0.45' : ''}">
+      <div style="font-size:9px;color:var(--text-sub)">${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')} ${DOW[d.getDay()]}</div>
+      <div style="font-size:10px;font-weight:600;margin-top:2px">${label}</div>
+    </div>`;
+  }
+  box.innerHTML = html;
 }
 
 function closePatternModal() {
@@ -3490,10 +4133,6 @@ async function savePattern() {
     return;
   }
   
-  if (presetKey === 'custom') {
-    closePatternModal();
-    return;
-  }
 
   // Supervisor auto — удаляем кастомный паттерн, возвращаем к BASE_PATTERNS/getSuperTeamShift
   if (presetKey === 'supervisor_auto') {
@@ -3523,14 +4162,20 @@ async function savePattern() {
     return;
   }
 
-  const pattern = PATTERN_PRESETS[presetKey];
-  if (!pattern) return;
-  
+  const pattern = presetKey === 'custom' ? readBuilderPattern() : PATTERN_PRESETS[presetKey];
+  if (!pattern || !pattern.length) { alert('Соберите паттерн в конструкторе'); return; }
+
+  // История: прошлые даты остаются на прежних записях, новая запись действует с cycleStart.
+  // Запись с той же датой начала заменяется.
+  const entries = getPatternEntries(patternModalName).filter(e => e.cycleStart !== cycleStart);
+  entries.push({ pattern, cycleStart, v: 2 });
+  entries.sort((a, b) => (a.cycleStart < b.cycleStart ? -1 : 1));
+
   const newSettings = {
     ...scheduleSettings,
     operatorPatterns: {
       ...(scheduleSettings.operatorPatterns || {}),
-      [patternModalName]: { pattern, cycleStart }
+      [patternModalName]: entries.slice(-12)
     }
   };
   
@@ -3584,15 +4229,25 @@ async function savePattern() {
         <div class="custom-select-option" data-value="team2_0" onclick="selectPatternOption(this)">Team2 позиция 0 (как Curtis)</div>
         <div class="custom-select-option" data-value="team2_1" onclick="selectPatternOption(this)">Team2 позиция 1 (как Manuel)</div>
         <div class="custom-select-option" data-value="team2_2" onclick="selectPatternOption(this)">Team2 позиция 2 (как Reggie)</div>
-        <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (не менять)</div>
+        <div class="custom-select-option" data-value="custom" onclick="selectPatternOption(this)">Кастомный (конструктор)</div>
       </div>
       <input type="hidden" id="pattern-preset-select" value="morning_evening" />
     </div>
-    <label>Дата начала цикла</label>
-    <input type="date" id="pattern-cycle-start" />
-    <div style="font-size:11px;color:var(--text-sub);margin-top:6px">
-      День 0 цикла = эта дата. Паттерн продолжается бесконечно.
+    <div id="pattern-builder" style="display:none;margin-top:12px">
+      <label>Конструктор цикла</label>
+      <div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+        <span style="font-size:11px;color:var(--text-sub)">Длина цикла (дней):</span>
+        <input type="number" class="admin-input" id="pattern-builder-len" min="1" max="14" value="4" style="width:70px" onchange="rebuildPatternBuilder()" />
+      </div>
+      <div id="pattern-builder-cells" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
     </div>
+    <label style="margin-top:12px;display:block">Дата начала цикла</label>
+    <input type="date" id="pattern-cycle-start" onchange="updatePatternPreview()" />
+    <div style="font-size:11px;color:var(--text-sub);margin-top:6px">
+      Первый день цикла = эта дата. Прошлые даты остаются на прежнем паттерне (история сохраняется).
+    </div>
+    <label style="margin-top:12px;display:block">Превью: 14 дней от начала цикла</label>
+    <div id="pattern-preview" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
     <div class="pattern-modal-footer">
       <button class="btn-cancel" onclick="closePatternModal()">Отмена</button>
       <button class="btn-save" onclick="savePattern()">Сохранить</button>

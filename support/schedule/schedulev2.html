@@ -615,6 +615,12 @@
       width: 5px; height: 5px; border-radius: 50%;
       background: #fbbf24; pointer-events: none; z-index: 1;
     }
+    .swap-dot {
+      position: absolute; bottom: 2px; left: 2px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #34d399; pointer-events: none; z-index: 1;
+    }
+    .btn-delete-row {
       display: none; position: absolute; right: 4px; top: 50%;
       transform: translateY(-50%);
       width: 20px; height: 20px; border-radius: 50%;
@@ -1837,6 +1843,31 @@ function calcDayHours(type, override, name) {
   return Math.max(0, h);
 }
 
+// Аннотация обмена сменами для ячейки: «Отдал → кому» / «Забрал ← у кого».
+// Данные берём из событий, которые пишет swap-бот (loss_swap_give / extra_swap_take).
+function swapAnnotation(override) {
+  const parts = [];
+  (override?.extraEvents || []).forEach(e => {
+    if (e.type === 'loss_swap_give' && e.swapWith)  parts.push(`🔄 Отдал ${e.hours}ч → ${e.swapWith}`);
+    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч ← ${e.swapWith}`);
+  });
+  return parts.join(' · ');
+}
+
+// Список обменов за конкретный день (со стороны отдающего), для панели дня.
+function daySwaps(ds) {
+  const out = [];
+  const suffix = `:${ds}`;
+  for (const [key, ov] of Object.entries(scheduleOverrides)) {
+    if (!key.endsWith(suffix)) continue;
+    const giver = key.slice(0, -suffix.length);
+    (ov.extraEvents || []).forEach(e => {
+      if (e.type === 'loss_swap_give' && e.swapWith) out.push({ giver, recipient: e.swapWith, hours: e.hours });
+    });
+  }
+  return out;
+}
+
 function getHours(type) {
   if (scheduleSettings.customHours && scheduleSettings.customHours[type] !== undefined) {
     return scheduleSettings.customHours[type];
@@ -2076,11 +2107,14 @@ function renderSection(s) {
       const key = `${name}:${ds}`;
       const override = scheduleOverrides[key];
       const note = override?.note || '';
+      const swapNote = swapAnnotation(override);
+      const tip = [swapNote, note].filter(Boolean).join(' · ');
       const hasPaidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
       const todayCls = isToday ? ' is-today' : '';
-      const editAttr = isAdmin ? ` style="cursor:pointer" title="${note || 'Редактировать'}"` : (note ? ` title="${note}"` : '');
+      const editAttr = isAdmin ? ` style="cursor:pointer" title="${tip || 'Редактировать'}"` : (tip ? ` title="${tip}"` : '');
       const clickAttr = isAdmin ? ` onclick="quickEdit('${name}','${ds}',${di})"` : '';
       const noteDot = note ? `<span class="note-dot"></span>` : '';
+      const swapDot = swapNote ? `<span class="swap-dot"></span>` : '';
 
       tdHTML += `<td class="${todayCls}" data-date="${ds}"${editAttr}${clickAttr} style="position:relative">`;
       if (type === 'off') {
@@ -2089,6 +2123,7 @@ function renderSection(s) {
         tdHTML += `<span class="shift-pill ${cls}">${label}</span>`;
       }
       tdHTML += noteDot;
+      tdHTML += swapDot;
       tdHTML += `</td>`;
     });
 
@@ -2721,6 +2756,16 @@ function showDayInfo(ds, di) {
         }).join('') : `<div class="day-info-name" style="color:var(--muted)">Нет на смене</div>`}
       </div>
     </div>
+    ${(() => {
+      const swaps = daySwaps(ds);
+      if (!swaps.length) return '';
+      return `<div class="day-info-block">
+        <div class="day-info-block-title">🔄 Обмены смен</div>
+        <div class="day-info-names">
+          ${swaps.map(s => `<div class="day-info-name"><span class="day-info-dot" style="background:#34d399"></span>${s.giver} → ${s.recipient} <span style="font-size:9px;color:var(--muted)">${s.hours}ч</span></div>`).join('')}
+        </div>
+      </div>`;
+    })()}
   `;
 
   document.getElementById('day-info-panel').classList.add('open');
@@ -3537,16 +3582,18 @@ function exportToExcel() {
       }
     });
 
-    const total = Object.values(extraTotals).reduce((a,b) => a+b, 0);
-    if (total > 0) {
+    // Net: плюсовые события прибавляем, loss_* (отданные/минусовые) вычитаем — как в calcDayHours.
+    const total = Object.entries(extraTotals).reduce(
+      (a, [type, h]) => a + (PLUS_EVENT_TYPES.has(type) ? h : -h), 0);
+    if (Object.keys(extraTotals).length) {
       summaryRows.push([
         name, section, position,
         extraTotals.extra_vacation_cover || 0,
         extraTotals.extra_sick_cover || 0,
         extraTotals.extra_critical || 0,
-        extraTotals.extra_dismissal || 0,
-        extraTotals.extra_org || 0,
-        extraTotals.extra_swap_give || 0,
+        extraTotals.loss_dismissal || 0,
+        (extraTotals.extra_org_plus || 0) - (extraTotals.loss_org || 0),
+        extraTotals.loss_swap_give || 0,
         extraTotals.extra_swap_take || 0,
         total
       ]);

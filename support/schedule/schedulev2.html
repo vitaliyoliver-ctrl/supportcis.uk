@@ -1160,21 +1160,43 @@ const API = '/api';
 
 // ── Навигация по месяцам ──
 const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
-const AVAILABLE_MONTHS = [
-  { year: 2026, month: 6,  label: 'Июнь 2026' },
-  { year: 2026, month: 7,  label: 'Июль 2026' },
-  { year: 2026, month: 8,  label: 'Август 2026' },
-  { year: 2026, month: 9,  label: 'Сентябрь 2026' },
-  { year: 2026, month: 10, label: 'Октябрь 2026' },
-  { year: 2026, month: 11, label: 'Ноябрь 2026' },
-  { year: 2026, month: 12, label: 'Декабрь 2026' },
-];
+// Сколько месяцев истории и наперёд показывать в навигации.
+// В июне 2026 (PAST=3, AHEAD=6) окно = Июнь..Декабрь 2026 (как было в хардкоде),
+// но дальше оно само едет вперёд от реального месяца — «бомба 2027» обезврежена.
+const MONTHS_PAST  = 3;
+const MONTHS_AHEAD = 6;
+
+const RU_MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                   'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+// Абсолютный индекс месяца — чтобы корректно ходить через границу года
+function monthIndex(year, month) { return year * 12 + (month - 1); }
+function fromMonthIndex(idx) { return { year: Math.floor(idx / 12), month: (idx % 12) + 1 }; }
 
 const TODAY_REAL = new Date();
-let MONTH = TODAY_REAL.getFullYear() === 2026 ? TODAY_REAL.getMonth() + 1 : 6;
-if (MONTH < 6) MONTH = 6;
-if (MONTH > 12) MONTH = 12;
-let YEAR = 2026;
+const AVAILABLE_MONTHS = (() => {
+  const curIdx   = monthIndex(TODAY_REAL.getFullYear(), TODAY_REAL.getMonth() + 1);
+  const floorIdx = monthIndex(CYCLE_START.getFullYear(), CYCLE_START.getMonth() + 1);
+  const startIdx = Math.max(floorIdx, curIdx - MONTHS_PAST);
+  const endIdx   = Math.max(startIdx, curIdx + MONTHS_AHEAD);
+  const out = [];
+  for (let i = startIdx; i <= endIdx; i++) {
+    const { year, month } = fromMonthIndex(i);
+    out.push({ year, month, label: `${RU_MONTHS[month - 1]} ${year}` });
+  }
+  return out;
+})();
+
+// Стартуем на текущем месяце, но не выходим за пределы окна
+let YEAR, MONTH;
+{
+  const curIdx   = monthIndex(TODAY_REAL.getFullYear(), TODAY_REAL.getMonth() + 1);
+  const firstIdx = monthIndex(AVAILABLE_MONTHS[0].year, AVAILABLE_MONTHS[0].month);
+  const lastIdx  = monthIndex(AVAILABLE_MONTHS[AVAILABLE_MONTHS.length - 1].year, AVAILABLE_MONTHS[AVAILABLE_MONTHS.length - 1].month);
+  const clamped  = fromMonthIndex(Math.min(Math.max(curIdx, firstIdx), lastIdx));
+  YEAR  = clamped.year;
+  MONTH = clamped.month;
+}
 
 // ── Данные сотрудников: email, дата, позиция ──
 const EMPLOYEES = {

@@ -89,6 +89,28 @@
   .btn-danger:hover:not(:disabled) { background: #4a1f1f; }
   .modal-actions.spread { justify-content: space-between; }
 
+  /* ростер команды (из графика) */
+  .roster-wrap { margin-top: 28px; }
+  .roster-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .roster-head h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  .roster-head .desc { color: var(--faint); font-size: 12.5px; margin-top: 2px; }
+  .roster-search {
+    background: var(--bg); border: 1px solid var(--border-2); border-radius: 8px; color: var(--text);
+    padding: 8px 11px; font-size: 13px; outline: none; min-width: 220px; font-family: inherit;
+  }
+  .roster-search:focus { border-color: var(--accent); }
+  .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 8px; }
+  .rchip {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 12px; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .rchip:hover { border-color: var(--accent); background: var(--panel-2); }
+  .rname { font-weight: 600; font-size: 13.5px; }
+  .rpos { font-size: 11px; color: var(--faint); background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 5px; padding: 1px 6px; }
+  .remail { font-size: 11.5px; color: var(--faint); width: 100%; word-break: break-all; }
+  .rchip .tg-dot { margin-right: 0; }
+
   h1 { font-size: 16px; font-weight: 600; margin: 18px 0 4px; }
   .sub { color: var(--faint); font-size: 13px; margin: 0 0 4px; max-width: 70ch; }
 
@@ -229,6 +251,17 @@
 
   <div id="content" style="display:none">
     <div class="cols" id="cols"></div>
+
+    <div class="roster-wrap">
+      <div class="roster-head">
+        <div>
+          <h2>Команда — профили <span class="count" id="roster-count">0</span></h2>
+          <div class="desc">Все из графика. Клик по человеку — редактирование профиля (имя, позиция, телеграм, дата начала).</div>
+        </div>
+        <input type="text" class="roster-search" id="roster-search" placeholder="Поиск по имени, email, позиции…" autocapitalize="off" spellcheck="false" />
+      </div>
+      <div class="roster-grid" id="roster-list"></div>
+    </div>
 
     <div class="bar">
       <div class="dirty-tag none" id="dirty">Изменений нет</div>
@@ -653,6 +686,7 @@ async function init() {
     $('loading').style.display = 'none';
     $('content').style.display = 'block';
     render();
+    renderRoster();
     loadProfiles(); // подтянуть профили и перерисовать с индикаторами
   } catch {
     fatal('Сеть недоступна. Обнови страницу.');
@@ -668,8 +702,69 @@ async function loadProfiles() {
       profiles = {};
       for (const [email, p] of Object.entries(data.profiles)) profiles[email.toLowerCase()] = p;
       render();
+      renderRoster();
     }
   } catch {}
+}
+
+// ── РОСТЕР КОМАНДЫ (из графика + все, у кого есть профиль) ──
+function allRosterEmails() {
+  const set = new Set(Object.keys(EMP_SEED));
+  Object.keys(profiles).forEach(e => set.add(e));
+  return [...set];
+}
+
+function renderRoster() {
+  const cont = $('roster-list');
+  if (!cont) return;
+  const q = ($('roster-search').value || '').trim().toLowerCase();
+
+  const people = allRosterEmails()
+    .map(e => ({
+      email: e,
+      name: displayName(e),
+      position: (profiles[e] && profiles[e].position) || seedFor(e).position || '',
+    }))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.email.includes(q) || x.position.toLowerCase().includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+
+  $('roster-count').textContent = people.length;
+  cont.innerHTML = '';
+  if (!people.length) { cont.innerHTML = '<div class="empty">Никого не найдено</div>'; return; }
+
+  for (const x of people) {
+    const chip = document.createElement('div');
+    chip.className = 'rchip';
+    chip.title = 'Открыть профиль';
+    chip.onclick = () => openProfile(x.email);
+
+    const nm = document.createElement('span');
+    nm.className = 'rname';
+    nm.textContent = x.name;
+    chip.appendChild(nm);
+
+    if (x.position) {
+      const ps = document.createElement('span');
+      ps.className = 'rpos';
+      ps.textContent = x.position;
+      chip.appendChild(ps);
+    }
+
+    const prof = profiles[x.email];
+    if (prof && prof.telegram) {
+      const tg = document.createElement('span');
+      tg.className = 'tg-dot';
+      tg.textContent = '@' + prof.telegram;
+      chip.appendChild(tg);
+    }
+
+    const em = document.createElement('span');
+    em.className = 'remail';
+    em.textContent = x.email;
+    chip.appendChild(em);
+
+    cont.appendChild(chip);
+  }
 }
 
 // ── ПРОФИЛЬ: модалка, привязанная к email ──
@@ -737,6 +832,7 @@ async function saveProfilePanel() {
       profiles[pfCurrentEmail] = data.profile || { ...payload };
       closeProfile();
       render();
+      renderRoster();
       toast('Профиль сохранён', 'ok');
     } else {
       toast(data.error || 'Не удалось сохранить', 'err');
@@ -762,6 +858,7 @@ async function deleteProfilePanel() {
       delete profiles[pfCurrentEmail];
       closeProfile();
       render();
+      renderRoster();
       toast('Профиль удалён', 'ok');
     } else {
       toast(data.error || 'Не удалось удалить', 'err');
@@ -790,6 +887,7 @@ $('pf-save').onclick   = saveProfilePanel;
 $('pf-cancel').onclick = closeProfile;
 $('pf-delete').onclick = deleteProfilePanel;
 $('pf-since').onchange = updatePfNote;
+$('roster-search').oninput = renderRoster;
 $('profile-overlay').onclick = e => { if (e.target === $('profile-overlay')) closeProfile(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeProfile(); closeModal(); } });
 

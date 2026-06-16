@@ -162,13 +162,6 @@
   </div>
 
   <div class="card">
-    <!-- TL: выбор оператора -->
-    <div class="tl-picker" id="tl-picker">
-      <div class="tl-badge"><span>⚡</span> Режим TL</div>
-      <label for="op-select">Чей профиль редактировать</label>
-      <select class="picker-select" id="op-select" onchange="onPickOperator()"></select>
-    </div>
-
     <div class="identity">
       <div class="avatar-initials" id="avatar-initials">—</div>
       <div class="identity-meta">
@@ -391,31 +384,6 @@ function renderProfile() {
   }
 }
 
-function onPickOperator() {
-  loadProfile($('op-select').value);
-}
-
-function buildPicker() {
-  const sel = $('op-select');
-  const entries = Object.entries(EMP_SEED)
-    .map(([email, info]) => ({ email, name: info.name, position: info.position }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-
-  // Гарантируем, что свой email тоже в списке
-  if (!EMP_SEED[me.email]) {
-    entries.unshift({ email: me.email, name: displayName(me.email), position: '' });
-  }
-
-  sel.innerHTML = '';
-  for (const e of entries) {
-    const opt = document.createElement('option');
-    opt.value = e.email;
-    opt.textContent = `${e.name} — ${e.email}` + (e.email === me.email ? ' (вы)' : '');
-    sel.appendChild(opt);
-  }
-  sel.value = me.email;
-}
-
 // ── Сохранение ──
 async function save() {
   const btn = $('save-btn');
@@ -479,11 +447,6 @@ async function logout() {
     if (!data.ok) { location.href = '/login/?redirect=' + encodeURIComponent('/profile/'); return; }
     me = { email: String(data.email).toLowerCase(), role: data.role };
     isTL = me.role === 'tl';
-
-    if (isTL) {
-      $('tl-picker').classList.add('visible');
-      buildPicker();
-    }
 
     await loadProfile(me.email);
     $('auth-overlay').style.display = 'none';

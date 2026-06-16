@@ -1856,8 +1856,9 @@ function swapAnnotation(override) {
   (override?.extraEvents || []).forEach(e => {
     const lunchGive = e.withLunch === true ? ' (с обедом)' : (e.withLunch === false ? ' (обед себе)' : '');
     const lunchTake = e.withLunch === true ? ' (с обедом)' : (e.withLunch === false ? ' (без обеда)' : '');
-    if (e.type === 'loss_swap_give' && e.swapWith)  parts.push(`🔄 Отдал ${e.hours}ч → ${e.swapWith}${lunchGive}`);
-    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч ← ${e.swapWith}${lunchTake}`);
+    const range = e.range ? ` ${e.range}` : '';
+    if (e.type === 'loss_swap_give' && e.swapWith)  parts.push(`🔄 Отдал ${e.hours}ч${range} → ${e.swapWith}${lunchGive}`);
+    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч${range} ← ${e.swapWith}${lunchTake}`);
   });
   return parts.join(' · ');
 }
@@ -3727,9 +3728,14 @@ function swapCandidateOk(cand, giver, dateObj, win, shiftType) {
   // ночь накануне блокирует любую дневную смену
   const prev = new Date(dateObj); prev.setDate(prev.getDate() - 1);
   if (SWAP_NIGHT_TYPES.has(swapShiftOnDate(cand, prev)) && !SWAP_NIGHT_TYPES.has(shiftType)) return false;
-  // пересечения и минимальный отдых 6ч в обе стороны
+  // Пересечения и отдых. Между РАЗДЕЛЬНЫМИ сменами нужен отдых 6ч.
+  // Исключение: доп-часы можно взять ВСТЫК к своей смене (продолжить блок без отдыха),
+  // но не более 6ч сверху — отдых можно «отдать» под добор максимум на 6ч.
+  const takeLen = win[1] - win[0];
   for (const [s, e] of swapBusyIntervals(cand, dateObj)) {
-    if (!(e + SWAP_MIN_REST <= win[0] || win[1] + SWAP_MIN_REST <= s)) return false;
+    const rest     = (e + SWAP_MIN_REST <= win[0]) || (win[1] + SWAP_MIN_REST <= s);
+    const adjacent = ((e === win[0]) || (win[1] === s)) && takeLen <= SWAP_MIN_REST;
+    if (!(rest || adjacent)) return false;
   }
   return true;
 }
@@ -3856,7 +3862,7 @@ function swapRebuildRecipients() {
   sel.innerHTML = ok.length
     ? ok.map(n => `<option value="${n}">${n}</option>`).join('')
     : '<option value="">Нет доступных получателей</option>';
-  hint.textContent = `Доступно получателей: ${ok.length} из ${all.length - 1} (учтены конфликты, ночь накануне, отдых ${SWAP_MIN_REST}ч)`;
+  hint.textContent = `Доступно получателей: ${ok.length} из ${all.length - 1} (учтены конфликты, ночь накануне, отдых ${SWAP_MIN_REST}ч, добор встык до ${SWAP_MIN_REST}ч)`;
 }
 
 async function submitSwapRequest() {

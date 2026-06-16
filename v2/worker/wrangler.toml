@@ -1,0 +1,22 @@
+name = "supportcis-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Pages routes this domain to this worker
+# настройте в CF Dashboard: Pages → Custom domain → supportcis.uk
+
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "REPLACE_WITH_AUTH_KV_ID"          # cf kv:namespace list
+
+# Секреты (не хранить в wrangler.toml, задавать через `wrangler secret put`):
+# RESEND_API_KEY
+# TG_BOT_TOKEN
+# TG_WEBHOOK_SECRET
+# SUPABASE_URL
+# SUPABASE_SERVICE_KEY
+
+[vars]
+SITE = "https://supportcis.uk"
+TG_CHAT_ID = "-5061850872"

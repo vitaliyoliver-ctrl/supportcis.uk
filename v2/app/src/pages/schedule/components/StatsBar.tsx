@@ -1,0 +1,109 @@
+import React, { useMemo } from 'react';
+import type { SectionDef } from '@/lib/useScheduleState';
+import type { Override } from '@/lib/scheduleLogic';
+import { calcDayHours } from '@/lib/scheduleLogic';
+import { SHIFT_DEFS } from '@/lib/shiftDefs';
+
+interface StatsBarProps {
+  sections: SectionDef[];
+  getShiftForCell: (name: string, di: number) => string;
+  days: Array<{ d: number; date: Date }>;
+  year: number;
+  month: number;
+  overrides: Record<string, Override>;
+  employeeHoursSeed: Record<string, number>;
+  getEmp: (name: string) => { hours?: number };
+}
+
+const StatsBar: React.FC<StatsBarProps> = ({
+  sections,
+  getShiftForCell,
+  days,
+  year,
+  month,
+  overrides,
+  employeeHoursSeed,
+  getEmp,
+}) => {
+  const stats = useMemo(() => {
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+    const currentHour = now.getHours();
+
+    const regularSection = sections.find(s => s.key === 'regular_support');
+    const vipSection = sections.find(s => s.key === 'vip_support');
+
+    let regularCount = 0;
+    let vipCount = 0;
+
+    if (isCurrentMonth) {
+      const todayIndex = now.getDate() - 1;
+      const yesterdayIndex = todayIndex - 1;
+
+      const calcOnline = (members: string[]): number => {
+        let count = 0;
+        for (const name of members) {
+          const type = getShiftForCell(name, todayIndex);
+          const def = SHIFT_DEFS[type];
+          if (!def?.window) continue;
+          const [start, end] = def.window;
+          // Check today's shift
+          if (currentHour >= start && currentHour < end) {
+            const key = `${name}:${year}-${String(month).padStart(2, '0')}-${String(days[todayIndex].d).padStart(2, '0')}`;
+            const ovr = overrides[key];
+            const h = calcDayHours(type, ovr, name, employeeHoursSeed);
+            count += h / 11;
+          }
+          // Check yesterday's night shift tail (if window[1] > 24 and currentHour < window[1]-24)
+          if (end > 24 && currentHour < end - 24 && yesterdayIndex >= 0) {
+            const yType = getShiftForCell(name, yesterdayIndex);
+            const yDef = SHIFT_DEFS[yType];
+            if (yDef?.window && yDef.window[1] > 24 && currentHour < yDef.window[1] - 24) {
+              const d = days[yesterdayIndex].d;
+              const key = `${name}:${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              const ovr = overrides[key];
+              const h = calcDayHours(yType, ovr, name, employeeHoursSeed);
+              count += h / 11;
+            }
+          }
+        }
+        return count;
+      };
+
+      if (regularSection) regularCount = calcOnline(regularSection.members);
+      if (vipSection) vipCount = calcOnline(vipSection.members);
+    }
+
+    const regularTotal = regularSection?.members.length ?? 0;
+    const vipTotal = vipSection?.members.length ?? 0;
+    const total = regularTotal + vipTotal;
+    const onlineTotal = regularCount + vipCount;
+
+    return { regularCount, vipCount, onlineTotal, total, isCurrentMonth };
+  }, [sections, getShiftForCell, days, year, month, overrides, employeeHoursSeed]);
+
+  const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
+
+  return (
+    <div className="stats-bar">
+      <div className="stat-card">
+        <div className="stat-label">Сейчас на смене</div>
+        <div className="stat-value">{stats.isCurrentMonth ? fmt(stats.onlineTotal) : '—'}</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-label">Regular Support</div>
+        <div className="stat-value">{stats.isCurrentMonth ? fmt(stats.regularCount) : '—'}</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-label">VIP Support</div>
+        <div className="stat-value">{stats.isCurrentMonth ? fmt(stats.vipCount) : '—'}</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-label">Всего</div>
+        <div className="stat-value">{stats.total}</div>
+      </div>
+    </div>
+  );
+};
+
+export default React.memo(StatsBar);

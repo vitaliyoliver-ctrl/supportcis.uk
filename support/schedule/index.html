@@ -1079,6 +1079,13 @@
         <div class="admin-label" id="swap-cand-hint" style="margin-top:6px;text-transform:none"></div>
       </div>
       <div class="admin-field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="swap-lunch" style="width:18px;height:18px;accent-color:#34d399;cursor:pointer;flex-shrink:0" />
+          <span class="admin-label" style="margin:0;text-transform:none">Отдать смену вместе с обедом</span>
+        </label>
+        <div class="admin-label" style="margin-top:6px;text-transform:none">Обед не делится: либо остаётся у вас, либо передаётся получателю целиком</div>
+      </div>
+      <div class="admin-field">
         <div class="admin-label">Комментарий (необязательно)</div>
         <input type="text" class="admin-input" id="swap-comment" maxlength="300" placeholder="Причина обмена..." />
       </div>
@@ -1847,8 +1854,10 @@ function calcDayHours(type, override, name) {
 function swapAnnotation(override) {
   const parts = [];
   (override?.extraEvents || []).forEach(e => {
-    if (e.type === 'loss_swap_give' && e.swapWith)  parts.push(`🔄 Отдал ${e.hours}ч → ${e.swapWith}`);
-    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч ← ${e.swapWith}`);
+    const lunchGive = e.withLunch === true ? ' (с обедом)' : (e.withLunch === false ? ' (обед себе)' : '');
+    const lunchTake = e.withLunch === true ? ' (с обедом)' : (e.withLunch === false ? ' (без обеда)' : '');
+    if (e.type === 'loss_swap_give' && e.swapWith)  parts.push(`🔄 Отдал ${e.hours}ч → ${e.swapWith}${lunchGive}`);
+    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч ← ${e.swapWith}${lunchTake}`);
   });
   return parts.join(' · ');
 }
@@ -2107,8 +2116,9 @@ function renderSection(s) {
       const override = scheduleOverrides[key];
       const manualNote = override?.note || '';
       const swapNote = swapAnnotation(override);
+      // Заметка-первой: если её сохранили (в т.ч. текст обмена) — показываем её, иначе авто-аннотацию обмена.
       // Комментарий обмена показываем тем же механизмом заметок, что и ручные.
-      const tip = [swapNote, manualNote].filter(Boolean).join(' · ');
+      const tip = manualNote || swapNote;
       const hasPaidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
       const todayCls = isToday ? ' is-today' : '';
       const editAttr = isAdmin ? ` style="cursor:pointer" title="${tip || 'Редактировать'}"` : (tip ? ` title="${tip}"` : '');
@@ -3306,7 +3316,8 @@ function quickEdit(name, ds, di) {
   extraMinusEvents = allEvents.filter(e => !plusTypes.includes(e.type));
   renderExtraEvents();
 
-  document.getElementById('ap-note').value = override?.note || '';
+  // Если заметка не задана вручную, но смена — обмен, подставляем авто-комментарий обмена в поле заметки.
+  document.getElementById('ap-note').value = (override?.note || swapAnnotation(override)) || '';
   document.getElementById('admin-overlay').classList.add('open');
 }
 
@@ -3743,6 +3754,7 @@ function openSwapPanel() {
     giverSel.disabled = true;
   }
   document.getElementById('swap-comment').value = '';
+  document.getElementById('swap-lunch').checked = false;
   document.getElementById('swap-msg').className = 'save-msg';
   swapOnGiverChange();
   document.getElementById('swap-overlay').classList.add('open');
@@ -3881,6 +3893,7 @@ async function submitSwapRequest() {
         range: swapFmtRange(from, to),
         hours,
         win: [from, to],
+        withLunch: document.getElementById('swap-lunch').checked,
         comment: document.getElementById('swap-comment').value.trim(),
       }),
     });

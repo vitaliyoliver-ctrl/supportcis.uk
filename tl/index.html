@@ -56,6 +56,7 @@
     .card:nth-child(3) { animation-delay: 0.3s; }
     .card:nth-child(4) { animation-delay: 0.4s; }
     .card:nth-child(5) { animation-delay: 0.5s; }
+    .card:nth-child(6) { animation-delay: 0.6s; }
     .card::before { content: ''; position: absolute; inset: 0; background: var(--glow); opacity: 0; transition: opacity 0.3s ease; border-radius: inherit; }
     .card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 8px 40px var(--glow), 0 0 0 1px var(--accent); }
     .card:hover::before { opacity: 1; }
@@ -131,6 +132,12 @@
       <div class="card-icon">🔑</div>
       <div class="card-title">Управление ролями</div>
       <div class="card-desc">Доступы команды по ролям: TL, супервайзеры, ops</div>
+      <div class="card-arrow">→</div>
+    </a>
+    <a href="/tl/csat/" class="card" target="_blank">
+      <div class="card-icon">⭐</div>
+      <div class="card-title">КСАТ Анализатор</div>
+      <div class="card-desc">КСАТ без спама: по проектам, VIP/Регуляр, бот/оператор, TG, по дням</div>
       <div class="card-arrow">→</div>
     </a>
   </div>

@@ -42,14 +42,10 @@ function Spinner() {
   );
 }
 
-function IndexPage() {
-  const { data } = useAuth();
-  const role = data?.role;
-  if (role === 'tl' || role === 'ops') return <Navigate to="/tl" replace />;
-  return <Navigate to="/support/schedule" replace />;
-}
-
 // ── Lazy pages ─────────────────────────────────────────────────────────────────
+
+const HomePage        = React.lazy(() => import('./pages/HomePage'));
+const SupportPage     = React.lazy(() => import('./pages/SupportPage'));
 
 const SchedulePage    = React.lazy(() => import('./pages/schedule/SchedulePage'));
 const BreaksPage      = React.lazy(() => import('./pages/BreaksPage'));
@@ -78,9 +74,10 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
 
-        <Route path="/" element={<RequireAuth><IndexPage /></RequireAuth>} />
+        <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
 
         {/* Support */}
+        <Route path="/support"          element={<RequireAuth><SupportPage /></RequireAuth>} />
         <Route path="/support/schedule" element={<RequireAuth><SchedulePage /></RequireAuth>} />
         <Route path="/support/breaks"   element={<RequireAuth><BreaksPage /></RequireAuth>} />
         <Route path="/support/sales"    element={<RequireAuth><SalesPage /></RequireAuth>} />

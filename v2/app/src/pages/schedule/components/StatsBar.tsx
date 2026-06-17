@@ -12,7 +12,11 @@ interface StatsBarProps {
   month: number;
   overrides: Record<string, Override>;
   employeeHoursSeed: Record<string, number>;
-  getEmp: (name: string) => { hours?: number };
+  getEmp: (name: string) => { position: string; hours?: number };
+}
+
+function isSupervisorPosition(position: string): boolean {
+  return position.includes('Supervisor') || position.includes('VIP Sup');
 }
 
 const StatsBar: React.FC<StatsBarProps> = ({
@@ -74,33 +78,38 @@ const StatsBar: React.FC<StatsBarProps> = ({
       if (vipSection) vipCount = calcOnline(vipSection.members);
     }
 
-    const regularTotal = regularSection?.members.length ?? 0;
-    const vipTotal = vipSection?.members.length ?? 0;
-    const total = regularTotal + vipTotal;
+    // Размеры отделов — только операторы (без супервайзеров), как в v1.
+    const regularOps = (regularSection?.members ?? []).filter(n => !isSupervisorPosition(getEmp(n).position)).length;
+    const vipOps = (vipSection?.members ?? []).filter(n => !isSupervisorPosition(getEmp(n).position)).length;
+    const total = sections.flatMap(s => s.members).length;
     const onlineTotal = regularCount + vipCount;
 
-    return { regularCount, vipCount, onlineTotal, total, isCurrentMonth };
-  }, [sections, getShiftForCell, days, year, month, overrides, employeeHoursSeed]);
+    return { regularOps, vipOps, onlineTotal, total, isCurrentMonth };
+  }, [sections, getShiftForCell, days, year, month, overrides, employeeHoursSeed, getEmp]);
 
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 
   return (
-    <div className="stats-bar">
+    <div className="stats-row">
       <div className="stat-card">
-        <div className="stat-label">Сейчас на смене</div>
-        <div className="stat-value">{stats.isCurrentMonth ? fmt(stats.onlineTotal) : '—'}</div>
+        <div className="stat-label">Операторов онлайн</div>
+        <div className="stat-val">{stats.isCurrentMonth ? fmt(stats.onlineTotal) : '—'}</div>
+        <div className="stat-sub">сейчас на смене</div>
       </div>
       <div className="stat-card">
         <div className="stat-label">Regular Support</div>
-        <div className="stat-value">{stats.isCurrentMonth ? fmt(stats.regularCount) : '—'}</div>
+        <div className="stat-val">{stats.regularOps}</div>
+        <div className="stat-sub">операторов в отделе</div>
       </div>
       <div className="stat-card">
         <div className="stat-label">VIP Support</div>
-        <div className="stat-value">{stats.isCurrentMonth ? fmt(stats.vipCount) : '—'}</div>
+        <div className="stat-val">{stats.vipOps}</div>
+        <div className="stat-sub">операторов в отделе</div>
       </div>
       <div className="stat-card">
-        <div className="stat-label">Всего</div>
-        <div className="stat-value">{stats.total}</div>
+        <div className="stat-label">Всего персонала</div>
+        <div className="stat-val">{stats.total}</div>
+        <div className="stat-sub">сотрудников в системе</div>
       </div>
     </div>
   );

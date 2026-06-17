@@ -136,7 +136,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
       <div className="section-header" onClick={onToggle} style={{ borderLeft: `4px solid ${section.color}` }}>
         <span className="section-toggle">{collapsed ? '▶' : '▼'}</span>
         <span className="section-title">{section.label}</span>
-        <span className="section-badge">{section.members.length}</span>
+        <span className="section-badge">{section.members.length} чел.</span>
       </div>
 
       {!collapsed && (

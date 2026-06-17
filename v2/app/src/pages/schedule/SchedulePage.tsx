@@ -221,7 +221,7 @@ export default function SchedulePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '0 12px 32px', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '100%', boxSizing: 'border-box' }}>
 
       {/* Stale warning */}
       {staleWarning && (
@@ -238,88 +238,59 @@ export default function SchedulePage() {
       )}
 
       {/* Nav */}
-      <div className="schedule-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginRight: 4 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
-            Support<span style={{ color: 'var(--accent)' }}>CIS</span>
-          </span>
+      <nav className="nav">
+        <div className="nav-left">
+          <a href="/support" className="back-btn">← Support</a>
+          <div className="nav-title">Support<span>CIS</span> — График</div>
         </div>
+        <div className="nav-right">
+          <div className="month-nav">
+            <button className="nav-btn" onClick={prevMonth} disabled={curIdx <= 0}>‹</button>
+            <span className="month-badge">{monthLabel}</span>
+            <button className="nav-btn" onClick={nextMonth} disabled={curIdx >= st.availableMonths.length - 1}>›</button>
+          </div>
 
-        <div className="month-nav">
-          <button className="nav-btn" onClick={prevMonth} disabled={curIdx <= 0}>‹</button>
-          <span className="month-label">{monthLabel}</span>
-          <button className="nav-btn" onClick={nextMonth} disabled={curIdx >= st.availableMonths.length - 1}>›</button>
-        </div>
+          <button className="theme-toggle" onClick={() => setIsDark(d => !d)}>
+            <span className="theme-toggle-icon">{isDark ? '🌙' : '☀️'}</span>
+            <span className="theme-toggle-label">{isDark ? 'Тёмная' : 'Светлая'}</span>
+          </button>
 
-        <div className="filter-tabs">
-          {(['all','regular','vip','supervisors','management'] as const).map(f => (
-            <button
-              key={f}
-              className={`filter-btn${st.activeFilter === f ? ' active' : ''}`}
-              onClick={() => st.setActiveFilter(f)}
-            >
-              {{ all: 'Все', regular: 'Regular', vip: 'VIP', supervisors: 'Sup', management: 'Mgmt' }[f]}
+          <button className="filter-btn" onClick={() => setInfoColumnVisible(v => !v)}>
+            ⇔ Инфо{!infoColumnVisible ? ' ▸' : ''}
+          </button>
+
+          <button className="filter-btn" style={{ color: 'var(--support)', borderColor: 'rgba(52,211,153,0.3)' }} onClick={handleExport}>↓ Excel</button>
+
+          {(st.isAdmin || (() => {
+            const all = st.sections.flatMap(s => s.members);
+            return all.find(n => st.getEmp(n).email.toLowerCase() === currentUser?.email?.toLowerCase());
+          })()) && (
+            <button className="admin-btn visible" style={{ background: 'rgba(52,211,153,0.1)', borderColor: 'rgba(52,211,153,0.3)', color: '#34d399' }} onClick={() => setSwapOpen(true)}>
+              🔄 Отдать смену
             </button>
-          ))}
+          )}
+
+          {st.isAdmin && (
+            <button className={`admin-btn visible${positionsMode ? ' positions-active' : ''}`} style={{ background: 'rgba(245,158,66,0.1)', borderColor: 'rgba(245,158,66,0.3)', color: 'var(--ops, #f59e42)' }} onClick={() => setPositionsMode(p => !p)}>
+              ⇅ Позиции{positionsMode ? ' вкл' : ''}
+            </button>
+          )}
+
+          {st.isAdmin && (
+            <button className="admin-btn visible" onClick={() => setAddEmpOpen(true)}>+ Сотрудник</button>
+          )}
+
+          {st.isAdmin && (
+            <button className="admin-btn visible" style={{ background: 'rgba(248,113,113,0.1)', borderColor: 'rgba(248,113,113,0.3)', color: '#f87171' }} onClick={() => setDismissOpen(true)}>
+              🚫 Увольнение
+            </button>
+          )}
+
+          <button className="filter-btn" onClick={() => setLogVisible(v => !v)}>📋 Лог</button>
         </div>
+      </nav>
 
-        <div className="toolbar-gap" />
-
-        {st.isAdmin && (
-          <button
-            className={`toolbar-btn${positionsMode ? ' positions-active' : ''}`}
-            onClick={() => setPositionsMode(p => !p)}
-          >
-            ⇅ Позиции{positionsMode ? ' вкл' : ''}
-          </button>
-        )}
-
-        {(st.isAdmin || (() => {
-          const all = st.sections.flatMap(s => s.members);
-          const myName = all.find(n => st.getEmp(n).email.toLowerCase() === currentUser?.email?.toLowerCase());
-          return myName;
-        })()) && (
-          <button className="toolbar-btn swap-btn" onClick={() => setSwapOpen(true)}>
-            🔄 Обмен
-          </button>
-        )}
-
-        <button className="toolbar-btn" onClick={handleExport}>⬇ Excel</button>
-
-        <button
-          className="toolbar-btn"
-          onClick={() => setInfoColumnVisible(v => !v)}
-        >
-          ⇔ Инфо{!infoColumnVisible ? ' ▸' : ''}
-        </button>
-
-        {st.isAdmin && (
-          <button className="toolbar-btn" onClick={() => setAddEmpOpen(true)}>+ Сотрудник</button>
-        )}
-
-        {st.isAdmin && (
-          <button className="toolbar-btn" style={{ color: '#f87171', borderColor: 'rgba(248,113,113,0.3)' }}
-            onClick={() => setDismissOpen(true)}>
-            ⚑ Уволить
-          </button>
-        )}
-
-        <button className="toolbar-btn" onClick={() => setLogVisible(v => !v)}>
-          📋 Лог
-        </button>
-
-        <button className="toolbar-btn" onClick={() => setIsDark(d => !d)}>
-          {isDark ? '🌙 Тёмная' : '☀️ Светлая'}
-        </button>
-      </div>
-
-      {/* Positions banner */}
-      {positionsMode && (
-        <div className="positions-banner visible">
-          ⇅ Режим позиций: перетаскивайте строки для изменения порядка. Нажмите «Позиции» ещё раз чтобы выйти.
-        </div>
-      )}
-
+      <div className="main">
       {/* Stats */}
       <React.Suspense fallback={null}>
         <StatsBar
@@ -333,6 +304,43 @@ export default function SchedulePage() {
           getEmp={st.getEmp}
         />
       </React.Suspense>
+
+      {/* Positions banner */}
+      {positionsMode && (
+        <div className="positions-banner visible">
+          ⇅ Режим позиций: перетаскивайте строки для изменения порядка. Нажмите «Позиции» ещё раз чтобы выйти.
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="legend">
+        <span className="legend-label">Легенда:</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: 'rgba(96,165,250,0.85)' }} />09–21 (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: 'rgba(67,56,202,0.85)' }} />21–09 (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: '#f59e0b' }} />12–00 (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: 'rgba(45,212,191,0.85)' }} />VIP 09–21 (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: 'rgba(232,121,249,0.85)' }} />VIP 21–09 (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: 'rgba(250,204,21,0.85)' }} />Sup День (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: 'rgba(153,27,27,0.9)' }} />Sup Ночь (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: '#8b5cf6' }} />8ч (TL/QA)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: '#94a3b8' }} />НК (11ч)</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: '#f87171' }} />✈ Отпуск</span>
+        <span className="legend-item"><span className="legend-dot" style={{ background: '#fbbf24' }} />🤒 Больничный</span>
+        <span className="legend-item"><span style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)' }}>—</span> Выходной</span>
+      </div>
+
+      {/* Filters */}
+      <div className="filters">
+        {(['all','regular','vip','supervisors','management'] as const).map(f => (
+          <button
+            key={f}
+            className={`filter-btn${st.activeFilter === f ? ' active' : ''}`}
+            onClick={() => st.setActiveFilter(f)}
+          >
+            {{ all: 'Все', regular: 'Regular', vip: 'VIP', supervisors: 'Supervisors', management: 'Management' }[f]}
+          </button>
+        ))}
+      </div>
 
       {/* Schedule sections */}
       <React.Suspense fallback={<div style={{ color: 'var(--text-sub)', padding: 16 }}>Загрузка таблицы...</div>}>
@@ -369,6 +377,7 @@ export default function SchedulePage() {
           <LogPanel log={st.log} />
         </React.Suspense>
       )}
+      </div>{/* /.main */}
 
       {/* Day info panel */}
       <React.Suspense fallback={null}>

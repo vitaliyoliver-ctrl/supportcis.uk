@@ -95,6 +95,10 @@ async function sendOtpEmail(env: Env, email: string, code: string): Promise<bool
         </div>`,
     }),
   });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.log('Resend error', res.status, body);
+  }
   return res.ok;
 }
 

@@ -30,7 +30,7 @@ export default function SchedulePage() {
   const { data: authData } = useQuery({
     queryKey: ['auth'],
     queryFn: async () => {
-      const res = await fetch('/api/auth/check', { credentials: 'include' });
+      const res = await fetch('/api/check', { credentials: 'include' });
       if (!res.ok) return null;
       return res.json() as Promise<{ ok: boolean; email: string; role: string }>;
     },

@@ -10,8 +10,8 @@ import './breaks.css';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = 'https://rteemqmqwhcgjuvqtlhz.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_fvme3q6CpvhlRiTMHKkapg_y8_EL17v';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://rteemqmqwhcgjuvqtlhz.supabase.co';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_fvme3q6CpvhlRiTMHKkapg_y8_EL17v';
 
 const MAX_BREAKS = 4;
 const MAX_LUNCHES = 1;

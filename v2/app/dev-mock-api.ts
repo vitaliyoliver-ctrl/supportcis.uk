@@ -4,6 +4,11 @@ import type { Plugin, Connect } from 'vite';
 
 const MOCK_USER = { ok: true, email: 'vitaliy.oliver@velvix.org', role: 'tl' };
 
+// In-memory хранилища dev-сессии
+const rolesStore = { tl: ['vitaliy.oliver@velvix.org'], supervisor: [] as string[], ops: [] as string[] };
+const profilesStore: Record<string, Record<string, unknown>> = {};
+const salesStore: Record<string, { rows: unknown[]; dateFrom: string | null; dateTo: string | null }> = {};
+
 function json(res: Parameters<Connect.NextHandleFunction>[1], body: unknown, status = 200) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
@@ -20,23 +25,6 @@ function readBody(req: Parameters<Connect.NextHandleFunction>[0]): Promise<unkno
 
 // Простейшее in-memory хранилище графика на время dev-сессии
 const scheduleStore: Record<string, { overrides: Record<string, unknown>; settings: Record<string, unknown>; version: number; log: unknown[] }> = {};
-
-// Демо-данные рейтинга продаж
-const MOCK_SALES = {
-  ok: true,
-  period: 'Июнь 2026',
-  updatedAt: new Date().toISOString(),
-  rows: [
-    { name: 'Scott',  deposits: 142, amount: 38400, bonus: 1920 },
-    { name: 'Tom',    deposits: 128, amount: 35100, bonus: 1755 },
-    { name: 'Simon',  deposits: 119, amount: 31200, bonus: 1560 },
-    { name: 'Casper', deposits: 104, amount: 27800, bonus: 1390 },
-    { name: 'Elijah', deposits: 97,  amount: 24900, bonus: 1245 },
-    { name: 'Holly',  deposits: 81,  amount: 20100, bonus: 1005 },
-    { name: 'River',  deposits: 76,  amount: 18700, bonus: 935  },
-    { name: 'Fabio',  deposits: 64,  amount: 15400, bonus: 770  },
-  ],
-};
 
 export function mockApiPlugin(): Plugin {
   return {
@@ -81,23 +69,40 @@ export function mockApiPlugin(): Plugin {
 
         // ── Profile ──
         if (path === '/api/profile' && method === 'GET') {
-          return json(res, { ok: true, profile: { telegram: 'oliver_work' } });
+          const email = new URLSearchParams(url.split('?')[1] || '').get('email') || MOCK_USER.email;
+          return json(res, { ok: true, profile: profilesStore[email.toLowerCase()] ?? null });
         }
         if (path === '/api/profile' && method === 'POST') {
           const body = (await readBody(req)) as Record<string, unknown>;
+          const email = String(body.email || MOCK_USER.email).toLowerCase();
+          profilesStore[email] = body;
           return json(res, { ok: true, profile: body });
         }
+        if (path === '/api/profile' && method === 'DELETE') {
+          const email = (new URLSearchParams(url.split('?')[1] || '').get('email') || '').toLowerCase();
+          delete profilesStore[email];
+          return json(res, { ok: true });
+        }
         if (path === '/api/profiles') {
-          return json(res, { ok: true, profiles: {} });
+          return json(res, { ok: true, profiles: profilesStore });
         }
         if (path === '/api/roles') {
-          if (method === 'GET') return json(res, { ok: true, roles: {} });
-          return json(res, { ok: true });
+          if (method === 'GET') return json(res, { ok: true, lists: rolesStore });
+          const body = (await readBody(req)) as Partial<typeof rolesStore>;
+          rolesStore.tl = body.tl ?? rolesStore.tl;
+          rolesStore.supervisor = body.supervisor ?? rolesStore.supervisor;
+          rolesStore.ops = body.ops ?? rolesStore.ops;
+          if (!rolesStore.tl.includes(MOCK_USER.email)) rolesStore.tl.push(MOCK_USER.email);
+          return json(res, { ok: true, lists: rolesStore, rejected: [] });
         }
 
         // ── Sales ──
-        if (path === '/api/sales/data') return json(res, MOCK_SALES);
-        if (path === '/api/sales/upload') return json(res, { ok: true });
+        if (path === '/api/sales/data') return json(res, { ok: true, data: salesStore });
+        if (path === '/api/sales/upload') {
+          const body = (await readBody(req)) as { month?: string; rows?: unknown[]; dateFrom?: string | null; dateTo?: string | null };
+          if (body.month) salesStore[body.month] = { rows: body.rows ?? [], dateFrom: body.dateFrom ?? null, dateTo: body.dateTo ?? null };
+          return json(res, { ok: true });
+        }
 
         // Fallback
         return json(res, { ok: false, error: 'mock: not implemented', path }, 404);

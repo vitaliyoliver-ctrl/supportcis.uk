@@ -14,13 +14,15 @@ id = "REPLACE_WITH_AUTH_KV_ID"          # wrangler kv namespace list
 
 # ── Открытые переменные (Settings → Variables) ──────────────────────────────
 [vars]
-SITE = "https://plevantis.net"          # ВАЖНО: домен фронта (для CORS / Origin)
+SITE = "https://plevantis.net"          # домен фронта (CORS / Origin)
 TG_CHAT_ID = "-5061850872"
+OWNER_EMAIL = "vitaliy.oliver@velvix.org"  # получит роль TL при первом входе (bootstrap)
 
 # ── Секреты (НЕ хранить в toml; задавать через `wrangler secret put NAME`) ───
-# RESEND_API_KEY        — ключ Resend
-# RESEND_FROM           — "SupportCIS <noreply@plevantis.net>" (верифиц. домен в Resend)
-# SUPABASE_URL          — https://rteemqmqwhcgjuvqtlhz.supabase.co
-# SUPABASE_SERVICE_KEY  — service_role ключ из Supabase (НЕ anon!)
-# TG_BOT_TOKEN          — токен Telegram-бота свапов
-# TG_WEBHOOK_SECRET     — секрет вебхука Telegram
+# RESEND_API_KEY     — ключ Resend
+# RESEND_FROM        — "SupportCIS <noreply@plevantis.net>" (верифиц. домен в Resend)
+# TG_BOT_TOKEN       — токен Telegram-бота свапов (опционально)
+# TG_WEBHOOK_SECRET  — секрет вебхука Telegram (опционально)
+#
+# Примечание: страница «Перерывы» и Realtime работают напрямую с Supabase
+# из браузера (anon key в .env фронта). Воркеру доступ к Supabase не нужен.

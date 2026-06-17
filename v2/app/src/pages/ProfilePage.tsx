@@ -59,7 +59,7 @@ export default function ProfilePage() {
         const pd = await pr.json();
         const seed = seedForEmail(myEmail);
         const p: Profile = {
-          name:     pd?.profile?.name     || seed?.name     || myEmail.split('@')[0],
+          name:     pd?.profile?.name     || (seed as { name?: string })?.name     || myEmail.split('@')[0],
           position: pd?.profile?.position || seed?.position || '',
           since:    pd?.profile?.since    || seed?.since    || '',
           telegram: pd?.profile?.telegram || '',

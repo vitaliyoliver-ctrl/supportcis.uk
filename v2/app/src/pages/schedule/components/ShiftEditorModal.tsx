@@ -245,17 +245,17 @@ const ShiftEditorModal: React.FC<ShiftEditorModalProps> = ({
             {groups.map(({ group, types }) => (
               <div key={String(group)}>
                 <div className="shift-type-group-label">{groupLabel(group)}</div>
-                {types.map(t => (
-                  <div key={t.type} className="shift-type-row">
+                <div className="shift-type-row">
+                  {types.map(t => (
                     <button
-                      className={`shift-type-btn${selectedShiftType === t.type ? ' active' : ''}`}
+                      key={t.type}
+                      className={`shift-type-btn${selectedShiftType === t.type ? ' selected' : ''}`}
                       onClick={() => setSelectedShiftType(t.type)}
                     >
-                      {t.label}
+                      <span className="stime">{t.time}</span>{t.label}
                     </button>
-                    <span className="stime">{t.time}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             ))}
           </div>

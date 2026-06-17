@@ -80,7 +80,7 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-panel">
         <div className="modal-title">
           Добавить сотрудника

@@ -193,7 +193,7 @@ const ShiftEditorModal: React.FC<ShiftEditorModalProps> = ({
   })).filter(g => g.types.length > 0);
 
   return (
-    <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-panel">
         <div className="modal-title">
           Редактор смены

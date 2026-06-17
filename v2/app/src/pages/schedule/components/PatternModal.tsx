@@ -104,7 +104,7 @@ const PatternModal: React.FC<PatternModalProps> = ({
   if (!open || !name) return null;
 
   return (
-    <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-panel">
         <div className="modal-title">
           Паттерн: {name}

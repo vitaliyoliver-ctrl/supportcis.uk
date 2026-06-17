@@ -250,8 +250,8 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                               key={day.d}
                               className={`shift-cell ${cls}${isSelected ? ' is-selected' : ''}`}
                               onClick={() => {
-                                onSelectDate(ds, di);
                                 if (isAdmin) onQuickEdit(name, ds, di);
+                                else onSelectDate(ds, di);
                               }}
                               title={`${name} — ${day.d} — ${SHIFT_DEFS[type]?.label ?? type}`}
                             >

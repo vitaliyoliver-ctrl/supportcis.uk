@@ -103,14 +103,16 @@ const DayInfoPanel: React.FC<DayInfoPanelProps> = ({
 
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 
+  if (dateStr === null) return null;
+
   return (
-    <div className={`day-info-panel${dateStr !== null ? ' open' : ''}`}>
-      <div className="day-info-title">
-        <span>{info?.dateLabel ?? ''}</span>
-        <button className="modal-close" onClick={onClose}>✕</button>
+    <div className="day-info-panel open">
+      <div className="day-info-header">
+        <div className="day-info-title">{info?.dateLabel ?? ''}</div>
+        <button className="day-info-close" onClick={onClose}>✕</button>
       </div>
       {info && (
-        <>
+        <div className="day-info-body">
           <div className="day-info-block">
             <div className="day-info-block-title">Regular Support</div>
             <div className="day-info-count">
@@ -196,7 +198,7 @@ const DayInfoPanel: React.FC<DayInfoPanelProps> = ({
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

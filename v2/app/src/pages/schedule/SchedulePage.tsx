@@ -312,6 +312,21 @@ export default function SchedulePage() {
         </div>
       )}
 
+      {/* Day info panel (всплывает сверху при клике на дату) */}
+      <React.Suspense fallback={null}>
+        <DayInfoPanel
+          dateStr={st.selectedDateStr}
+          dayIndex={st.selectedDateStr ? (parseInt(st.selectedDateStr.slice(-2), 10) - 1) : 0}
+          days={st.days}
+          sections={st.sections}
+          getShiftForCell={st.getShiftForCell}
+          overrides={st.overrides}
+          employeeHoursSeed={st.employeeHoursSeed}
+          getEmp={st.getEmp}
+          onClose={() => st.setSelectedDateStr(null)}
+        />
+      </React.Suspense>
+
       {/* Legend */}
       <div className="legend">
         <span className="legend-label">Легенда:</span>
@@ -378,21 +393,6 @@ export default function SchedulePage() {
         </React.Suspense>
       )}
       </div>{/* /.main */}
-
-      {/* Day info panel */}
-      <React.Suspense fallback={null}>
-        <DayInfoPanel
-          dateStr={st.selectedDateStr}
-          dayIndex={st.selectedDateStr ? (parseInt(st.selectedDateStr.slice(-2), 10) - 1) : 0}
-          days={st.days}
-          sections={st.sections}
-          getShiftForCell={st.getShiftForCell}
-          overrides={st.overrides}
-          employeeHoursSeed={st.employeeHoursSeed}
-          getEmp={st.getEmp}
-          onClose={() => st.setSelectedDateStr(null)}
-        />
-      </React.Suspense>
 
       {/* Shift editor */}
       {st.isAdmin && (

@@ -381,70 +381,56 @@
 .stat-sub { font-size: 11px; color: var(--muted); }
 @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
 
-/* ── Day info panel ──────────────────────────────────────────────── */
+/* ── Day info panel (всплывает сверху, как в v1) ──────────────────── */
 .day-info-panel {
-  position: fixed;
-  right: -320px;
-  top: 0;
-  bottom: 0;
-  width: 300px;
+  display: none;
   background: var(--bg-card);
-  border-left: 1px solid var(--border);
-  z-index: 100;
-  overflow-y: auto;
-  transition: right 0.25s;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 22px;
+  overflow: hidden;
+  animation: dayInfoIn 0.18s ease;
 }
+.day-info-panel.open { display: block; }
+@keyframes dayInfoIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
-.day-info-panel.open { right: 0; }
-
-.day-info-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  padding-bottom: 8px;
+.day-info-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; background: var(--bg-card2);
   border-bottom: 1px solid var(--border);
 }
-
-.day-info-block {
-  background: var(--bg-card2);
-  border-radius: 8px;
-  padding: 10px 12px;
+.day-info-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px; font-weight: 700; color: var(--text);
+  text-transform: capitalize;
 }
+.day-info-close {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); font-size: 14px; cursor: pointer; padding: 2px 8px;
+}
+.day-info-close:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
 
+.day-info-body {
+  padding: 16px 18px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+}
+@media (max-width: 768px) { .day-info-body { grid-template-columns: repeat(2, 1fr); } }
+
+.day-info-block { display: flex; flex-direction: column; gap: 6px; }
 .day-info-block-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
 }
-
 .day-info-count {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 13px; color: var(--text);
 }
-
+.day-info-count b { font-size: 22px; font-weight: 800; font-family: 'Unbounded', sans-serif; }
 .day-info-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text);
-  margin-bottom: 3px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text);
 }
-
-.day-info-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+.day-info-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
 /* ── Overlay / Modal base ────────────────────────────────────────── */
 .overlay {

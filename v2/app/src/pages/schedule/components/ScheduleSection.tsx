@@ -31,10 +31,17 @@ const WEEKDAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
 const COUNT_SECTION_KEYS = new Set(['regular_support', 'vip_support']);
 
-// Shift types for counting by column for regular/vip sections
-const DAY_TYPES = new Set(['morning', 'extra_morning', 'vip_evening', 'extra_vip_evening', 'super_day', 'extra_sup_day', 'super_day8', 'extra_sup_day8']);
-const NIGHT_TYPES = new Set(['evening', 'extra_evening', 'vip_morning', 'extra_vip_morning', 'super_night', 'extra_sup_night', 'night']);
-const D12_TYPES = new Set(['shift1200', 'extra_1200', 'vip_1200', 'extra_vip_1200']);
+// Строки счётчиков по сменам — отдельно для regular и vip (как в v1).
+const SHIFT_ROWS_REG = [
+  { types: ['morning', 'extra_morning'],   label: '09–21', color: '#60a5fa', min: MIN_STAFF.day },
+  { types: ['evening', 'extra_evening'],   label: '21–09', color: '#818cf8', min: MIN_STAFF.night },
+  { types: ['shift1200', 'extra_1200'],    label: '12–00', color: '#f59e0b', min: MIN_STAFF.d12 },
+];
+const SHIFT_ROWS_VIP = [
+  { types: ['vip_evening', 'extra_vip_evening'], label: '09–21', color: '#2dd4bf', min: MIN_STAFF.day },
+  { types: ['vip_morning', 'extra_vip_morning'], label: '21–09', color: '#e879f9', min: MIN_STAFF.night },
+  { types: ['vip_1200', 'extra_vip_1200'],       label: '12–00', color: '#a3e635', min: MIN_STAFF.d12 },
+];
 
 function isSupervisorPosition(position: string): boolean {
   return position.includes('Supervisor') || position.includes('VIP Sup');
@@ -70,32 +77,40 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
   const todayD = isCurrentMonth ? today.getDate() : -1;
 
-  // Count rows data (for regular_support and vip_support)
+  const isCountSection = COUNT_SECTION_KEYS.has(section.key);
+  const shiftRows = section.key === 'vip_support' ? SHIFT_ROWS_VIP : SHIFT_ROWS_REG;
+
+  // Count rows data: для каждой строки смены (09–21/21–09/12–00) — дробный
+  // headcount по дням (суммарные часы / 11), как в v1.
   const countRows = useMemo(() => {
-    if (!COUNT_SECTION_KEYS.has(section.key)) return null;
-    return days.map((day, di) => {
-      let dayCount = 0, nightCount = 0, d12Count = 0;
-      for (const name of allMembers) {
-        const type = getShiftForCell(name, di);
-        const key = `${name}:${dateStr(year, month, day.d)}`;
-        const ovr = overrides[key];
-        const h = calcDayHours(type, ovr, name, employeeHoursSeed);
-        const frac = h / 11;
-        if (DAY_TYPES.has(type)) dayCount += frac;
-        else if (NIGHT_TYPES.has(type)) nightCount += frac;
-        else if (D12_TYPES.has(type)) d12Count += frac;
-      }
-      return {
-        day: dayCount,
-        night: nightCount,
-        d12: d12Count,
-        dayLow: dayCount < MIN_STAFF.day,
-        nightLow: nightCount < MIN_STAFF.night,
-        d12Low: d12Count < MIN_STAFF.d12,
-        anyLow: dayCount < MIN_STAFF.day || nightCount < MIN_STAFF.night || d12Count < MIN_STAFF.d12,
-      };
+    if (!isCountSection) return null;
+    return shiftRows.map(row => {
+      const perDay = days.map((day, di) => {
+        let sum = 0;
+        for (const name of allMembers) {
+          const type = getShiftForCell(name, di);
+          if (!row.types.includes(type)) continue;
+          const key = `${name}:${dateStr(year, month, day.d)}`;
+          sum += calcDayHours(type, overrides[key], name, employeeHoursSeed);
+        }
+        const count = Math.round((sum / 11) * 10) / 10;
+        return { count, low: count < row.min };
+      });
+      return { ...row, perDay };
     });
-  }, [section.key, allMembers, days, year, month, overrides, employeeHoursSeed, getShiftForCell]);
+  }, [isCountSection, shiftRows, allMembers, days, year, month, overrides, employeeHoursSeed, getShiftForCell]);
+
+  // Красная точка на дате, если днём/ночью недобор (по числу людей).
+  const dayLowFlags = useMemo(() => {
+    if (!isCountSection) return null;
+    const dayTypes = section.key === 'vip_support' ? ['vip_evening', 'extra_vip_evening'] : ['morning', 'extra_morning'];
+    const nightTypes = section.key === 'vip_support' ? ['vip_morning', 'extra_vip_morning'] : ['evening', 'extra_evening'];
+    return days.map((_, di) => {
+      const dayCount = allMembers.filter(n => dayTypes.includes(getShiftForCell(n, di))).length;
+      const nightCount = allMembers.filter(n => nightTypes.includes(getShiftForCell(n, di))).length;
+      return dayCount < MIN_STAFF.day || nightCount < MIN_STAFF.night;
+    });
+  }, [isCountSection, section.key, allMembers, days, getShiftForCell]);
 
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 
@@ -144,25 +159,26 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
           <div className="table-wrap">
             <table className="schedule-table">
               <thead>
-                {countRows && (
-                  <tr className="thead-counts">
-                    <th className="col-name" />
+                {countRows && countRows.map(row => (
+                  <tr className="thead-counts" key={row.label + row.color}>
+                    <th className="col-name" style={{ textAlign: 'left', paddingLeft: 12 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: row.color, flexShrink: 0, display: 'inline-block' }} />
+                        <span style={{ fontSize: 9, color: row.color, fontWeight: 600 }}>{row.label}</span>
+                      </span>
+                    </th>
                     {infoColumnVisible && <th className="col-info" />}
                     {days.map((day, di) => {
-                      const c = countRows[di];
+                      const c = row.perDay[di];
                       return (
-                        <th key={day.d} className={`day-th${day.d === todayD ? ' today' : ''}`}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                            <span style={{ color: c.dayLow ? 'var(--c-red)' : 'var(--c-muted)', fontSize: 10 }}>{fmt(c.day)}</span>
-                            <span style={{ color: c.nightLow ? 'var(--c-red)' : 'var(--c-muted)', fontSize: 10 }}>{fmt(c.night)}</span>
-                            <span style={{ color: c.d12Low ? 'var(--c-red)' : 'var(--c-muted)', fontSize: 10 }}>{fmt(c.d12)}</span>
-                          </div>
+                        <th key={day.d} className={`day-th${day.d === todayD ? ' today' : ''}`} style={c.low ? { background: 'rgba(248,113,113,0.2)' } : undefined}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: c.low ? '#f87171' : row.color }}>{fmt(c.count)}</span>
                         </th>
                       );
                     })}
-                    <th className="col-total">ИТОГО</th>
+                    <th className="col-total" />
                   </tr>
-                )}
+                ))}
                 <tr>
                   <th className="col-name" />
                   {infoColumnVisible && <th className="col-info" />}
@@ -171,7 +187,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                     const isToday = day.d === todayD;
                     const ds = dateStr(year, month, day.d);
                     const isSelected = ds === selectedDateStr;
-                    const hasLow = countRows?.[di]?.anyLow;
+                    const hasLow = dayLowFlags?.[di];
                     return (
                       <th
                         key={day.d}

@@ -395,10 +395,23 @@ export function shiftCellClass(type: string): string {
 
 // ── Ярлык смены для отображения в ячейке ───────────────────────────────────────
 
-export function shiftCellLabel(type: string, override: Override | undefined): string {
-  if (override?.extraEvents?.length) {
-    const annotation = swapAnnotation(override);
-    if (annotation) return annotation.slice(0, 12);
+export function shiftCellLabel(
+  type: string,
+  override: Override | undefined,
+  name: string,
+  employeeHoursSeed: Record<string, number>
+): string {
+  // Воспроизводит v1: в ячейке — число часов (или спецсимвол), а не текст смены.
+  if (type === 'off') return '—';
+  if (type === 'birthday') return '🎂';
+  if (type === 'vacation') return '✈';
+  if (type === 'nk') return 'НК';
+  if (type === 'dismissed') return '🚫';
+  if (type === 'sick') {
+    const paidSick = override?.extraEvents?.find(e => e.type === 'extra_sick_paid' && e.hours > 0);
+    return paidSick ? '🤒💰' : '🤒';
   }
-  return SHIFT_DEFS[type]?.label ?? type;
+  if (override?.customHours === 0) return '🚫';
+  const total = calcDayHours(type, override, name, employeeHoursSeed);
+  return total > 0 ? String(total) : '0';
 }

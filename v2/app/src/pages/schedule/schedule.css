@@ -35,26 +35,26 @@
   --thead-count-bg: #e2e8f0;
 }
 
-/* ── Ячейки смен ─────────────────────────────────────────────────── */
-.cell-morning    { background: rgba(79,142,247,0.18); color: var(--shift-morning); }
-.cell-evening    { background: rgba(139,92,246,0.18); color: var(--shift-evening); }
-.cell-1200       { background: rgba(245,158,11,0.18); color: var(--shift-1200); }
-.cell-extra-regular { background: rgba(79,142,247,0.08); color: #a5c0f7; border: 1px solid rgba(79,142,247,0.25); }
-.cell-vip-day    { background: rgba(20,184,166,0.18); color: var(--shift-vip-evening); }
-.cell-vip-night  { background: rgba(236,72,153,0.18); color: var(--shift-vip-morning); }
-.cell-vip-1200   { background: rgba(163,230,53,0.18); color: var(--shift-vip-1200); }
-.cell-extra-vip  { background: rgba(20,184,166,0.08); color: #5de6d8; border: 1px solid rgba(20,184,166,0.25); }
-.cell-super-day  { background: rgba(249,115,22,0.18); color: var(--shift-super); }
-.cell-super-night { background: rgba(251,146,60,0.18); color: var(--shift-super-night-color); }
-.cell-super-day8 { background: rgba(249,115,22,0.1); color: #fdba74; }
-.cell-extra-sup  { background: rgba(249,115,22,0.08); color: #fdba74; border: 1px solid rgba(249,115,22,0.25); }
-.cell-work8      { background: rgba(148,163,184,0.12); color: var(--shift-work8); }
-.cell-vacation   { background: rgba(52,211,153,0.15); color: #34d399; }
-.cell-sick       { background: rgba(248,113,113,0.12); color: #f87171; }
-.cell-birthday   { background: rgba(251,191,36,0.15); color: #fbbf24; }
-.cell-nk         { background: rgba(139,92,246,0.12); color: #a78bfa; }
-.cell-dismissed  { background: transparent; color: var(--muted); opacity: 0.35; }
-.cell-off        { background: transparent; color: var(--muted); }
+/* ── Ячейки смен (яркие плитки как в v1) ──────────────────────────── */
+.cell-morning    { background: rgba(96,165,250,0.55);  color: #111; }
+.cell-evening    { background: rgba(67,56,202,0.60);   color: #fff; }
+.cell-1200       { background: rgba(251,146,60,0.55);  color: #111; }
+.cell-extra-regular { background: rgba(96,165,250,0.20); color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
+.cell-vip-day    { background: rgba(45,212,191,0.55);  color: #111; }
+.cell-vip-night  { background: rgba(232,121,249,0.55); color: #111; }
+.cell-vip-1200   { background: rgba(163,230,53,0.55);  color: #111; }
+.cell-extra-vip  { background: rgba(45,212,191,0.20);  color: #fff; border: 2px dashed rgba(45,212,191,0.6); }
+.cell-super-day  { background: rgba(250,204,21,0.55);  color: #111; }
+.cell-super-night { background: rgba(153,27,27,0.60);  color: #fff; }
+.cell-super-day8 { background: rgba(180,83,9,0.50);    color: #fff; }
+.cell-extra-sup  { background: rgba(250,204,21,0.22);  color: #fff; border: 2px dashed rgba(250,204,21,0.6); }
+.cell-work8      { background: rgba(139,92,246,0.50);  color: #111; }
+.cell-vacation   { background: rgba(248,113,113,0.40); color: #fff; }
+.cell-sick       { background: rgba(251,191,36,0.45);  color: #fff; }
+.cell-birthday   { background: rgba(251,191,36,0.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+.cell-nk         { background: rgba(148,163,184,0.20); color: #94a3b8; border: 1px dashed rgba(148,163,184,0.4); }
+.cell-dismissed  { background: transparent; color: rgba(150,150,150,0.35); }
+.cell-off        { background: transparent; color: rgba(150,150,150,0.35); }
 
 /* ── Таблица ─────────────────────────────────────────────────────── */
 .schedule-wrap {
@@ -135,13 +135,10 @@
 .shift-cell {
   min-width: 36px;
   max-width: 48px;
-  height: 32px;
-  padding: 2px;
+  height: 36px;
+  padding: 0;
   cursor: pointer;
-  border-radius: 2px;
   transition: opacity 0.1s;
-  font-size: 9px;
-  font-weight: 600;
   vertical-align: middle;
   position: relative;
 }
@@ -150,12 +147,18 @@
 .shift-cell.is-selected { outline: 2px solid rgba(79,142,247,0.6); outline-offset: -1px; }
 
 .shift-cell-label {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 44px;
-  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
+.cell-off .shift-cell-label,
+.cell-dismissed .shift-cell-label { font-weight: 400; font-size: 16px; text-shadow: none; }
 
 /* ── Шапка счётчиков ─────────────────────────────────────────────── */
 .thead-counts th {

@@ -243,7 +243,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                           const key = `${name}:${ds}`;
                           const ovr = overrides[key];
                           const cls = shiftCellClass(type);
-                          const label = shiftCellLabel(type, ovr);
+                          const label = shiftCellLabel(type, ovr, name, employeeHoursSeed);
                           const isSelected = ds === selectedDateStr;
                           return (
                             <td

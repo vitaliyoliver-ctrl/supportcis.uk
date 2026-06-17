@@ -137,14 +137,17 @@ const DayInfoPanel: React.FC<DayInfoPanelProps> = ({
             <div className="day-info-count">
               <span className="day-info-dot" style={{ background: '#c97dbe' }} />
               09–21: <b>{fmt(info.vipDay)}</b>
+              {info.vipDay < MIN_STAFF.day && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
             </div>
             <div className="day-info-count">
               <span className="day-info-dot" style={{ background: '#7b8fbc' }} />
               21–09: <b>{fmt(info.vipNight)}</b>
+              {info.vipNight < MIN_STAFF.night && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
             </div>
             <div className="day-info-count">
               <span className="day-info-dot" style={{ background: '#e0b84a' }} />
               12–00: <b>{fmt(info.vip1200)}</b>
+              {info.vip1200 < MIN_STAFF.d12 && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
             </div>
           </div>
 

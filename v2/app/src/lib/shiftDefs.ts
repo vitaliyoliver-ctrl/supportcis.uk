@@ -124,7 +124,7 @@ export const ALL_EXTRA_LABELS: Record<string, string> = {
 };
 
 // Минимальный штат
-export const MIN_STAFF = { day: 5, night: 5, d12: 3 };
+export const MIN_STAFF = { day: 4, night: 3, d12: 2 };
 
 // Паттерн-пресеты (для редактора паттернов)
 export const PATTERN_PRESETS: Record<string, string[]> = {

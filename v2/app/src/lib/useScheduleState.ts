@@ -148,13 +148,8 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
   // UI-состояние
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(() => {
-    const today = new Date();
-    if (today.getFullYear() === initialMonth.year && today.getMonth() + 1 === initialMonth.month) {
-      return `${initialMonth.year}-${String(initialMonth.month).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    }
-    return null;
-  });
+  // Панель дня закрыта на старте — всплывает только по клику на дату (как в v1).
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
 
   const toggleSection = useCallback((key: string) => {
     setCollapsedSections(prev => {

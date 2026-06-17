@@ -286,7 +286,7 @@ export default function SchedulePage() {
             </button>
           )}
 
-          <button className="filter-btn" onClick={() => setLogVisible(v => !v)}>📋 Лог</button>
+          <button className="filter-btn" onClick={() => setLogVisible(v => !v)}>🕐 История</button>
         </div>
       </nav>
 

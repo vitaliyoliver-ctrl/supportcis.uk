@@ -21,6 +21,10 @@
   --shift-super:          #f97316;
   --shift-super-night-color: #fb923c;
   --shift-work8:          #94a3b8;
+
+  /* Алиасы, используемые в inline-стилях компонентов */
+  --c-red:   #f87171;
+  --c-muted: #6b7280;
 }
 
 .light {
@@ -811,8 +815,12 @@ option { background: #1a1e28; }
 }
 
 .log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+.log-time { color: var(--muted); font-size: 10px; flex-shrink: 0; min-width: 86px; }
+.log-action { color: var(--text-sub); }
 .log-target { color: var(--accent); font-weight: 600; }
+.log-by { color: var(--muted); font-size: 10px; margin-left: auto; }
+.log-panel-title { font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.log-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
 
 /* ── Profile panel (внутри admin) ────────────────────────────────── */
 .profile-panel {

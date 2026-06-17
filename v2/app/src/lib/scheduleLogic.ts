@@ -173,47 +173,66 @@ export function getHours(type: string): number {
   return DEFAULT_HOURS[type] ?? 0;
 }
 
+// События, которые добавляют часы (а не вычитают). Всё остальное — минус.
+const PLUS_EVENT_TYPES = new Set([
+  'extra_critical', 'extra_vacation_cover', 'extra_sick_cover',
+  'extra_swap_take', 'extra_org_plus', 'extra_sick_paid',
+]);
+
 export function calcDayHours(
   type: string,
   override: Override | undefined,
   name: string,
   employeeHoursSeed: Record<string, number>
 ): number {
-  const def = SHIFT_DEFS[type];
-  if (!def) return 0;
-
-  const baseH = getHours(type);
-  const personalH = employeeHoursSeed[name];
-
-  let base: number;
-  if (override?.customHours != null && Number.isFinite(override.customHours)) {
-    base = override.customHours;
-  } else if (personalH !== undefined) {
-    base = Math.min(personalH, baseH);
-  } else {
-    base = baseH;
+  if (!type || type === 'off' || type === 'vacation' || type === 'dismissed') return 0;
+  if (type === 'sick') {
+    const paid = (override?.extraEvents || []).find(e => e.type === 'extra_sick_paid' && e.hours > 0);
+    return paid ? paid.hours : 0;
   }
 
-  if (!override?.extraEvents?.length) return base;
+  const def = SHIFT_DEFS[type];
 
-  let extra = 0;
-  for (const ev of override.extraEvents) {
-    if (ev.hours > 0) {
-      extra += ev.type.startsWith('loss_') ? -ev.hours : ev.hours;
+  let h: number;
+  if (override?.customHours != null && Number.isFinite(override.customHours)) {
+    h = override.customHours;
+  } else {
+    const ph = employeeHoursSeed[name];
+    // Персональные часы применяются только к сменам с окном (как в v1).
+    h = (ph !== undefined && def?.window) ? ph : getHours(type);
+  }
+
+  const events = (override?.extraEvents || []).filter(e => e.hours > 0);
+  if (events.length) {
+    const isExtra = !!def?.isExtra;
+    const takes = events.filter(e => e.type === 'extra_swap_take');
+    if (isExtra && takes.length) {
+      // Доп. смена, полученная обменом: база не считается, только полученные часы + прочие события.
+      h = takes.reduce((s, e) => s + e.hours, 0);
+      events.forEach(e => {
+        if (e.type === 'extra_swap_take') return;
+        h += PLUS_EVENT_TYPES.has(e.type) ? e.hours : -e.hours;
+      });
+    } else {
+      events.forEach(e => { h += PLUS_EVENT_TYPES.has(e.type) ? e.hours : -e.hours; });
     }
   }
-  return Math.max(0, base + extra);
+  return Math.max(0, h);
 }
 
 // ── Swap аннотация ─────────────────────────────────────────────────────────────
+// «Отдал → кому» / «Забрал ← у кого», со всеми событиями и пометками про обед.
 
 export function swapAnnotation(override: Override | undefined): string {
-  if (!override?.extraEvents?.length) return '';
-  const ev = override.extraEvents[0];
-  if (!ev) return '';
-  if (ev.type === 'loss_swap_give')  return `Отдан: ${ev.swapWith || ''} ${ev.hours}ч${ev.range ? ' ' + ev.range : ''}`;
-  if (ev.type === 'extra_swap_take') return `Получен: ${ev.swapWith || ''} ${ev.hours}ч${ev.range ? ' ' + ev.range : ''}`;
-  return '';
+  const parts: string[] = [];
+  (override?.extraEvents || []).forEach(e => {
+    const lunchGive = e.withLunch === true ? ' (с обедом)' : (e.withLunch === false ? ' (обед себе)' : '');
+    const lunchTake = e.withLunch === true ? ' (с обедом)' : (e.withLunch === false ? ' (без обеда)' : '');
+    const range = e.range ? ` ${e.range}` : '';
+    if (e.type === 'loss_swap_give' && e.swapWith) parts.push(`🔄 Отдал ${e.hours}ч${range} → ${e.swapWith}${lunchGive}`);
+    else if (e.type === 'extra_swap_take' && e.swapWith) parts.push(`🔄 Забрал ${e.hours}ч${range} ← ${e.swapWith}${lunchTake}`);
+  });
+  return parts.join(' · ');
 }
 
 // ── Swap: группа оператора ─────────────────────────────────────────────────────

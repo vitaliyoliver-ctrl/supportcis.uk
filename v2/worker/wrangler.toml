@@ -1,28 +1,30 @@
 name = "supportcis-worker"
 main = "src/index.ts"
-compatibility_date = "2024-09-23"
+compatibility_date = "2025-06-17"
 compatibility_flags = ["nodejs_compat"]
 
-# Маршрут /api/* на этот воркер настраивается в CF Dashboard:
-#   Workers & Pages → этот воркер → Settings → Domains & Routes
-#   Route: plevantis.net/api/*   (zone: plevantis.net)
-# Фронт (CF Pages) отдаёт всё остальное.
+# ── Статика SPA + API в одном воркере ────────────────────────────────────────
+# Фронт собирается в ../app/dist и отдаётся как статика.
+# Только /api/* идёт в код воркера (run_worker_first), остальное — статика
+# с SPA-фоллбэком на index.html.
+[assets]
+directory = "../app/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
 
 [[kv_namespaces]]
 binding = "AUTH_KV"
-id = "REPLACE_WITH_AUTH_KV_ID"          # wrangler kv namespace list
+id = "REPLACE_WITH_AUTH_KV_ID"          # wrangler kv namespace create AUTH_KV
 
-# ── Открытые переменные (Settings → Variables) ──────────────────────────────
+# ── Открытые переменные (или Dashboard → Settings → Variables) ──────────────
 [vars]
-SITE = "https://plevantis.net"          # домен фронта (CORS / Origin)
+SITE = "https://supportcis-worker.workers.dev"  # для теста не критично (один origin)
 TG_CHAT_ID = "-5061850872"
-OWNER_EMAIL = "vitaliy.oliver@velvix.org"  # получит роль TL при первом входе (bootstrap)
+OWNER_EMAIL = "vitaliy.oliver@velvix.org"        # получит роль TL при первом входе
 
-# ── Секреты (НЕ хранить в toml; задавать через `wrangler secret put NAME`) ───
+# ── Секреты (НЕ в toml; через `wrangler secret put NAME`) ───────────────────
 # RESEND_API_KEY     — ключ Resend
-# RESEND_FROM        — "SupportCIS <noreply@plevantis.net>" (верифиц. домен в Resend)
+# RESEND_FROM        — "SupportCIS <noreply@ВАШ_ВЕРИФИЦ_ДОМЕН>"
 # TG_BOT_TOKEN       — токен Telegram-бота свапов (опционально)
 # TG_WEBHOOK_SECRET  — секрет вебхука Telegram (опционально)
-#
-# Примечание: страница «Перерывы» и Realtime работают напрямую с Supabase
-# из браузера (anon key в .env фронта). Воркеру доступ к Supabase не нужен.

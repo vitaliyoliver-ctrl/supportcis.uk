@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 
 type Env = {
   AUTH_KV: KVNamespace;
+  ASSETS: Fetcher;
   RESEND_API_KEY: string;
   RESEND_FROM: string;            // напр. "SupportCIS <noreply@plevantis.net>"
   TG_BOT_TOKEN: string;

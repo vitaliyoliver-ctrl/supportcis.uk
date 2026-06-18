@@ -76,7 +76,7 @@ foreach ($key in $schedMonths) {
   # Build merged blob preserving original JSON for overrides/log (keeps UTF-8 strings intact)
   $merged = "{""overrides"":" + ($blob.overrides | ConvertTo-Json -Depth 20 -Compress) +
             ",""settings"":" + $settingsJson +
-            ",""version"":" + [int]$blob.version +
+            ",""version"":" + [long]$blob.version +
             ",""log"":" + ($blob.log | ConvertTo-Json -Depth 10 -Compress) + "}"
 
   KvPut $NEW_KV $newKey $merged

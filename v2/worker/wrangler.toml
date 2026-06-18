@@ -20,7 +20,7 @@ id = "e8660703a72b45e69d4e2750a6f88228"
 # ── Открытые переменные (или Dashboard → Settings → Variables) ──────────────
 [vars]
 SITE = "https://supportcis-worker.workers.dev"  # для теста не критично (один origin)
-TG_CHAT_ID = "-5061850872"
+TG_CHAT_ID = "-1004297208091"
 OWNER_EMAIL = "vitaliy.oliver@velvix.org"        # получит роль TL при первом входе
 
 # ── Секреты (НЕ в toml; через `wrangler secret put NAME`) ───────────────────

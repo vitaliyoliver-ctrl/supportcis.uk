@@ -536,12 +536,14 @@ app.post('/api/tg-webhook', async (c) => {
       message_id: cbMsg?.message_id ?? rec.tgMessageId,
       text: swapTgText(rec) + `\n\n❌ <b>Отказано</b> · ${escTg(approver)}`,
       parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
     });
     await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Отказано' });
     return c.json({ ok: true });
   }
 
   try { await applySwapToSchedule(c.env, rec, approver); } catch (e) {
+    console.error('applySwapToSchedule error:', e);
     await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Ошибка применения к графику!' });
     return c.json({ ok: true });
   }
@@ -553,6 +555,7 @@ app.post('/api/tg-webhook', async (c) => {
     message_id: cbMsg?.message_id ?? rec.tgMessageId,
     text: swapTgText(rec) + `\n\n✅ <b>Апрув</b> · ${escTg(approver)} · применено к графику`,
     parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: [] },
   });
   await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Апрув, график обновлён' });
   return c.json({ ok: true });

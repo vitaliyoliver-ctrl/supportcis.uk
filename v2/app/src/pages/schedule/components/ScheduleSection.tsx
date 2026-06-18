@@ -91,6 +91,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
       const perDay = days.map((day, di) => {
         let sum = 0;
         for (const name of allMembers) {
+          if (isSupervisorPosition(getEmp(name).position)) continue;
           const type = getShiftForCell(name, di);
           if (!row.types.includes(type)) continue;
           const key = `${name}:${dateStr(year, month, day.d)}`;
@@ -236,7 +237,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
 
                   return (
                     <React.Fragment key={name}>
-                      {dividerAfterIndex === memberIndex - 1 && (
+                      {dividerAfterIndex === memberIndex - 1 && isCountSection && (
                         <tr>
                           <td colSpan={days.length + (infoColumnVisible ? 3 : 2)} className="section-divider-cell">ОПЕРАТОРЫ</td>
                         </tr>
@@ -287,14 +288,12 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                           const key = `${name}:${ds}`;
                           const ovr = overrides[key];
                           const cls = shiftCellClass(type);
-                          const EXTRA_SHIFT_TYPES = new Set(['extra_morning','extra_evening','extra_1200','extra_vip_morning','extra_vip_evening','extra_vip_1200','extra_sup_day','extra_sup_night','extra_vacation_cover','extra_sick_cover','extra_org_plus','extra_critical']);
-                          const hasExtra = !!(ovr?.extraEvents?.some(e => EXTRA_SHIFT_TYPES.has(e.type)));
                           const label = shiftCellLabel(type, ovr, name, employeeHoursSeed);
                           const isSelected = ds === selectedDateStr;
                           return (
                             <td
                               key={day.d}
-                              className={`shift-cell ${cls}${isSelected ? ' is-selected' : ''}${hasExtra ? ' cell-has-extra' : ''}`}
+                              className={`shift-cell ${cls}${isSelected ? ' is-selected' : ''}`}
                               onClick={() => {
                                 if (isAdmin) onQuickEdit(name, ds, di);
                                 else onSelectDate(ds, di);

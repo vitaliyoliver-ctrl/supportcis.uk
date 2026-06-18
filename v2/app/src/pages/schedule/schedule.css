@@ -45,12 +45,12 @@
 .cell-1200       { background: rgba(251,146,60,0.55);  color: #111; }
 .cell-extra-regular { background: rgba(96,165,250,0.20); color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
 .cell-vip-day    { background: rgba(45,212,191,0.55);  color: #111; }
-.cell-vip-night  { background: rgba(232,121,249,0.55); color: #111; }
+.cell-vip-night  { background: rgba(232,121,249,0.55); color: #fff; }
 .cell-vip-1200   { background: rgba(163,230,53,0.55);  color: #111; }
 .cell-extra-vip  { background: rgba(45,212,191,0.20);  color: #fff; border: 2px dashed rgba(45,212,191,0.6); }
 .cell-super-day  { background: rgba(250,204,21,0.55);  color: #111; }
 .cell-super-night { background: rgba(153,27,27,0.60);  color: #fff; }
-.cell-super-day8 { background: rgba(180,83,9,0.50);    color: #fff; }
+.cell-super-day8 { background: rgba(180,83,9,0.50);    color: #111; }
 .cell-extra-sup  { background: rgba(250,204,21,0.22);  color: #fff; border: 2px dashed rgba(250,204,21,0.6); }
 .cell-work8      { background: rgba(139,92,246,0.50);  color: #111; }
 .cell-vacation   { background: rgba(248,113,113,0.40); color: #fff; }
@@ -82,8 +82,8 @@
 }
 
 .col-name {
-  min-width: 130px;
-  max-width: 160px;
+  min-width: 100px;
+  max-width: 130px;
   text-align: left !important;
   padding: 6px 10px !important;
   position: sticky;
@@ -900,27 +900,5 @@ option { background: #1a1e28; }
 .profile-field-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .profile-field-value { font-size: 13px; color: var(--text); }
 
-/* ── Extra-events overlay on regular cells ───────────────────────────────── */
-.shift-cell.cell-has-extra::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border: 2px dashed transparent;
-  border-radius: 2px;
-  pointer-events: none;
-}
-
 /* ── Drag-over highlight (ref-based, no React re-render) ─────────────────── */
 tr.drag-over-top > td { border-top: 2px solid var(--accent) !important; }
-
-/* ── Extra-events border color per shift type ────────────────────────────── */
-.cell-morning.cell-has-extra::after    { border-color: rgba(96,165,250,0.85); }
-.cell-evening.cell-has-extra::after    { border-color: rgba(99,102,241,0.85); }
-.cell-1200.cell-has-extra::after       { border-color: rgba(251,146,60,0.85); }
-.cell-vip-day.cell-has-extra::after    { border-color: rgba(45,212,191,0.85); }
-.cell-vip-night.cell-has-extra::after  { border-color: rgba(232,121,249,0.85); }
-.cell-vip-1200.cell-has-extra::after   { border-color: rgba(163,230,53,0.85); }
-.cell-super-day.cell-has-extra::after  { border-color: rgba(250,204,21,0.85); }
-.cell-super-night.cell-has-extra::after{ border-color: rgba(200,50,50,0.85); }
-.cell-work8.cell-has-extra::after      { border-color: rgba(139,92,246,0.85); }
-/* Убираем белый дефолт — заменяем прозрачным для тех что не попали выше */

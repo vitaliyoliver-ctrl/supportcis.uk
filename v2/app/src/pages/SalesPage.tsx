@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import BackButton from '@/components/BackButton';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
@@ -622,6 +623,7 @@ export default function SalesPage() {
   return (
     <div className={`sales-root${isLight ? ' light' : ''}`}>
       <div className="sales-bg-overlay" />
+      <BackButton to="/support" />
       <div className="sales-page-wrap">
         {/* Theme toggle */}
         <button className="sales-theme-toggle" onClick={() => setIsLight(v => !v)} title="Переключить тему">

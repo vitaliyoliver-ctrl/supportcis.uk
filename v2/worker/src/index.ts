@@ -14,6 +14,7 @@ type Env = {
   SITE: string;
   TG_CHAT_ID: string;
   OWNER_EMAIL?: string;           // кто получает роль TL по умолчанию (bootstrap)
+  ALLOWED_DOMAINS?: string;       // разрешённые домены входа через запятую
 };
 
 type Session = { email: string; role: string };
@@ -24,15 +25,21 @@ const SESSION_TTL = 60 * 60 * 24 * 7; // сессия — 7 дней
 const OTP_TTL = 60 * 10;              // код живёт 10 минут
 const OTP_RESEND_COOLDOWN = 50;      // не чаще раза в 50 сек
 const OTP_MAX_ATTEMPTS = 5;          // попыток ввода на один код
-const ALLOWED_DOMAINS = ['velvix.org', 'gameup.club'];
+const DEFAULT_ALLOWED_DOMAINS = ['velvix.org', 'gameup.club'];
 const DEFAULT_OWNER = 'vitaliy.oliver@velvix.org';
 
 type RoleLists = { tl: string[]; supervisor: string[]; ops: string[] };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function isAllowedEmail(email: string): boolean {
-  return ALLOWED_DOMAINS.some(d => email.endsWith('@' + d));
+function allowedDomains(env: Env): string[] {
+  const raw = (env.ALLOWED_DOMAINS || '').trim();
+  if (!raw) return DEFAULT_ALLOWED_DOMAINS;
+  return raw.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+}
+
+function isAllowedEmail(env: Env, email: string): boolean {
+  return allowedDomains(env).some(d => email.endsWith('@' + d));
 }
 
 function randomCode(): string {
@@ -129,7 +136,7 @@ app.post('/api/send-code', async (c) => {
   } catch {
     return c.json({ ok: false, error: 'Некорректный запрос' }, 400);
   }
-  if (!email || !isAllowedEmail(email)) {
+  if (!email || !isAllowedEmail(c.env, email)) {
     return c.json({ ok: false, error: 'Введите корректный корпоративный адрес' }, 400);
   }
 
@@ -233,7 +240,7 @@ app.post('/api/roles', async (c) => {
   const rejected: string[] = [];
   (['tl', 'supervisor', 'ops'] as const).forEach(k => {
     incoming[k] = incoming[k].filter(e => {
-      if (isAllowedEmail(e)) return true;
+      if (isAllowedEmail(c.env, e)) return true;
       rejected.push(e);
       return false;
     });
@@ -661,6 +668,31 @@ app.post('/api/sales/upload', async (c) => {
     dateTo: body.dateTo ?? null,
   };
   await c.env.AUTH_KV.put('sales', JSON.stringify(data));
+  return c.json({ ok: true });
+});
+
+// ── Ops structure (оргструктура — единый JSON-блоб) ─────────────────────────
+// Заменяет отдельный воркер ops-structure-api: тот же контракт (GET → массив,
+// POST → сохранить массив), но в составе единого воркера и в своём KV.
+
+app.get('/api/ops/structure', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  const raw = await c.env.AUTH_KV.get('ops-structure');
+  // Контракт страницы: ожидается массив отделов напрямую.
+  return c.json(raw ? JSON.parse(raw) : []);
+});
+
+app.post('/api/ops/structure', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (session.role !== 'tl' && session.role !== 'ops') {
+    return c.json({ ok: false, error: 'Нет доступа' }, 403);
+  }
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ ok: false, error: 'Invalid JSON' }, 400); }
+  if (!Array.isArray(body)) return c.json({ ok: false, error: 'Ожидается массив' }, 400);
+  await c.env.AUTH_KV.put('ops-structure', JSON.stringify(body));
   return c.json({ ok: true });
 });
 

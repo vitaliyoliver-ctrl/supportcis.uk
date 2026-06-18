@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import BackButton from '@/components/BackButton';
 
 // Отчёт по смене — порт tl/daily-report/index.html
 // Загрузка XLSX → построение таблиц по дням + аналитика + текст + фото (html2canvas)
@@ -384,6 +385,7 @@ export default function TLDailyReport() {
       <style>{ANALYTICS_CSS}</style>
 
       <div style={{ padding: '18px 36px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <BackButton to="/tl" inline />
         <div style={{ width: 32, height: 32, background: C.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📊</div>
         <div><h1 style={{ fontSize: 16, fontWeight: 800 }}>Отчёт по смене</h1><span style={{ fontSize: 11, color: C.muted }}>Технические трудности · CG</span></div>
       </div>

@@ -182,7 +182,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                     <th className="col-name" style={{ textAlign: 'left', paddingLeft: 12 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: row.color, flexShrink: 0, display: 'inline-block' }} />
-                        <span style={{ fontSize: 9, color: row.color, fontWeight: 600 }}>{row.label}</span>
+                        <span style={{ fontSize: 11, color: row.color, fontWeight: 700 }}>{row.label}</span>
                       </span>
                     </th>
                     {infoColumnVisible && <th className="col-info" />}
@@ -190,7 +190,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                       const c = row.perDay[di];
                       return (
                         <th key={day.d} className={`day-th${day.d === todayD ? ' today' : ''}`} style={c.low ? { background: 'rgba(248,113,113,0.2)' } : undefined}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: c.low ? '#f87171' : row.color }}>{fmt(c.count)}</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: c.low ? '#f87171' : row.color }}>{fmt(c.count)}</span>
                         </th>
                       );
                     })}

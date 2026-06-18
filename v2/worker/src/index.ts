@@ -400,8 +400,10 @@ async function tgApi(env: Env, method: string, payload: unknown) {
     const r = await fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/${method}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
-    return await r.json() as Record<string, unknown>;
-  } catch { return { ok: false }; }
+    const json = await r.json() as Record<string, unknown>;
+    if (!json.ok) console.error(`tgApi ${method} failed:`, JSON.stringify(json));
+    return json;
+  } catch (e) { console.error(`tgApi ${method} exception:`, e); return { ok: false }; }
 }
 
 function escTg(s: unknown) {

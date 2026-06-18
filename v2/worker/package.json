@@ -1,0 +1,18 @@
+{
+  "name": "supportcis-v2-worker",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.6.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "wrangler": "^4.20.0",
+    "@cloudflare/workers-types": "^4.20250617.0"
+  }
+}

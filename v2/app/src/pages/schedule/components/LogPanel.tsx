@@ -31,19 +31,20 @@ const LogPanel: React.FC<LogPanelProps> = ({ log }) => {
   const entries = [...log].reverse();
 
   return (
-    <div className="log-panel">
-      <div className="log-panel-title">История изменений</div>
-      <ul className="log-list">
-        {entries.map((entry, i) => (
-          <li key={i} className="log-entry">
+    <ul className="log-list">
+      {entries.map((entry, i) => (
+        <li key={i} className="log-entry">
+          <div className="log-entry-top">
             <span className="log-time">{fmtTime(entry.at)}</span>
+            <span className="log-by">{authorName(entry.by)}</span>
+          </div>
+          <div className="log-entry-bottom">
             <span className="log-action">{entry.action}</span>
             {entry.target && <span className="log-target">{entry.target}</span>}
-            <span className="log-by">· {authorName(entry.by)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 };
 

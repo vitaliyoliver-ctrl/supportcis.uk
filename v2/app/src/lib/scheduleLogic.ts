@@ -394,11 +394,13 @@ export function shiftCellClass(type: string): string {
   if (type === 'morning')    return 'cell-morning';
   if (type === 'evening')    return 'cell-evening';
   if (type === 'shift1200')  return 'cell-1200';
-  if (type === 'extra_morning' || type === 'extra_evening' || type === 'extra_1200') return 'cell-extra-regular';
+  if (type === 'extra_morning' || type === 'extra_1200') return 'cell-extra-day';
+  if (type === 'extra_evening') return 'cell-extra-night';
   if (type === 'vip_evening')  return 'cell-vip-day';
   if (type === 'vip_morning')  return 'cell-vip-night';
   if (type === 'vip_1200')     return 'cell-vip-1200';
-  if (type.startsWith('extra_vip')) return 'cell-extra-vip';
+  if (type === 'extra_vip_evening' || type === 'extra_vip_1200') return 'cell-extra-vip-day';
+  if (type === 'extra_vip_morning') return 'cell-extra-vip-night';
   if (type === 'super_day')  return 'cell-super-day';
   if (type === 'super_night')return 'cell-super-night';
   if (type === 'super_day8') return 'cell-super-day8';

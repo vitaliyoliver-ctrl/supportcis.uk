@@ -43,11 +43,13 @@
 .cell-morning    { background: rgba(96,165,250,0.55);  color: #111; }
 .cell-evening    { background: rgba(67,56,202,0.60);   color: #fff; }
 .cell-1200       { background: rgba(251,146,60,0.55);  color: #111; }
-.cell-extra-regular { background: rgba(96,165,250,0.20); color: #fff; border: 2px dashed rgba(96,165,250,0.6) !important; }
+.cell-extra-day   { background: rgba(96,165,250,0.18);  color: #111; border: 2px dashed rgba(96,165,250,0.6) !important; }
+.cell-extra-night { background: rgba(67,56,202,0.25);   color: #fff; border: 2px dashed rgba(99,102,241,0.7) !important; }
 .cell-vip-day    { background: rgba(45,212,191,0.55);  color: #111; }
 .cell-vip-night  { background: rgba(232,121,249,0.55); color: #fff; }
 .cell-vip-1200   { background: rgba(163,230,53,0.55);  color: #111; }
-.cell-extra-vip  { background: rgba(45,212,191,0.20);  color: #fff; border: 2px dashed rgba(45,212,191,0.6) !important; }
+.cell-extra-vip-day   { background: rgba(45,212,191,0.18);  color: #111; border: 2px dashed rgba(45,212,191,0.6) !important; }
+.cell-extra-vip-night { background: rgba(232,121,249,0.18); color: #fff; border: 2px dashed rgba(232,121,249,0.6) !important; }
 .cell-super-day  { background: rgba(250,204,21,0.55);  color: #111; }
 .cell-super-night { background: rgba(153,27,27,0.60);  color: #fff; }
 .cell-super-day8 { background: rgba(180,83,9,0.50);    color: #111; }
@@ -816,30 +818,27 @@ option { background: #1a1e28; }
 .positions-banner.visible { display: flex; }
 
 /* ── Log panel ───────────────────────────────────────────────────── */
-.log-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-top: 12px;
+.log-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
 }
-
 .log-entry {
-  font-size: 11px;
-  color: var(--text-sub);
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  display: flex;
-  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-card2);
+  border: 1px solid transparent;
+  transition: border-color 0.1s;
 }
-
-.log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--muted); font-size: 10px; flex-shrink: 0; min-width: 86px; }
-.log-action { color: var(--text-sub); }
-.log-target { color: var(--accent); font-weight: 600; }
-.log-by { color: var(--muted); font-size: 10px; margin-left: auto; }
-.log-panel-title { font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-.log-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.log-entry:hover { border-color: var(--border); }
+.log-entry-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 3px;
+}
+.log-entry-bottom { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.log-time { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.log-by { font-size: 10px; color: var(--muted); }
+.log-action { font-size: 12px; color: var(--text-sub); }
+.log-target { font-size: 12px; color: var(--accent); font-weight: 700; }
 
 /* ── Profile panel (внутри admin) ────────────────────────────────── */
 .profile-panel {
@@ -883,8 +882,24 @@ option { background: #1a1e28; }
 }
 
 /* ── Sticky info column ──────────────────────────────────────────────────── */
-.col-info { position: sticky; left: 160px; z-index: 3; }
-.info-cell { position: sticky; left: 160px; z-index: 2; }
+.col-info { position: sticky; left: 130px; z-index: 3; }
+.info-cell { position: sticky; left: 130px; z-index: 2; }
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .nav { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
+  .nav-right { flex-wrap: wrap; gap: 6px; }
+  .main { padding: 8px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .col-name { min-width: 80px; max-width: 100px; font-size: 11px; }
+  .shift-cell { min-width: 28px; max-width: 36px; height: 30px; }
+  .shift-cell-label { font-size: 10px; }
+  .day-th { min-width: 28px; font-size: 9px; }
+  .day-info-body { grid-template-columns: repeat(2, 1fr) !important; }
+  .section-header { font-size: 12px; }
+  .schedule-table { font-size: 11px; }
+  .sticky-dates-bar { top: 56px; }
+}
 
 /* ── Profile modal ───────────────────────────────────────────────────────── */
 .profile-modal-panel { width: 380px; }

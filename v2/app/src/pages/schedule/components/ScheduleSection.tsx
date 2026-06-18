@@ -287,7 +287,8 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                           const key = `${name}:${ds}`;
                           const ovr = overrides[key];
                           const cls = shiftCellClass(type);
-                          const hasExtra = !!(ovr?.extraEvents?.length);
+                          const EXTRA_SHIFT_TYPES = new Set(['extra_morning','extra_evening','extra_1200','extra_vip_morning','extra_vip_evening','extra_vip_1200','extra_sup_day','extra_sup_night','extra_vacation_cover','extra_sick_cover','extra_org_plus','extra_critical']);
+                          const hasExtra = !!(ovr?.extraEvents?.some(e => EXTRA_SHIFT_TYPES.has(e.type)));
                           const label = shiftCellLabel(type, ovr, name, employeeHoursSeed);
                           const isSelected = ds === selectedDateStr;
                           return (

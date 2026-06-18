@@ -73,7 +73,7 @@ export default function SchedulePage() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
-  const [stickyMetrics, setStickyMetrics] = useState<{ labelW: number; dayW: number[] }>({ labelW: 160, dayW: [] });
+  const [stickyMetrics, setStickyMetrics] = useState<{ labelW: number; dayW: number[]; left: number }>({ labelW: 160, dayW: [], left: 0 });
   const stickyInnerRef = useRef<HTMLDivElement>(null);
 
   // Theme
@@ -103,11 +103,12 @@ export default function SchedulePage() {
         if (th.classList.contains('day-th')) dayW.push(th.getBoundingClientRect().width);
         else if (!th.classList.contains('col-total')) labelW += th.getBoundingClientRect().width;
       }
+      const left = wrap.getBoundingClientRect().left;
       if (labelW > 0 && dayW.length > 0) {
         setStickyMetrics(prev => {
-          if (prev.labelW === labelW && prev.dayW.length === dayW.length &&
+          if (prev.labelW === labelW && Math.abs(prev.left - left) < 0.5 && prev.dayW.length === dayW.length &&
               prev.dayW.every((w, i) => Math.abs(w - dayW[i]) < 0.5)) return prev;
-          return { labelW, dayW };
+          return { labelW, dayW, left };
         });
       }
     };
@@ -318,9 +319,9 @@ export default function SchedulePage() {
 
       {/* Sticky dates bar */}
       {stickyVisible && (
-        <div className="sticky-dates-bar" style={{ display: 'block', top: 65 }}>
+        <div className="sticky-dates-bar" style={{ display: 'flex', top: 65, left: stickyMetrics.left }}>
+          <div className="sticky-dates-label" style={{ width: stickyMetrics.labelW, minWidth: stickyMetrics.labelW }}>Дата</div>
           <div className="sticky-dates-inner" ref={stickyInnerRef} style={{ overflowX: 'hidden' }}>
-            <div className="sticky-dates-label" style={{ width: stickyMetrics.labelW, minWidth: stickyMetrics.labelW }}>Дата</div>
             {st.days.map((day, di) => {
               const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
               const now = new Date();

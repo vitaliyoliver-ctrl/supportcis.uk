@@ -17,6 +17,7 @@ export interface ScheduleSettings {
     since?: string;
     hours?: number;
   }>;
+  customOrder?: Record<string, string[]>;
   people?: Record<string, { section: string; order: number }>;
   positions?: Record<string, number>;
   dismissed?: Record<string, string>;

@@ -942,7 +942,6 @@ option { background: #1a1e28; }
   .day-info-body { grid-template-columns: repeat(2, 1fr) !important; }
   .section-header { font-size: 12px; }
   .schedule-table { font-size: 11px; }
-  .sticky-dates-bar { top: 56px; }
   .col-total { position: static; }
 }
 

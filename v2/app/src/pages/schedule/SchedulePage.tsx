@@ -73,7 +73,7 @@ export default function SchedulePage() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
-  const [stickyMetrics, setStickyMetrics] = useState<{ labelW: number; dayW: number[]; left: number }>({ labelW: 160, dayW: [], left: 0 });
+  const [stickyMetrics, setStickyMetrics] = useState<{ labelW: number; dayW: number[]; left: number; navH: number }>({ labelW: 160, dayW: [], left: 0, navH: 65 });
   const stickyInnerRef = useRef<HTMLDivElement>(null);
 
   // Theme
@@ -104,11 +104,12 @@ export default function SchedulePage() {
         else if (!th.classList.contains('col-total')) labelW += th.getBoundingClientRect().width;
       }
       const left = wrap.getBoundingClientRect().left;
+      const navH = (document.querySelector('.nav') as HTMLElement | null)?.offsetHeight ?? 65;
       if (labelW > 0 && dayW.length > 0) {
         setStickyMetrics(prev => {
-          if (prev.labelW === labelW && Math.abs(prev.left - left) < 0.5 && prev.dayW.length === dayW.length &&
+          if (prev.labelW === labelW && Math.abs(prev.left - left) < 0.5 && prev.navH === navH && prev.dayW.length === dayW.length &&
               prev.dayW.every((w, i) => Math.abs(w - dayW[i]) < 0.5)) return prev;
-          return { labelW, dayW, left };
+          return { labelW, dayW, left, navH };
         });
       }
     };
@@ -319,7 +320,7 @@ export default function SchedulePage() {
 
       {/* Sticky dates bar */}
       {stickyVisible && (
-        <div className="sticky-dates-bar" style={{ display: 'flex', top: 65, left: stickyMetrics.left }}>
+        <div className="sticky-dates-bar" style={{ display: 'flex', top: stickyMetrics.navH, left: stickyMetrics.left }}>
           <div className="sticky-dates-label" style={{ width: stickyMetrics.labelW, minWidth: stickyMetrics.labelW }}>Дата</div>
           <div className="sticky-dates-inner" ref={stickyInnerRef} style={{ overflowX: 'hidden' }}>
             {st.days.map((day, di) => {

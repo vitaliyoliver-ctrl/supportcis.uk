@@ -582,8 +582,39 @@ option { background: #1a1e28; }
   margin-bottom: 6px;
 }
 
-.extra-event-select { flex: 1; }
-.extra-event-hours { width: 64px; }
+.extra-event-select {
+  flex: 1;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+.extra-event-select:focus { border-color: var(--accent); }
+.extra-event-select option { background: #1a1e28; }
+.extra-event-hours {
+  width: 64px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 6px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.extra-event-hours:focus { border-color: var(--accent); }
 .extra-event-remove {
   background: none;
   border: 1px solid rgba(248,113,113,0.3);
@@ -912,6 +943,7 @@ option { background: #1a1e28; }
   .section-header { font-size: 12px; }
   .schedule-table { font-size: 11px; }
   .sticky-dates-bar { top: 56px; }
+  .col-total { position: static; }
 }
 
 /* ── Profile modal ───────────────────────────────────────────────────────── */

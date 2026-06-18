@@ -86,60 +86,80 @@ export default function SchedulePage() {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
-  // Sticky dates bar
+  // Sticky dates bar — следит за активной (ближайшей к navH снизу) секцией
   useEffect(() => {
-    let tableWrap: HTMLElement | null = null;
+    let activeWrap: HTMLElement | null = null;
 
-    const measure = () => {
-      const wrap = document.querySelector('.table-wrap') as HTMLElement | null;
-      if (!wrap) return;
+    const measureWrap = (wrap: HTMLElement) => {
       const table = wrap.querySelector('table.schedule-table');
       if (!table) return;
-      // Строка с датами — последний tr в thead (содержит day-th)
       const headRows = table.querySelectorAll('thead tr');
       const dateRow = headRows[headRows.length - 1];
       if (!dateRow) return;
       const ths = Array.from(dateRow.querySelectorAll('th')) as HTMLElement[];
-      // Слева: col-name (+ col-info, если есть). День-колонки имеют класс day-th.
       let labelW = 0;
       const dayW: number[] = [];
       for (const th of ths) {
         if (th.classList.contains('day-th')) dayW.push(th.getBoundingClientRect().width);
-        else if (th.classList.contains('col-total')) { /* пропускаем ИТОГО */ }
-        else labelW += th.getBoundingClientRect().width;
+        else if (!th.classList.contains('col-total')) labelW += th.getBoundingClientRect().width;
       }
-      setStickyMetrics(prev => {
-        if (prev.labelW === labelW && prev.dayW.length === dayW.length &&
-            prev.dayW.every((w, i) => Math.abs(w - dayW[i]) < 0.5)) return prev;
-        return { labelW, dayW };
-      });
+      if (labelW > 0 && dayW.length > 0) {
+        setStickyMetrics(prev => {
+          if (prev.labelW === labelW && prev.dayW.length === dayW.length &&
+              prev.dayW.every((w, i) => Math.abs(w - dayW[i]) < 0.5)) return prev;
+          return { labelW, dayW };
+        });
+      }
     };
 
-    const onScroll = () => {
-      if (!tableWrap) tableWrap = document.querySelector('.table-wrap') as HTMLElement | null;
-      if (!tableWrap) return;
+    const onTableScroll = () => {
+      if (activeWrap && stickyInnerRef.current) stickyInnerRef.current.scrollLeft = activeWrap.scrollLeft;
+    };
+
+    const bindScroll = (wrap: HTMLElement) => {
+      if (wrap === activeWrap) return;
+      activeWrap?.removeEventListener('scroll', onTableScroll);
+      activeWrap = wrap;
+      wrap.addEventListener('scroll', onTableScroll, { passive: true });
+    };
+
+    const update = () => {
       const navEl = document.querySelector('.nav') as HTMLElement | null;
       const navH = navEl ? navEl.offsetHeight : 65;
-      const table = tableWrap.querySelector('thead');
-      const ref = table || tableWrap;
-      const r = ref.getBoundingClientRect();
-      // Показываем бар, когда шапка таблицы ушла под навбар, но сама таблица ещё в зоне видимости
-      setStickyVisible(r.top < navH + 2 && r.bottom < window.innerHeight && tableWrap.getBoundingClientRect().bottom > navH + 40);
-      if (stickyInnerRef.current) stickyInnerRef.current.scrollLeft = tableWrap.scrollLeft;
+      const wraps = Array.from(document.querySelectorAll('.table-wrap')) as HTMLElement[];
+      if (!wraps.length) { setStickyVisible(false); return; }
+
+      // Найдём первую секцию, чей tbody ещё виден (top секции ниже navH или tbody не ушёл вниз)
+      let best: HTMLElement | null = null;
+      for (const wrap of wraps) {
+        const r = wrap.getBoundingClientRect();
+        if (r.bottom > navH + 40 && r.top < window.innerHeight) {
+          best = wrap;
+          break;
+        }
+      }
+      if (!best) { setStickyVisible(false); return; }
+
+      // Показываем бар только если шапка этой таблицы ушла за navH
+      const thead = best.querySelector('thead');
+      const theadBottom = thead ? thead.getBoundingClientRect().bottom : best.getBoundingClientRect().top;
+      setStickyVisible(theadBottom < navH + 4);
+
+      bindScroll(best);
+      measureWrap(best);
+      if (stickyInnerRef.current) stickyInnerRef.current.scrollLeft = best.scrollLeft;
     };
-    const onTableScroll = () => {
-      if (tableWrap && stickyInnerRef.current) stickyInnerRef.current.scrollLeft = tableWrap.scrollLeft;
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    const iv = setInterval(update, 600);
+    update();
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      activeWrap?.removeEventListener('scroll', onTableScroll);
+      clearInterval(iv);
     };
-    const bind = () => {
-      const el = document.querySelector('.table-wrap') as HTMLElement | null;
-      if (el && el !== tableWrap) { tableWrap?.removeEventListener('scroll', onTableScroll); tableWrap = el; tableWrap.addEventListener('scroll', onTableScroll, { passive: true }); }
-      measure();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', measure);
-    const iv = setInterval(bind, 800);
-    bind();
-    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', measure); tableWrap?.removeEventListener('scroll', onTableScroll); clearInterval(iv); };
   }, [stickyInnerRef]);
 
   // Handlers

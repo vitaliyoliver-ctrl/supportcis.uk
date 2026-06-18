@@ -415,24 +415,37 @@ td.section-divider-cell {
 .day-info-close:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
 
 .day-info-body {
-  padding: 16px 18px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  padding: 18px 22px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
 }
 @media (max-width: 768px) { .day-info-body { grid-template-columns: repeat(2, 1fr); } }
 
-.day-info-block { display: flex; flex-direction: column; gap: 6px; }
+.day-info-block {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
 .day-info-block-title {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
 }
 .day-info-count {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  font-size: 13px; color: var(--text);
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-size: 12px; color: var(--muted);
 }
-.day-info-count b { font-size: 22px; font-weight: 800; font-family: 'Unbounded', sans-serif; }
+.day-info-count b {
+  font-size: 28px; font-weight: 900;
+  font-family: 'Unbounded', sans-serif;
+  color: var(--text);
+  line-height: 1;
+}
 .day-info-name {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
   font-size: 12px; color: var(--text);
+  background: rgba(255,255,255,0.06);
+  border-radius: 5px; padding: 1px 7px;
 }
 .day-info-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 

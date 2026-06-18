@@ -518,12 +518,15 @@ app.post('/api/tg-webhook', async (c) => {
   const approver = from?.username ? `@${from.username}` : String(from?.first_name ?? 'неизвестно');
   const cbMsg = cb.message as Record<string, unknown>;
 
+  console.log(`tg-webhook: action=${action} id=${id} approver=${approver}`);
   const raw = await c.env.AUTH_KV.get(`swap:${id}`);
+  console.log(`tg-webhook: raw from KV=`, raw ? 'found' : 'NOT FOUND');
   if (!raw) {
     await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Заявка не найдена или истекла' });
     return c.json({ ok: true });
   }
   const rec = JSON.parse(raw) as Record<string, unknown>;
+  console.log(`tg-webhook: rec.status=${rec.status}`);
 
   if (rec.status !== 'pending') {
     await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Уже: ${rec.status === 'approved' ? 'апрув' : 'отказ'}` });

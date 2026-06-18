@@ -507,9 +507,11 @@ app.post('/api/tg-webhook', async (c) => {
   try { update = await c.req.json(); } catch { return c.json({ ok: true }); }
 
   const cb = update?.callback_query as Record<string, unknown> | undefined;
+  console.log('tg-webhook: cb.data=', cb?.data ?? 'no callback_query');
   if (!cb?.data) return c.json({ ok: true });
 
-  const m = String(cb.data).match(/^sw:(a|d):([0-9a-f-]{36})$/);
+  const m = String(cb.data).match(/^sw:(a|d):(.{36})$/);
+  console.log('tg-webhook: regex match=', m ? `yes action=${m[1]} id=${m[2]}` : 'NO MATCH');
   if (!m) { await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id }); return c.json({ ok: true }); }
 
   const action = m[1];

@@ -298,7 +298,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                                 if (isAdmin) onQuickEdit(name, ds, di);
                                 else onSelectDate(ds, di);
                               }}
-                              title={`${name} — ${day.d} — ${SHIFT_DEFS[type]?.label ?? type}`}
+                              title={ovr?.note ? ovr.note : `${name} — ${SHIFT_DEFS[type]?.label ?? type}`}
                             >
                               <span className="shift-cell-label">{label}</span>
                               {ovr?.extraEvents?.some(e => e.type === 'extra_swap_take' || e.type === 'loss_swap_give') && (

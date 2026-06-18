@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useScheduleState } from '@/lib/useScheduleState';
 import { calcDayHours, dateStr, swapAnnotation, getShift, localDs } from '@/lib/scheduleLogic';
@@ -18,6 +18,7 @@ const AddEmployeeModal = React.lazy(() => import('./components/AddEmployeeModal'
 const DismissModal = React.lazy(() => import('./components/DismissModal'));
 const LogPanel = React.lazy(() => import('./components/LogPanel'));
 const ScheduleSection = React.lazy(() => import('./components/ScheduleSection'));
+const ProfileModal = React.lazy(() => import('./components/ProfileModal'));
 
 // ── Типы ─────────────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,10 @@ export default function SchedulePage() {
   const [patternName, setPatternName] = useState<string | null>(null);
   const [addEmpOpen, setAddEmpOpen] = useState(false);
   const [dismissOpen, setDismissOpen] = useState(false);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [stickyVisible, setStickyVisible] = useState(false);
+  const stickyInnerRef = useRef<HTMLDivElement>(null);
 
   // Theme
   useEffect(() => {
@@ -79,6 +84,29 @@ export default function SchedulePage() {
     }
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  // Sticky dates bar
+  useEffect(() => {
+    let tableWrap: HTMLElement | null = null;
+    const onScroll = () => {
+      if (!tableWrap) tableWrap = document.querySelector('.schedule-wrap') as HTMLElement | null;
+      if (!tableWrap) return;
+      const navEl = document.querySelector('.nav') as HTMLElement | null;
+      const navH = navEl ? navEl.offsetHeight : 65;
+      setStickyVisible(tableWrap.getBoundingClientRect().top < navH + 2);
+    };
+    const onTableScroll = () => {
+      if (tableWrap && stickyInnerRef.current) stickyInnerRef.current.scrollLeft = tableWrap.scrollLeft;
+    };
+    const bind = () => {
+      const el = document.querySelector('.schedule-wrap') as HTMLElement | null;
+      if (el && el !== tableWrap) { tableWrap?.removeEventListener('scroll', onTableScroll); tableWrap = el; tableWrap.addEventListener('scroll', onTableScroll, { passive: true }); }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    const iv = setInterval(bind, 800);
+    bind();
+    return () => { window.removeEventListener('scroll', onScroll); tableWrap?.removeEventListener('scroll', onTableScroll); clearInterval(iv); };
+  }, [stickyInnerRef]);
 
   // Handlers
   const handleQuickEdit = useCallback((name: string, ds: string, di: number) => {
@@ -161,23 +189,25 @@ export default function SchedulePage() {
     srcName: string, fromKey: string, toKey: string,
     beforeName: string | null, insertAfter: boolean
   ) => {
-    const people = { ...(st.settings.people ?? {}) };
-    const toSec = st.sections.find(s => s.key === toKey);
-    if (!toSec) return;
+    const customOrder: Record<string, string[]> = {};
+    st.sections.forEach(s => {
+      customOrder[s.key] = [...(st.settings.customOrder?.[s.key] ?? s.members)];
+    });
 
-    const members = [...toSec.members].filter(n => n !== srcName);
+    if (fromKey !== toKey) {
+      customOrder[fromKey] = customOrder[fromKey].filter(n => n !== srcName);
+    }
+
+    const members = customOrder[toKey].filter(n => n !== srcName);
     let insertIdx = members.length;
     if (beforeName) {
       const idx = members.indexOf(beforeName);
       if (idx >= 0) insertIdx = insertAfter ? idx + 1 : idx;
     }
     members.splice(insertIdx, 0, srcName);
+    customOrder[toKey] = members;
 
-    members.forEach((name, i) => {
-      people[name] = { section: toKey, order: i };
-    });
-
-    handleSaveSettings({ ...st.settings, people }, [{ action: `перемещён: ${srcName} → ${toKey}`, target: srcName }]);
+    handleSaveSettings({ ...st.settings, customOrder }, [{ action: `перемещён: ${srcName} → ${toKey}`, target: srcName }]);
   }, [st.sections, st.settings, handleSaveSettings]);
 
   const handleExport = useCallback(() => {
@@ -222,6 +252,32 @@ export default function SchedulePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '100%', boxSizing: 'border-box' }}>
+
+      {/* Sticky dates bar */}
+      {stickyVisible && (
+        <div className="sticky-dates-bar" style={{ display: 'block', top: 65 }}>
+          <div className="sticky-dates-inner" ref={stickyInnerRef} style={{ overflowX: 'hidden' }}>
+            <div className="sticky-dates-label" style={{ width: 160, minWidth: 160 }}>Дата</div>
+            {st.days.map(day => {
+              const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+              const now = new Date();
+              const isToday = day.d === now.getDate() && st.month === now.getMonth() + 1 && st.year === now.getFullYear();
+              const ds = `${st.year}-${String(st.month).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`;
+              return (
+                <div
+                  key={day.d}
+                  className={`sticky-date-cell${isWeekend ? ' weekend' : ''}${isToday ? ' today' : ''}${ds === st.selectedDateStr ? ' selected' : ''}`}
+                  style={{ width: 36, minWidth: 36 }}
+                  onClick={() => st.setSelectedDateStr(ds)}
+                >
+                  {day.d}
+                  <span className="sdc-day">{['вс','пн','вт','ср','чт','пт','сб'][day.date.getDay()]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Stale warning */}
       {staleWarning && (
@@ -308,7 +364,10 @@ export default function SchedulePage() {
       {/* Positions banner */}
       {positionsMode && (
         <div className="positions-banner visible">
-          ⇅ Режим позиций: перетаскивайте строки для изменения порядка. Нажмите «Позиции» ещё раз чтобы выйти.
+          <span style={{ flex: 1 }}>⇅ Режим позиций — перетаскивайте строки для изменения порядка.</span>
+          <button className="btn btn-secondary" style={{ padding: '3px 12px', fontSize: 11 }} onClick={() => setPositionsMode(false)}>
+            Выйти
+          </button>
         </div>
       )}
 
@@ -413,7 +472,7 @@ export default function SchedulePage() {
             currentUser={currentUser}
             isAdmin={st.isAdmin}
             onSave={handleSaveOverrides}
-            onOpenProfile={() => {}}
+            onOpenProfile={(name) => { setEditorOpen(false); setProfileName(name); setProfileOpen(true); }}
             onOpenPattern={(name) => { setEditorOpen(false); setPatternName(name); setPatternOpen(true); }}
             onOpenDismiss={() => { setEditorOpen(false); setDismissOpen(true); }}
             onRestoreDismissed={handleRestoreDismissed}
@@ -499,6 +558,23 @@ export default function SchedulePage() {
             onSave={async (newOverrides, newSettings, logEntries) => {
               await handleSaveAll(newOverrides, newSettings, logEntries);
               setDismissOpen(false);
+            }}
+          />
+        </React.Suspense>
+      )}
+
+      {/* Profile modal */}
+      {st.isAdmin && (
+        <React.Suspense fallback={null}>
+          <ProfileModal
+            open={profileOpen}
+            name={profileName}
+            onClose={() => setProfileOpen(false)}
+            getEmp={st.getEmp}
+            settings={st.settings}
+            onSave={async (newSettings, logEntries) => {
+              await handleSaveSettings(newSettings, logEntries);
+              setProfileOpen(false);
             }}
           />
         </React.Suspense>

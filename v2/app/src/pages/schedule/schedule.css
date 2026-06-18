@@ -839,3 +839,50 @@ option { background: #1a1e28; }
   margin-left: 2px;
   vertical-align: middle;
 }
+
+/* ── Zebra striping ──────────────────────────────────────────────────────── */
+.schedule-table tbody tr:nth-child(even) td.name-cell,
+.schedule-table tbody tr:nth-child(even) td.info-cell,
+.schedule-table tbody tr:nth-child(even) td.total-cell {
+  background: var(--bg-card2);
+}
+.schedule-table tbody tr:nth-child(even) td.shift-cell.cell-off,
+.schedule-table tbody tr:nth-child(even) td.shift-cell.cell-dismissed {
+  background: rgba(255,255,255,0.018);
+}
+
+/* ── Note/swap dots ──────────────────────────────────────────────────────── */
+.cell-note-dot {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #fbbf24; pointer-events: none;
+}
+.cell-swap-dot {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #34d399; pointer-events: none;
+}
+
+/* ── Sticky info column ──────────────────────────────────────────────────── */
+.col-info { position: sticky; left: 160px; z-index: 3; }
+.info-cell { position: sticky; left: 160px; z-index: 2; }
+
+/* ── Profile modal ───────────────────────────────────────────────────────── */
+.profile-modal-panel { width: 380px; }
+
+/* ── Online tooltip ──────────────────────────────────────────────────────── */
+.stat-card-tooltip { position: relative; cursor: default; }
+.stat-tooltip-box {
+  display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; min-width: 180px; max-width: 260px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.stat-card-tooltip:hover .stat-tooltip-box { display: block; }
+.stat-tooltip-name { font-size: 12px; color: var(--text); padding: 2px 0; }
+.stat-tooltip-title { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+/* ── Profile modal fields ────────────────────────────────────────────────── */
+.profile-field-row { display: flex; flex-direction: column; gap: 4px; }
+.profile-field-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.profile-field-value { font-size: 13px; color: var(--text); }

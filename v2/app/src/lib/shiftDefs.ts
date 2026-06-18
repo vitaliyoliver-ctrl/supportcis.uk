@@ -134,6 +134,11 @@ export const PATTERN_PRESETS: Record<string, string[]> = {
   vip_day_night:   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
   vip_night_day:   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
   vip_1200:        ['vip_1200','off','off','vip_1200'],
+  super_2_2:       ['super_day','super_day','off','off'],
+  super_night_2_2: ['super_night','super_night','off','off'],
+  super_2_2_mix:   ['super_day','super_day','off','off','super_night','super_night','off','off'],
+  super_12_cycle:  ['super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night','off','off'],
+  work8_5_2:       ['work8','work8','work8','work8','work8','off','off'],
   off:             ['off'],
 };
 
@@ -144,6 +149,11 @@ export const PATTERN_PRESET_LABELS: Record<string, string> = {
   vip_day_night:   'VIP день/ночь (день первый)',
   vip_night_day:   'VIP ночь/день (ночь первой)',
   vip_1200:        'VIP 12-00 / выходной 2/2',
+  super_2_2:       'Sup День 2/2',
+  super_night_2_2: 'Sup Ночь 2/2',
+  super_2_2_mix:   'Sup День+Ночь 4+4+4',
+  super_12_cycle:  'Sup 12-дн. цикл',
+  work8_5_2:       '8ч пн–пт (TL/QA)',
   off:             'Выходной (нет смен)',
   custom:          'Кастомный',
 };

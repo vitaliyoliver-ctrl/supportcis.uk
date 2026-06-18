@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import BackButton from '@/components/BackButton';
 
 // FCR Calculator — port of tl/fcr/index.html
 // Processes LiveChat and Chatwoot CSV/XLSX exports to compute First Contact Resolution
@@ -360,6 +361,7 @@ export default function TLFcrPage() {
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <div style={{ background: 'linear-gradient(135deg,#1a1d27,#0f1117)', borderBottom: '1px solid #2a2e3d', padding: '24px 32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <BackButton to="/tl" inline />
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c5ce7', boxShadow: '0 0 12px #6c5ce7' }} />
           <h1 style={{ fontSize: 22, fontWeight: 700, fontFamily: mono, letterSpacing: '-0.02em' }}>FCR Calculator</h1>
         </div>

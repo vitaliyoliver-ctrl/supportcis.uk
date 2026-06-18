@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BackButton from '@/components/BackButton';
 
 const POWER_AUTOMATE_URL = "https://defaulte2f944de9f4f4231833c439e8d8d9b.8f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4b42a25db10b42539036775887232fe4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Pj4VM8rAJY8uilnObkX40O0PtT1lI8DN4-B8RznRMGo";
 
@@ -96,6 +97,7 @@ export default function ReportNcPage() {
       <div style={{ maxWidth: 780, margin: '0 auto' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40, paddingBottom: 24, borderBottom: '1px solid #252a38' }}>
+          <BackButton to="/support" inline />
           <div style={{ width: 44, height: 44, background: 'rgba(61,134,245,0.15)', border: '1px solid rgba(61,134,245,0.3)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎯</div>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 700 }}>Новое обращение</h1>

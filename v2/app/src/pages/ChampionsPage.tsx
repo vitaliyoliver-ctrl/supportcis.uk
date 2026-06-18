@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import BackButton from '@/components/BackButton';
 
 // Зал славы поддержки — port of support/champions/index.html
 // Static championship leaderboard (Dec 2025 – Apr 2026) with month tabs and a
@@ -339,6 +340,7 @@ export default function ChampionsPage() {
   return (
     <div className="champions" ref={rootRef}>
       <style>{CSS}</style>
+      <BackButton to="/support" />
       <div dangerouslySetInnerHTML={{ __html: BODY_HTML }} />
     </div>
   );

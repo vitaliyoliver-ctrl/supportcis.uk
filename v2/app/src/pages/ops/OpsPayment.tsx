@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import BackButton from '@/components/BackButton';
 
 // Payment Stats — port of ops/payment_report/index.html
 // CSV upload, period comparison (hourly bar + line), multi-day trend.
@@ -127,6 +128,7 @@ export default function OpsPayment() {
   return (
     <div className="ops-payment" ref={rootRef}>
       <style>{CSS}</style>
+      <BackButton to="/ops" />
       <div dangerouslySetInnerHTML={{ __html: BODY_HTML }} />
     </div>
   );

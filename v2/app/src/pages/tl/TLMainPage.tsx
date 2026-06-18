@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import BackButton from '@/components/BackButton';
 
 // Metrics Analyzer — port of tl/main/index.html
 // Two tabs (СГ / НК). Each needs a main export + a depositors file.
@@ -513,6 +514,7 @@ export default function TLMainPage() {
   return (
     <div className="tlmain">
       <style>{CSS}</style>
+      <BackButton to="/tl" />
       <div className="header"><h1>Metrics Analyzer</h1><div className="badge">MEET</div></div>
       <div className="tabs">
         <button className={'tab-btn' + (tab === 'sg' ? ' active' : '')} onClick={() => setTab('sg')}>СГ проекты</button>

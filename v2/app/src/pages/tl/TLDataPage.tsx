@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import BackButton from '@/components/BackButton';
 
 // Chatwoot Analyzer — port of tl/data/index.html
 // Parses Chatwoot xlsx export: dynamic column detection, source classification,
@@ -1037,6 +1038,7 @@ export default function TLDataPage() {
   return (
     <div className="tldata" ref={rootRef}>
       <style>{CSS}</style>
+      <BackButton to="/tl" />
       <div dangerouslySetInnerHTML={{ __html: BODY_HTML }} />
     </div>
   );

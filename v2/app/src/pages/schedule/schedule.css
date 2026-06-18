@@ -180,19 +180,6 @@
 .cell-work8 .shift-cell-label { color: #111 !important; text-shadow: none; }
 
 /* ── Шапка счётчиков ─────────────────────────────────────────────── */
-/* ── Sticky thead ────────────────────────────────────────────────── */
-.schedule-table thead tr th {
-  position: sticky;
-  top: 65px;
-  z-index: 5;
-}
-/* count rows stick above the date row */
-.schedule-table thead tr.thead-counts:nth-child(1) th { top: 65px; }
-.schedule-table thead tr.thead-counts:nth-child(2) th { top: 83px; }
-.schedule-table thead tr.thead-counts:nth-child(3) th { top: 101px; }
-/* date row sticks below the count rows (3 count rows × 18px each) */
-.schedule-table thead tr:not(.thead-counts) th { top: 119px; }
-
 .thead-counts th {
   background: var(--thead-count-bg);
   border-bottom: 1px solid rgba(255,255,255,0.05);

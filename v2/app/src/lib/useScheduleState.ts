@@ -8,13 +8,14 @@ import { fetchSchedule, saveSchedule, type ScheduleSettings, type SaveSchedulePa
 import { getShift, getDaysInMonth, getAvailableMonths, getCurrentMonthClamped, type Override, type PatternEntry, type EmployeeData } from './scheduleLogic';
 import { SHIFT_DEFS } from './shiftDefs';
 
-// ── Хардкоженные данные (заменятся в v2.1 на API-запрос) ──────────────────────
+// ── Сид-данные проектов (заменятся в v2.1 на API-запрос) ──────────────────────
 
-import { EMPLOYEES_SEED, SECTIONS_SEED, OPERATOR_BASE_SHIFTS, OPERATOR_HOURS_SEED } from './seed';
+import { PROJECTS, type ProjectKey } from './projects';
 
 // ── Типы ─────────────────────────────────────────────────────────────────────────
 
-export type FilterKey = 'all' | 'regular' | 'vip' | 'supervisors' | 'management';
+// Фильтры теперь задаются проектом (projects.ts), поэтому ключ — произвольная строка.
+export type FilterKey = string;
 
 export interface SectionDef {
   key: string;
@@ -25,8 +26,12 @@ export interface SectionDef {
 
 // ── Хук ───────────────────────────────────────────────────────────────────────────
 
-export function useScheduleState(currentUser: { email: string; role: string } | null) {
+export function useScheduleState(
+  currentUser: { email: string; role: string } | null,
+  project: ProjectKey = 'sg',
+) {
   const queryClient = useQueryClient();
+  const seed = PROJECTS[project];
 
   // Месяц
   const initialMonth = getCurrentMonthClamped();
@@ -38,8 +43,8 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
 
   // Данные из API
   const { data: scheduleData, isLoading } = useQuery({
-    queryKey: ['schedule', monthStr],
-    queryFn: () => fetchSchedule(monthStr),
+    queryKey: ['schedule', project, monthStr],
+    queryFn: () => fetchSchedule(monthStr, project),
     staleTime: 30_000,
   });
 
@@ -56,28 +61,28 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
   // массив имён на каждую секцию, задаёт и состав, и порядок).
   const sections: SectionDef[] = useMemo(() => {
     const customOrder = settings.customOrder ?? {};
-    return SECTIONS_SEED.map(s => {
+    return seed.sections.map(s => {
       const order = customOrder[s.key];
       return {
         ...s,
         members: Array.isArray(order) && order.length ? [...order] : [...s.members],
       };
     });
-  }, [settings.customOrder]);
+  }, [settings.customOrder, seed.sections]);
 
   // getEmp — единый доступ к данным сотрудника
   const getEmp = useCallback((name: string): EmployeeData => {
     const ov = employeeOverrides[name] ?? {};
-    const emp = EMPLOYEES_SEED[name] ?? {};
+    const emp = seed.employees[name] ?? {};
     return {
       name,
       email:    String(ov.email ?? emp.email ?? '').trim(),
       position: String(ov.position ?? emp.position ?? '').trim(),
       since:    ov.since ?? emp.since ?? '',
-      hours:    ov.hours !== undefined ? Number(ov.hours) : OPERATOR_HOURS_SEED[name],
+      hours:    ov.hours !== undefined ? Number(ov.hours) : seed.operatorHours[name],
       dismissed: dismissedEmployees[name],
     };
-  }, [employeeOverrides, dismissedEmployees]);
+  }, [employeeOverrides, dismissedEmployees, seed]);
 
   // Дни месяца
   const days = useMemo(() => getDaysInMonth(year, month), [year, month]);
@@ -86,15 +91,15 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
   const getShiftForCell = useCallback((name: string, dayIndex: number) => {
     return getShift(
       name, dayIndex, days, year, month,
-      overrides, dismissedEmployees, operatorPatterns, OPERATOR_BASE_SHIFTS
+      overrides, dismissedEmployees, operatorPatterns, seed.operatorBaseShifts
     );
-  }, [days, year, month, overrides, dismissedEmployees, operatorPatterns]);
+  }, [days, year, month, overrides, dismissedEmployees, operatorPatterns, seed]);
 
   // Mutation: сохранить изменения
   const saveMutation = useMutation({
-    mutationFn: (payload: SaveSchedulePayload) => saveSchedule(monthStr, payload),
+    mutationFn: (payload: SaveSchedulePayload) => saveSchedule(monthStr, payload, project),
     onSuccess: (result) => {
-      queryClient.setQueryData(['schedule', monthStr], (old: typeof scheduleData) => ({
+      queryClient.setQueryData(['schedule', project, monthStr], (old: typeof scheduleData) => ({
         ...old!,
         version: result.version,
         log: result.log,
@@ -114,12 +119,12 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
       logEntries,
     });
     // Обновляем локальный кэш optimistically
-    queryClient.setQueryData(['schedule', monthStr], (old: typeof scheduleData) => ({
+    queryClient.setQueryData(['schedule', project, monthStr], (old: typeof scheduleData) => ({
       ...old!,
       overrides: newOverrides,
       settings: newSettings ?? old!.settings,
     }));
-  }, [saveMutation, settings, version, monthStr, queryClient]);
+  }, [saveMutation, settings, version, monthStr, project, queryClient]);
 
   // UI-состояние
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
@@ -145,16 +150,10 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
 
   // Фильтрованные секции
   const filteredSections = useMemo(() => {
-    const filterMap: Record<FilterKey, string[] | null> = {
-      all: null,
-      regular: ['regular_support'],
-      vip: ['vip_support'],
-      supervisors: ['regular_support', 'vip_support'],
-      management: ['management'],
-    };
-    const allowed = filterMap[activeFilter];
+    const def = seed.filters.find(f => f.key === activeFilter);
+    const allowed = def?.sectionKeys ?? null;
     return allowed ? sections.filter(s => allowed.includes(s.key)) : sections;
-  }, [sections, activeFilter]);
+  }, [sections, activeFilter, seed.filters]);
 
   const isAdmin = currentUser?.role === 'tl' || currentUser?.role === 'supervisor';
 
@@ -166,10 +165,12 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
     operatorPatterns, dismissedEmployees,
     // Секции
     sections, filteredSections,
+    // Проект
+    filters: seed.filters, projectLabel: seed.label, project, swapSectionKeys: seed.swapSectionKeys,
     // Helpers
     getEmp, getShiftForCell,
-    employeeHoursSeed: OPERATOR_HOURS_SEED,
-    operatorBaseShifts: OPERATOR_BASE_SHIFTS,
+    employeeHoursSeed: seed.operatorHours,
+    operatorBaseShifts: seed.operatorBaseShifts,
     // Сохранение
     saveOverrides, isSaving: saveMutation.isPending, saveError: saveMutation.error,
     // UI

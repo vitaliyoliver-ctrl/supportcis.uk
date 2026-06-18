@@ -29,6 +29,8 @@ interface SwapModalProps {
   currentUser: { email: string; role: string } | null;
   isAdmin: boolean;
   employeeHoursSeed: Record<string, number>;
+  project: string;
+  swapSectionKeys: string[];
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
 }
@@ -49,14 +51,14 @@ const SwapModal: React.FC<SwapModalProps> = ({
   currentUser,
   isAdmin,
   employeeHoursSeed,
+  project,
+  swapSectionKeys,
   onSuccess,
   onError,
 }) => {
   const supportMembers = useMemo(() => {
-    const reg = sections.find(s => s.key === 'regular_support')?.members ?? [];
-    const vip = sections.find(s => s.key === 'vip_support')?.members ?? [];
-    return [...reg, ...vip];
-  }, [sections]);
+    return swapSectionKeys.flatMap(k => sections.find(s => s.key === k)?.members ?? []);
+  }, [sections, swapSectionKeys]);
 
   // Find current user's name by email
   const currentUserName = useMemo(() => {
@@ -142,7 +144,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
     setSubmitting(true);
     try {
       await submitSwapRequest({
-        project: 'sg',
+        project,
         month: monthStr,
         date: dateDsStr,
         giver,

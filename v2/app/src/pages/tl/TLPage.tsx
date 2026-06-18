@@ -6,6 +6,7 @@ const cards = [
   { to: '/tl/fcr',          icon: '🎯', title: 'FCR Tracker',         desc: 'Мониторинг показателей первичного закрытия обращений' },
   { to: '/tl/daily-report', icon: '📋', title: 'Daily Report',        desc: 'Ежедневная статистика по жалобам и показателям команды' },
   { to: '/tl/main',         icon: '📈', title: 'Main Metrics',        desc: 'Анализатор метрик поддержки по проектам из выгрузок Excel' },
+  { to: '/tl/csat',         icon: '😊', title: 'КСАТ Анализатор',      desc: 'Подсчёт КСАТ из выгрузки Chatwoot с исключением спам-дизлайков' },
   { to: '/tl/roles',        icon: '🔑', title: 'Управление ролями',   desc: 'Доступы команды по ролям: TL, супервайзеры, ops' },
 ];
 

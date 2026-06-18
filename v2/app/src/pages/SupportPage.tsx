@@ -14,7 +14,8 @@ const ACCENT = '#34d399';
 const GLOW = 'rgba(52,211,153,0.18)';
 
 const cards = [
-  { to: '/support/schedule',  icon: '📅', title: 'График смен SG', desc: 'Расписание смен команды SupportCIS — Regular, VIP и Management' },
+  { to: '/support/schedule',    icon: '📅', title: 'График смен SG', desc: 'Расписание смен команды SupportCIS — Regular, VIP и Management' },
+  { to: '/support/schedule-nc', icon: '🛰️', title: 'График смен НК', desc: 'Расписание смен НК-команды — Supervisors и Support NC' },
   { to: '/support/champions', icon: '🏆', title: 'Support Champions', desc: 'Турнирная таблица операторов — рейтинг по КСАТ, времени ответа и чемпионскому баллу' },
   { to: '/support/sales',     icon: '💰', title: 'Рейтинг продаж', desc: 'Статистика продаж бонусов по операторам — конверсии, офферы и бонусные выплаты' },
   { to: '/support/breaks',    icon: '☕', title: 'Перерывы и обеды', desc: 'Бронирование перерывов и обедов для операторов — дневная и ночная смены' },

@@ -52,42 +52,18 @@ export function useScheduleState(currentUser: { email: string; role: string } | 
   const employeeOverrides = settings.employeeOverrides ?? {};
   const dismissedEmployees = settings.dismissed ?? {};
 
-  // Секции с динамическим порядком (из settings.people)
+  // Секции и порядок строк — из settings.customOrder (канонический формат v1:
+  // массив имён на каждую секцию, задаёт и состав, и порядок).
   const sections: SectionDef[] = useMemo(() => {
-    const people = settings.people ?? {};
-    const base = SECTIONS_SEED.map(s => ({
-      ...s,
-      members: [...s.members],
-    }));
-
-    // Применяем порядок и перемещения из settings.people
-    const sorted = base.map(s => {
-      const membersWithOrder = s.members.map(name => {
-        const p = people[name];
-        return { name, section: p?.section ?? s.key, order: p?.order ?? 9999 };
-      });
+    const customOrder = settings.customOrder ?? {};
+    return SECTIONS_SEED.map(s => {
+      const order = customOrder[s.key];
       return {
         ...s,
-        members: membersWithOrder
-          .filter(x => x.section === s.key)
-          .sort((a, b) => a.order - b.order)
-          .map(x => x.name),
+        members: Array.isArray(order) && order.length ? [...order] : [...s.members],
       };
     });
-
-    // Добавляем людей перенесённых в секцию из другой
-    Object.entries(people).forEach(([name, { section, order }]) => {
-      if (!SECTIONS_SEED.find(s => s.members.includes(name))) {
-        // Новый сотрудник, добавленный через addEmployee
-        const sec = sorted.find(s => s.key === section);
-        if (sec && !sec.members.includes(name)) {
-          sec.members.push(name);
-        }
-      }
-    });
-
-    return sorted;
-  }, [settings.people]);
+  }, [settings.customOrder]);
 
   // getEmp — единый доступ к данным сотрудника
   const getEmp = useCallback((name: string): EmployeeData => {

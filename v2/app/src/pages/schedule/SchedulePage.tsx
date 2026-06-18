@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useScheduleState } from '@/lib/useScheduleState';
+import type { ProjectKey } from '@/lib/projects';
 import { calcDayHours, dateStr, swapAnnotation, getShift, localDs } from '@/lib/scheduleLogic';
 import type { Override } from '@/lib/scheduleLogic';
 import type { ScheduleSettings } from '@/lib/scheduleApi';
@@ -26,7 +27,7 @@ interface CurrentUser { email: string; role: string }
 
 // ── Page ──────────────────────────────────────────────────────────────────────────
 
-export default function SchedulePage() {
+export default function SchedulePage({ project = 'sg' }: { project?: ProjectKey } = {}) {
   // Auth
   const { data: authData } = useQuery({
     queryKey: ['auth'],
@@ -38,7 +39,7 @@ export default function SchedulePage() {
   });
   const currentUser: CurrentUser | null = authData?.ok ? { email: authData.email, role: authData.role } : null;
 
-  const st = useScheduleState(currentUser);
+  const st = useScheduleState(currentUser, project);
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; type: 'ok' | 'err'; show: boolean }>({ msg: '', type: 'ok', show: false });
@@ -363,7 +364,7 @@ export default function SchedulePage() {
       <nav className="nav">
         <div className="nav-left">
           <a href="/support" className="back-btn">← Support</a>
-          <div className="nav-title">Support<span>CIS</span> — График</div>
+          <div className="nav-title">Support<span>CIS</span> — {st.projectLabel}</div>
         </div>
         <div className="nav-right">
           <div className="month-nav">
@@ -471,13 +472,13 @@ export default function SchedulePage() {
 
       {/* Filters */}
       <div className="filters">
-        {(['all','regular','vip','supervisors','management'] as const).map(f => (
+        {st.filters.map(f => (
           <button
-            key={f}
-            className={`filter-btn${st.activeFilter === f ? ' active' : ''}`}
-            onClick={() => st.setActiveFilter(f)}
+            key={f.key}
+            className={`filter-btn${st.activeFilter === f.key ? ' active' : ''}`}
+            onClick={() => st.setActiveFilter(f.key)}
           >
-            {{ all: 'Все', regular: 'Regular', vip: 'VIP', supervisors: 'Supervisors', management: 'Management' }[f]}
+            {f.label}
           </button>
         ))}
       </div>
@@ -574,6 +575,8 @@ export default function SchedulePage() {
           currentUser={currentUser}
           isAdmin={st.isAdmin}
           employeeHoursSeed={st.employeeHoursSeed}
+          project={st.project}
+          swapSectionKeys={st.swapSectionKeys}
           onSuccess={(msg) => { showToast(msg, 'ok'); setSwapOpen(false); }}
           onError={(msg) => showToast(msg, 'err')}
         />

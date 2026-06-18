@@ -78,7 +78,8 @@ export default function App() {
 
         {/* Support */}
         <Route path="/support"          element={<RequireAuth><SupportPage /></RequireAuth>} />
-        <Route path="/support/schedule" element={<RequireAuth><SchedulePage /></RequireAuth>} />
+        <Route path="/support/schedule"    element={<RequireAuth><SchedulePage project="sg" /></RequireAuth>} />
+        <Route path="/support/schedule-nc" element={<RequireAuth><SchedulePage project="nk" /></RequireAuth>} />
         <Route path="/support/breaks"   element={<RequireAuth><BreaksPage /></RequireAuth>} />
         <Route path="/support/sales"    element={<RequireAuth><SalesPage /></RequireAuth>} />
         <Route path="/support/report"   element={<RequireAuth><ReportPage /></RequireAuth>} />

@@ -15,7 +15,7 @@ run_worker_first = ["/api/*"]
 
 [[kv_namespaces]]
 binding = "AUTH_KV"
-id = "REPLACE_WITH_AUTH_KV_ID"          # wrangler kv namespace create AUTH_KV
+id = "e8660703a72b45e69d4e2750a6f88228"
 
 # ── Открытые переменные (или Dashboard → Settings → Variables) ──────────────
 [vars]

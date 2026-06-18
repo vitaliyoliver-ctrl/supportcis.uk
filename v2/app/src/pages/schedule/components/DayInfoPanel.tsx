@@ -98,79 +98,91 @@ const DayInfoPanel: React.FC<DayInfoPanelProps> = ({
       </div>
       {info && (
         <div className="day-info-body">
+
+          {/* Regular Support */}
           <div className="day-info-block">
             <div className="day-info-block-title">Regular Support</div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#4caf93' }} />
-              09–21: <b>{fmt(info.regDay)}</b>
-              {info.regDay < MIN_STAFF.day && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
-            </div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#7b8fbc' }} />
-              21–09: <b>{fmt(info.regNight)}</b>
-              {info.regNight < MIN_STAFF.night && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
-            </div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#e0b84a' }} />
-              12–00: <b>{fmt(info.reg1200)}</b>
-              {info.reg1200 < MIN_STAFF.d12 && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
-            </div>
+            {([
+              { color: '#60a5fa', label: '09–21', val: info.regDay,   low: info.regDay   < MIN_STAFF.day },
+              { color: '#818cf8', label: '21–09', val: info.regNight, low: info.regNight < MIN_STAFF.night },
+              { color: '#f59e0b', label: '12–00', val: info.reg1200,  low: info.reg1200  < MIN_STAFF.d12 },
+            ] as const).map(row => (
+              <div key={row.label} className="day-info-row">
+                <span className="day-info-shift-label" style={{ color: row.color }}>
+                  <span className="day-info-dot" style={{ background: row.color }} />
+                  {row.label}
+                </span>
+                <span className="day-info-num" style={{ color: row.low ? 'var(--c-red)' : row.color }}>
+                  {fmt(row.val)}
+                  {row.low && <span className="day-info-warn">⚠</span>}
+                </span>
+              </div>
+            ))}
           </div>
 
+          {/* VIP Support */}
           <div className="day-info-block">
             <div className="day-info-block-title">VIP Support</div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#c97dbe' }} />
-              09–21: <b>{fmt(info.vipDay)}</b>
-              {info.vipDay < MIN_STAFF.day && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
-            </div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#7b8fbc' }} />
-              21–09: <b>{fmt(info.vipNight)}</b>
-              {info.vipNight < MIN_STAFF.night && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
-            </div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#e0b84a' }} />
-              12–00: <b>{fmt(info.vip1200)}</b>
-              {info.vip1200 < MIN_STAFF.d12 && <span style={{ color: 'var(--c-red)', marginLeft: 4 }}>⚠</span>}
-            </div>
+            {([
+              { color: '#2dd4bf', label: '09–21', val: info.vipDay,   low: info.vipDay   < MIN_STAFF.day },
+              { color: '#e879f9', label: '21–09', val: info.vipNight, low: info.vipNight < MIN_STAFF.night },
+              { color: '#a3e635', label: '12–00', val: info.vip1200,  low: info.vip1200  < MIN_STAFF.d12 },
+            ] as const).map(row => (
+              <div key={row.label} className="day-info-row">
+                <span className="day-info-shift-label" style={{ color: row.color }}>
+                  <span className="day-info-dot" style={{ background: row.color }} />
+                  {row.label}
+                </span>
+                <span className="day-info-num" style={{ color: row.low ? 'var(--c-red)' : row.color }}>
+                  {fmt(row.val)}
+                  {row.low && <span className="day-info-warn">⚠</span>}
+                </span>
+              </div>
+            ))}
           </div>
 
+          {/* Supervisors */}
           <div className="day-info-block">
             <div className="day-info-block-title">Супервизоры</div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#facc15' }} />
-              День:
-              {info.supDayNames.length > 0
-                ? info.supDayNames.map(n => <span key={n} className="day-info-name">{n}</span>)
-                : <span className="day-info-name" style={{ color: 'var(--c-muted)' }}>—</span>}
-            </div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#991b1b' }} />
-              Ночь:
-              {info.supNightNames.length > 0
-                ? info.supNightNames.map(n => <span key={n} className="day-info-name">{n}</span>)
-                : <span className="day-info-name" style={{ color: 'var(--c-muted)' }}>—</span>}
-            </div>
+            {([
+              { color: '#facc15', label: 'День',  names: info.supDayNames },
+              { color: '#991b1b', label: 'Ночь',  names: info.supNightNames },
+            ] as const).map(row => (
+              <div key={row.label} className="day-info-row day-info-row-names">
+                <span className="day-info-shift-label" style={{ color: row.color }}>
+                  <span className="day-info-dot" style={{ background: row.color }} />
+                  {row.label}
+                </span>
+                <span className="day-info-names-list">
+                  {row.names.length > 0
+                    ? row.names.map(n => <span key={n} className="day-info-name">{n}</span>)
+                    : <span className="day-info-name day-info-name-empty">—</span>}
+                </span>
+              </div>
+            ))}
           </div>
 
+          {/* VIP Supervisors */}
           <div className="day-info-block">
             <div className="day-info-block-title">VIP Супервизоры</div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#e879f9' }} />
-              День:
-              {info.vipSupDayAlt.length > 0
-                ? info.vipSupDayAlt.map(n => <span key={n} className="day-info-name">{n}</span>)
-                : <span className="day-info-name" style={{ color: 'var(--c-muted)' }}>—</span>}
-            </div>
-            <div className="day-info-count">
-              <span className="day-info-dot" style={{ background: '#7b8fbc' }} />
-              Ночь:
-              {info.vipSupNightNames.length > 0
-                ? info.vipSupNightNames.map(n => <span key={n} className="day-info-name">{n}</span>)
-                : <span className="day-info-name" style={{ color: 'var(--c-muted)' }}>—</span>}
-            </div>
+            {([
+              { color: '#e879f9', label: 'День',  names: info.vipSupDayAlt },
+              { color: '#818cf8', label: 'Ночь',  names: info.vipSupNightNames },
+            ] as const).map(row => (
+              <div key={row.label} className="day-info-row day-info-row-names">
+                <span className="day-info-shift-label" style={{ color: row.color }}>
+                  <span className="day-info-dot" style={{ background: row.color }} />
+                  {row.label}
+                </span>
+                <span className="day-info-names-list">
+                  {row.names.length > 0
+                    ? row.names.map(n => <span key={n} className="day-info-name">{n}</span>)
+                    : <span className="day-info-name day-info-name-empty">—</span>}
+                </span>
+              </div>
+            ))}
           </div>
+
         </div>
       )}
     </div>

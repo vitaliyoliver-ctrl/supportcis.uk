@@ -43,15 +43,15 @@
 .cell-morning    { background: rgba(96,165,250,0.55);  color: #111; }
 .cell-evening    { background: rgba(67,56,202,0.60);   color: #fff; }
 .cell-1200       { background: rgba(251,146,60,0.55);  color: #111; }
-.cell-extra-regular { background: rgba(96,165,250,0.20); color: #fff; border: 2px dashed rgba(96,165,250,0.6); }
+.cell-extra-regular { background: rgba(96,165,250,0.20); color: #fff; border: 2px dashed rgba(96,165,250,0.6) !important; }
 .cell-vip-day    { background: rgba(45,212,191,0.55);  color: #111; }
 .cell-vip-night  { background: rgba(232,121,249,0.55); color: #fff; }
 .cell-vip-1200   { background: rgba(163,230,53,0.55);  color: #111; }
-.cell-extra-vip  { background: rgba(45,212,191,0.20);  color: #fff; border: 2px dashed rgba(45,212,191,0.6); }
+.cell-extra-vip  { background: rgba(45,212,191,0.20);  color: #fff; border: 2px dashed rgba(45,212,191,0.6) !important; }
 .cell-super-day  { background: rgba(250,204,21,0.55);  color: #111; }
 .cell-super-night { background: rgba(153,27,27,0.60);  color: #fff; }
 .cell-super-day8 { background: rgba(180,83,9,0.50);    color: #111; }
-.cell-extra-sup  { background: rgba(250,204,21,0.22);  color: #fff; border: 2px dashed rgba(250,204,21,0.6); }
+.cell-extra-sup  { background: rgba(250,204,21,0.22);  color: #fff; border: 2px dashed rgba(250,204,21,0.6) !important; }
 .cell-work8      { background: rgba(139,92,246,0.50);  color: #111; }
 .cell-vacation   { background: rgba(248,113,113,0.40); color: #fff; }
 .cell-sick       { background: rgba(251,191,36,0.45);  color: #fff; }
@@ -421,7 +421,7 @@ td.section-divider-cell {
 @media (max-width: 768px) { .day-info-body { grid-template-columns: repeat(2, 1fr); } }
 
 .day-info-block {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: 6px;
   background: var(--bg-card2);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -429,25 +429,31 @@ td.section-divider-cell {
 }
 .day-info-block-title {
   font-size: 10px; font-weight: 700; letter-spacing: 0.09em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
 }
-.day-info-count {
-  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
-  font-size: 14px; color: var(--muted);
+.day-info-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-.day-info-count b {
-  font-size: 28px; font-weight: 900;
+.day-info-row-names { align-items: flex-start; }
+.day-info-shift-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  white-space: nowrap; min-width: 42px;
+}
+.day-info-num {
+  font-size: 30px; font-weight: 900;
   font-family: 'Unbounded', sans-serif;
-  color: var(--text);
-  line-height: 1;
+  line-height: 1; letter-spacing: -0.02em;
 }
+.day-info-warn { font-size: 13px; margin-left: 3px; }
+.day-info-names-list { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .day-info-name {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--text);
-  background: rgba(255,255,255,0.06);
-  border-radius: 5px; padding: 1px 7px;
+  font-size: 12px; font-weight: 600; color: var(--text);
+  background: rgba(255,255,255,0.08);
+  border-radius: 5px; padding: 2px 8px;
 }
-.day-info-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.day-info-name-empty { color: var(--muted); background: none; }
+.day-info-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
 
 /* ── Overlay / Modal base ────────────────────────────────────────── */
 .overlay {

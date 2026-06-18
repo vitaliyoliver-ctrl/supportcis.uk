@@ -397,7 +397,7 @@ app.post('/api/swap-request', async (c) => {
   const swap = { id, ...body, requestedBy: session.email, status: 'pending', createdAt: new Date().toISOString() };
   await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(swap));
 
-  // Best-effort уведомление в Telegram (если настроен бот)
+  // Уведомление в Telegram
   if (c.env.TG_BOT_TOKEN && c.env.TG_CHAT_ID) {
     const text =
       `🔄 Запрос свапа\n` +
@@ -409,8 +409,10 @@ app.post('/api/swap-request', async (c) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: c.env.TG_CHAT_ID, text }),
-      }).then(() => undefined).catch(() => undefined)
+      }).then(r => r.json()).then(r => console.log('[TG swap]', JSON.stringify(r))).catch(e => console.error('[TG swap error]', e))
     );
+  } else {
+    console.log('[TG swap] skipped, token:', !!c.env.TG_BOT_TOKEN, 'chat:', c.env.TG_CHAT_ID);
   }
 
   return c.json({ ok: true, id });

@@ -48,6 +48,7 @@ const StatsBar: React.FC<StatsBarProps> = ({
         let count = 0;
         const names: string[] = [];
         for (const name of members) {
+          if (isSupervisorPosition(getEmp(name).position)) continue;
           const type = getShiftForCell(name, todayIndex);
           const def = SHIFT_DEFS[type];
           if (!def?.window) continue;

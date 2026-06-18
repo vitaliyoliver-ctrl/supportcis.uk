@@ -427,6 +427,39 @@ function swapTgText(rec: Record<string, unknown>) {
   return t;
 }
 
+async function sendSwapEmail(env: Env, to: string, subject: string, lines: string[]) {
+  if (!to || !env.RESEND_API_KEY) return false;
+  const body = lines.map(l => `<p style="color:#9ca3af;font-size:14px;margin:0 0 10px">${l}</p>`).join('');
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: env.RESEND_FROM || 'SupportCIS <noreply@supportcis.uk>',
+        to,
+        subject,
+        html: `
+          <div style="font-family:sans-serif;max-width:440px;margin:0 auto;padding:32px;background:#0a0c10;border-radius:16px;border:1px solid #1f2937;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <span style="font-size:24px;font-weight:700;color:#fff;">Support<span style="color:#4f8ef7;">CIS</span></span>
+            </div>
+            ${body}
+            <p style="color:#6b7280;font-size:12px;text-align:center;margin-top:24px;">Это автоматическое письмо, отвечать на него не нужно.</p>
+          </div>
+        `,
+      }),
+    });
+    if (!res.ok) console.error('sendSwapEmail failed:', res.status, await res.text());
+    return res.ok;
+  } catch (e) {
+    console.error('sendSwapEmail exception:', e);
+    return false;
+  }
+}
+
 async function applySwapToSchedule(env: Env, rec: Record<string, unknown>, approver: string) {
   const key = scheduleKey(String(rec.project || 'sg'), String(rec.month));
   const raw = await env.AUTH_KV.get(key);
@@ -434,21 +467,24 @@ async function applySwapToSchedule(env: Env, rec: Record<string, unknown>, appro
   const overrides = { ...blob.overrides };
   const nowIso = new Date().toISOString();
 
+  const ov = overrides as Record<string, any>;
+
   const gKey = `${rec.giver}:${rec.date}`;
-  const g = overrides[gKey] ? { ...overrides[gKey] } : { type: rec.shiftType };
-  if (!g.type) g.type = rec.shiftType as string;
+  const g: any = ov[gKey] ? { ...ov[gKey] } : {};
+  if (!g.type) g.type = rec.shiftType;
   g.extraEvents = [...(g.extraEvents ?? []),
     { type: 'loss_swap_give', hours: rec.hours, range: rec.range, swapWith: rec.recipient, win: rec.win, withLunch: rec.withLunch }];
   g.editedBy = `swap-bot (${approver})`; g.editedAt = nowIso;
-  overrides[gKey as string] = g;
+  ov[gKey] = g;
 
   const rKey = `${rec.recipient}:${rec.date}`;
-  const r = overrides[rKey] ? { ...overrides[rKey] } : {};
-  if (!r.type || r.type === 'off' || r.type === 'birthday') r.type = SWAP_EXTRA_TYPE[rec.shiftType as string];
+  const r: any = ov[rKey] ? { ...ov[rKey] } : {};
+  const hasWorkType = r.type && r.type !== 'off' && r.type !== 'birthday';
+  if (!hasWorkType) r.type = SWAP_EXTRA_TYPE[rec.shiftType as string];
   r.extraEvents = [...(r.extraEvents ?? []),
     { type: 'extra_swap_take', hours: rec.hours, range: rec.range, swapWith: rec.giver, win: rec.win, withLunch: rec.withLunch }];
   r.editedBy = `swap-bot (${approver})`; r.editedAt = nowIso;
-  overrides[rKey as string] = r;
+  ov[rKey] = r;
 
   const newLog = [...(blob.log ?? []), {
     at: nowIso, by: `tg:${approver}`,
@@ -456,7 +492,7 @@ async function applySwapToSchedule(env: Env, rec: Record<string, unknown>, appro
     target: String(rec.recipient),
   }].slice(-200);
 
-  await env.AUTH_KV.put(key, JSON.stringify({ ...blob, overrides, version: Date.now(), log: newLog }));
+  await env.AUTH_KV.put(key, JSON.stringify({ ...blob, overrides: ov, version: Date.now(), log: newLog }));
 }
 
 // ── Swap request ────────────────────────────────────────────────────────────
@@ -500,6 +536,7 @@ app.post('/api/swap-request', async (c) => {
 app.post('/api/tg-webhook', async (c) => {
   const secret = c.req.header('X-Telegram-Bot-Api-Secret-Token');
   if (!c.env.TG_WEBHOOK_SECRET || secret !== c.env.TG_WEBHOOK_SECRET) {
+    console.error(`tg-webhook: SECRET MISMATCH. got=${secret ? `"${secret}"` : 'none'} expected_set=${c.env.TG_WEBHOOK_SECRET ? 'yes' : 'NO'}`);
     return c.text('forbidden', 403);
   }
 
@@ -538,6 +575,14 @@ app.post('/api/tg-webhook', async (c) => {
   if (action === 'd') {
     rec.status = 'denied'; rec.decidedBy = approver; rec.decidedAt = new Date().toISOString();
     await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(rec), { expirationTtl: SWAP_TTL });
+    await sendSwapEmail(c.env, String(rec.giverEmail), 'Заявка на обмен смены отклонена', [
+      `Ваша заявка на передачу смены отклонена.`,
+      `<b style="color:#fff">Дата:</b> ${escTg(rec.date)}`,
+      `<b style="color:#fff">Смена:</b> ${escTg(rec.shiftLabel)}, ${escTg(rec.range)} (${rec.hours}ч)`,
+      `<b style="color:#fff">Обед:</b> ${lunchText(rec)}`,
+      `<b style="color:#fff">Получатель:</b> ${escTg(rec.recipient)}`,
+      `<b style="color:#fff">Решение принял:</b> ${escTg(rec.decidedBy)}`,
+    ]);
     await tgApi(c.env, 'editMessageText', {
       chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
       message_id: cbMsg?.message_id ?? rec.tgMessageId,
@@ -557,6 +602,21 @@ app.post('/api/tg-webhook', async (c) => {
 
   rec.status = 'approved'; rec.decidedBy = approver; rec.decidedAt = new Date().toISOString();
   await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(rec), { expirationTtl: SWAP_TTL });
+  await sendSwapEmail(c.env, String(rec.giverEmail), 'Заявка на обмен смены одобрена', [
+    `Ваша заявка на передачу смены одобрена и применена к графику.`,
+    `<b style="color:#fff">Дата:</b> ${escTg(rec.date)}`,
+    `<b style="color:#fff">Смена:</b> ${escTg(rec.shiftLabel)}, ${escTg(rec.range)} (${rec.hours}ч)`,
+    `<b style="color:#fff">Обед:</b> ${lunchText(rec)}`,
+    `<b style="color:#fff">Получатель:</b> ${escTg(rec.recipient)}`,
+    `<b style="color:#fff">Решение принял:</b> ${escTg(rec.decidedBy)}`,
+  ]);
+  await sendSwapEmail(c.env, String(rec.recipientEmail), 'Вам передана смена', [
+    `${escTg(rec.giver)} передал(а) вам часы смены, обмен одобрен и применён к графику.`,
+    `<b style="color:#fff">Дата:</b> ${escTg(rec.date)}`,
+    `<b style="color:#fff">Смена:</b> ${escTg(rec.shiftLabel)}, ${escTg(rec.range)} (${rec.hours}ч)`,
+    `<b style="color:#fff">Обед:</b> ${lunchText(rec)}`,
+    `<b style="color:#fff">Решение принял:</b> ${escTg(rec.decidedBy)}`,
+  ]);
   await tgApi(c.env, 'editMessageText', {
     chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
     message_id: cbMsg?.message_id ?? rec.tgMessageId,

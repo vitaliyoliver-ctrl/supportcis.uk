@@ -404,7 +404,9 @@ export function shiftCellClass(type: string): string {
   if (type === 'super_day')  return 'cell-super-day';
   if (type === 'super_night')return 'cell-super-night';
   if (type === 'super_day8') return 'cell-super-day8';
-  if (type.startsWith('extra_sup')) return 'cell-extra-sup';
+  if (type === 'extra_sup_day' || type === 'extra_sup_day8') return 'cell-extra-sup-day';
+  if (type === 'extra_sup_night') return 'cell-extra-sup-night';
+  if (type.startsWith('extra_sup')) return 'cell-extra-sup-day';
   if (type === 'work8')      return 'cell-work8';
   if (type === 'vacation')   return 'cell-vacation';
   if (type === 'sick')       return 'cell-sick';

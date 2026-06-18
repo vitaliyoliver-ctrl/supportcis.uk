@@ -53,7 +53,8 @@
 .cell-super-day  { background: rgba(250,204,21,0.55);  color: #111; }
 .cell-super-night { background: rgba(153,27,27,0.60);  color: #fff; }
 .cell-super-day8 { background: rgba(180,83,9,0.50);    color: #111; }
-.cell-extra-sup  { background: rgba(250,204,21,0.22);  color: #fff; border: 2px dashed rgba(250,204,21,0.6) !important; }
+.cell-extra-sup-day   { background: rgba(250,204,21,0.22);  color: #111; border: 2px dashed rgba(250,204,21,0.6) !important; }
+.cell-extra-sup-night { background: rgba(153,27,27,0.25);   color: #fff; border: 2px dashed rgba(200,50,50,0.7) !important; }
 .cell-work8      { background: rgba(139,92,246,0.50);  color: #111; }
 .cell-vacation   { background: rgba(248,113,113,0.40); color: #fff; }
 .cell-sick       { background: rgba(251,191,36,0.45);  color: #fff; }
@@ -168,13 +169,14 @@
 .cell-dismissed .shift-cell-label { font-weight: 400; font-size: 16px; text-shadow: none; }
 .cell-extra-day .shift-cell-label,
 .cell-extra-vip-day .shift-cell-label,
+.cell-extra-sup-day .shift-cell-label,
 .cell-morning .shift-cell-label,
 .cell-1200 .shift-cell-label,
 .cell-vip-day .shift-cell-label,
 .cell-vip-1200 .shift-cell-label,
 .cell-super-day .shift-cell-label,
 .cell-super-day8 .shift-cell-label,
-.cell-work8 .shift-cell-label { color: #111; text-shadow: none; }
+.cell-work8 .shift-cell-label { color: #111 !important; text-shadow: none; }
 
 /* ── Шапка счётчиков ─────────────────────────────────────────────── */
 .thead-counts th {

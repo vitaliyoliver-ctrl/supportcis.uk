@@ -73,6 +73,7 @@ export default function SchedulePage() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [stickyVisible, setStickyVisible] = useState(false);
+  const [stickyMetrics, setStickyMetrics] = useState<{ labelW: number; dayW: number[] }>({ labelW: 160, dayW: [] });
   const stickyInnerRef = useRef<HTMLDivElement>(null);
 
   // Theme
@@ -88,24 +89,57 @@ export default function SchedulePage() {
   // Sticky dates bar
   useEffect(() => {
     let tableWrap: HTMLElement | null = null;
+
+    const measure = () => {
+      const wrap = document.querySelector('.table-wrap') as HTMLElement | null;
+      if (!wrap) return;
+      const table = wrap.querySelector('table.schedule-table');
+      if (!table) return;
+      // Строка с датами — последний tr в thead (содержит day-th)
+      const headRows = table.querySelectorAll('thead tr');
+      const dateRow = headRows[headRows.length - 1];
+      if (!dateRow) return;
+      const ths = Array.from(dateRow.querySelectorAll('th')) as HTMLElement[];
+      // Слева: col-name (+ col-info, если есть). День-колонки имеют класс day-th.
+      let labelW = 0;
+      const dayW: number[] = [];
+      for (const th of ths) {
+        if (th.classList.contains('day-th')) dayW.push(th.getBoundingClientRect().width);
+        else if (th.classList.contains('col-total')) { /* пропускаем ИТОГО */ }
+        else labelW += th.getBoundingClientRect().width;
+      }
+      setStickyMetrics(prev => {
+        if (prev.labelW === labelW && prev.dayW.length === dayW.length &&
+            prev.dayW.every((w, i) => Math.abs(w - dayW[i]) < 0.5)) return prev;
+        return { labelW, dayW };
+      });
+    };
+
     const onScroll = () => {
-      if (!tableWrap) tableWrap = document.querySelector('.schedule-wrap') as HTMLElement | null;
+      if (!tableWrap) tableWrap = document.querySelector('.table-wrap') as HTMLElement | null;
       if (!tableWrap) return;
       const navEl = document.querySelector('.nav') as HTMLElement | null;
       const navH = navEl ? navEl.offsetHeight : 65;
-      setStickyVisible(tableWrap.getBoundingClientRect().top < navH + 2);
+      const table = tableWrap.querySelector('thead');
+      const ref = table || tableWrap;
+      const r = ref.getBoundingClientRect();
+      // Показываем бар, когда шапка таблицы ушла под навбар, но сама таблица ещё в зоне видимости
+      setStickyVisible(r.top < navH + 2 && r.bottom < window.innerHeight && tableWrap.getBoundingClientRect().bottom > navH + 40);
+      if (stickyInnerRef.current) stickyInnerRef.current.scrollLeft = tableWrap.scrollLeft;
     };
     const onTableScroll = () => {
       if (tableWrap && stickyInnerRef.current) stickyInnerRef.current.scrollLeft = tableWrap.scrollLeft;
     };
     const bind = () => {
-      const el = document.querySelector('.schedule-wrap') as HTMLElement | null;
+      const el = document.querySelector('.table-wrap') as HTMLElement | null;
       if (el && el !== tableWrap) { tableWrap?.removeEventListener('scroll', onTableScroll); tableWrap = el; tableWrap.addEventListener('scroll', onTableScroll, { passive: true }); }
+      measure();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', measure);
     const iv = setInterval(bind, 800);
     bind();
-    return () => { window.removeEventListener('scroll', onScroll); tableWrap?.removeEventListener('scroll', onTableScroll); clearInterval(iv); };
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', measure); tableWrap?.removeEventListener('scroll', onTableScroll); clearInterval(iv); };
   }, [stickyInnerRef]);
 
   // Handlers
@@ -266,17 +300,18 @@ export default function SchedulePage() {
       {stickyVisible && (
         <div className="sticky-dates-bar" style={{ display: 'block', top: 65 }}>
           <div className="sticky-dates-inner" ref={stickyInnerRef} style={{ overflowX: 'hidden' }}>
-            <div className="sticky-dates-label" style={{ width: 160, minWidth: 160 }}>Дата</div>
-            {st.days.map(day => {
+            <div className="sticky-dates-label" style={{ width: stickyMetrics.labelW, minWidth: stickyMetrics.labelW }}>Дата</div>
+            {st.days.map((day, di) => {
               const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
               const now = new Date();
               const isToday = day.d === now.getDate() && st.month === now.getMonth() + 1 && st.year === now.getFullYear();
               const ds = `${st.year}-${String(st.month).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`;
+              const w = stickyMetrics.dayW[di] ?? 36;
               return (
                 <div
                   key={day.d}
                   className={`sticky-date-cell${isWeekend ? ' weekend' : ''}${isToday ? ' today' : ''}${ds === st.selectedDateStr ? ' selected' : ''}`}
-                  style={{ width: 36, minWidth: 36 }}
+                  style={{ width: w, minWidth: w }}
                   onClick={() => st.setSelectedDateStr(ds)}
                 >
                   {day.d}

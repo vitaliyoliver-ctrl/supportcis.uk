@@ -474,6 +474,8 @@ async function applySwapToSchedule(env: Env, rec: Record<string, unknown>, appro
   if (!g.type) g.type = rec.shiftType;
   g.extraEvents = [...(g.extraEvents ?? []),
     { type: 'loss_swap_give', hours: rec.hours, range: rec.range, swapWith: rec.recipient, win: rec.win, withLunch: rec.withLunch }];
+  const gNote = `Отдал смену → ${rec.recipient} (${rec.range}, ${rec.hours}ч)`;
+  g.note = g.note ? `${g.note}; ${gNote}` : gNote;
   g.editedBy = `swap-bot (${approver})`; g.editedAt = nowIso;
   ov[gKey] = g;
 
@@ -483,6 +485,8 @@ async function applySwapToSchedule(env: Env, rec: Record<string, unknown>, appro
   if (!hasWorkType) r.type = SWAP_EXTRA_TYPE[rec.shiftType as string];
   r.extraEvents = [...(r.extraEvents ?? []),
     { type: 'extra_swap_take', hours: rec.hours, range: rec.range, swapWith: rec.giver, win: rec.win, withLunch: rec.withLunch }];
+  const rNote = `Получил смену ← ${rec.giver} (${rec.range}, ${rec.hours}ч)`;
+  r.note = r.note ? `${r.note}; ${rNote}` : rNote;
   r.editedBy = `swap-bot (${approver})`; r.editedAt = nowIso;
   ov[rKey] = r;
 

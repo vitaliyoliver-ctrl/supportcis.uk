@@ -386,7 +386,78 @@ app.post('/api/schedule', async (c) => {
   return c.json({ ok: true, version: next.version, log: next.log });
 });
 
-// ── Swap requests ──────────────────────────────────────────────────────────
+// ── Swap helpers ───────────────────────────────────────────────────────────
+
+const SWAP_EXTRA_TYPE: Record<string, string> = {
+  morning: 'extra_morning', evening: 'extra_evening', shift1200: 'extra_1200',
+  vip_morning: 'extra_vip_morning', vip_evening: 'extra_vip_evening', vip_1200: 'extra_vip_1200',
+  super_day: 'extra_sup_day', super_night: 'extra_sup_night', super_day8: 'extra_sup_day8',
+};
+const SWAP_TTL = 60 * 60 * 24 * 60;
+
+async function tgApi(env: Env, method: string, payload: unknown) {
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/${method}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    return await r.json() as Record<string, unknown>;
+  } catch { return { ok: false }; }
+}
+
+function escTg(s: unknown) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function lunchText(rec: Record<string, unknown>) {
+  return rec.withLunch ? 'передаётся получателю' : 'остаётся у отдающего';
+}
+
+function swapTgText(rec: Record<string, unknown>) {
+  let t = `🔄 <b>Заявка на обмен смены</b>\n\n`;
+  t += `Отдаёт: <b>${escTg(rec.giver)}</b>\n`;
+  t += `Получает: <b>${escTg(rec.recipient)}</b>\n`;
+  t += `Дата: <b>${escTg(rec.date)}</b>\n`;
+  t += `Смена: ${escTg(rec.shiftLabel)}\n`;
+  t += `Часы: <b>${escTg(rec.range)}</b> · ${rec.hours}ч\n`;
+  t += `Обед: <b>${lunchText(rec)}</b>\n`;
+  if (rec.comment) t += `Комментарий: ${escTg(rec.comment)}\n`;
+  t += `\nОт: ${escTg(rec.giverEmail)}`;
+  return t;
+}
+
+async function applySwapToSchedule(env: Env, rec: Record<string, unknown>, approver: string) {
+  const key = scheduleKey(String(rec.project || 'sg'), String(rec.month));
+  const raw = await env.AUTH_KV.get(key);
+  const blob: ScheduleBlob = raw ? JSON.parse(raw) : emptyBlob();
+  const overrides = { ...blob.overrides };
+  const nowIso = new Date().toISOString();
+
+  const gKey = `${rec.giver}:${rec.date}`;
+  const g = overrides[gKey] ? { ...overrides[gKey] } : { type: rec.shiftType };
+  if (!g.type) g.type = rec.shiftType as string;
+  g.extraEvents = [...(g.extraEvents ?? []),
+    { type: 'loss_swap_give', hours: rec.hours, range: rec.range, swapWith: rec.recipient, win: rec.win, withLunch: rec.withLunch }];
+  g.editedBy = `swap-bot (${approver})`; g.editedAt = nowIso;
+  overrides[gKey as string] = g;
+
+  const rKey = `${rec.recipient}:${rec.date}`;
+  const r = overrides[rKey] ? { ...overrides[rKey] } : {};
+  if (!r.type || r.type === 'off' || r.type === 'birthday') r.type = SWAP_EXTRA_TYPE[rec.shiftType as string];
+  r.extraEvents = [...(r.extraEvents ?? []),
+    { type: 'extra_swap_take', hours: rec.hours, range: rec.range, swapWith: rec.giver, win: rec.win, withLunch: rec.withLunch }];
+  r.editedBy = `swap-bot (${approver})`; r.editedAt = nowIso;
+  overrides[rKey as string] = r;
+
+  const newLog = [...(blob.log ?? []), {
+    at: nowIso, by: `tg:${approver}`,
+    action: `свап (бот): ${rec.giver} → ${rec.recipient} · ${rec.date} · ${rec.range} (${rec.hours}ч)`,
+    target: String(rec.recipient),
+  }].slice(-200);
+
+  await env.AUTH_KV.put(key, JSON.stringify({ ...blob, overrides, version: Date.now(), log: newLog }));
+}
+
+// ── Swap request ────────────────────────────────────────────────────────────
 
 app.post('/api/swap-request', async (c) => {
   const session = await getSession(c);
@@ -394,28 +465,97 @@ app.post('/api/swap-request', async (c) => {
 
   const body = await c.req.json<Record<string, unknown>>();
   const id = crypto.randomUUID();
-  const swap = { id, ...body, requestedBy: session.email, status: 'pending', createdAt: new Date().toISOString() };
-  await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(swap));
+  const rec: Record<string, unknown> = {
+    id, status: 'pending', createdAt: new Date().toISOString(),
+    giverEmail: session.email,
+    project: body.project || 'sg',
+    month: body.month, date: body.date,
+    giver: body.giver, recipient: body.recipient, recipientEmail: body.recipientEmail,
+    shiftType: body.shiftType, shiftLabel: body.shiftLabel ?? body.shiftType,
+    range: body.range, hours: body.hours, comment: body.comment ?? '',
+    win: body.win, withLunch: body.withLunch === true,
+  };
 
-  // Уведомление в Telegram
-  if (c.env.TG_BOT_TOKEN && c.env.TG_CHAT_ID) {
-    const text =
-      `🔄 Запрос свапа\n` +
-      `${body.giver} → ${body.recipient}\n` +
-      `${body.date} · ${body.shiftLabel || body.shiftType} ${body.range || ''}\n` +
-      `${body.comment ? 'Комментарий: ' + body.comment : ''}`;
-    c.executionCtx.waitUntil(
-      fetch(`https://api.telegram.org/bot${c.env.TG_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: c.env.TG_CHAT_ID, text }),
-      }).then(r => r.json()).then(r => console.log('[TG swap]', JSON.stringify(r))).catch(e => console.error('[TG swap error]', e))
-    );
-  } else {
-    console.log('[TG swap] skipped, token:', !!c.env.TG_BOT_TOKEN, 'chat:', c.env.TG_CHAT_ID);
+  const tgRes = await tgApi(c.env, 'sendMessage', {
+    chat_id: c.env.TG_CHAT_ID,
+    text: swapTgText(rec),
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: [[
+      { text: '✅ Апрув', callback_data: `sw:a:${id}` },
+      { text: '❌ Отказ', callback_data: `sw:d:${id}` },
+    ]] },
+  });
+
+  if (!tgRes.ok) return c.json({ ok: false, error: 'Не удалось отправить заявку в Telegram' }, 502);
+
+  rec.tgMessageId = (tgRes.result as Record<string, unknown>)?.message_id ?? null;
+  await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(rec), { expirationTtl: SWAP_TTL });
+  return c.json({ ok: true, id });
+});
+
+// ── Telegram webhook (approve / deny) ──────────────────────────────────────
+
+app.post('/api/tg-webhook', async (c) => {
+  const secret = c.req.header('X-Telegram-Bot-Api-Secret-Token');
+  if (!c.env.TG_WEBHOOK_SECRET || secret !== c.env.TG_WEBHOOK_SECRET) {
+    return c.text('forbidden', 403);
   }
 
-  return c.json({ ok: true, id });
+  let update: Record<string, unknown>;
+  try { update = await c.req.json(); } catch { return c.json({ ok: true }); }
+
+  const cb = update?.callback_query as Record<string, unknown> | undefined;
+  if (!cb?.data) return c.json({ ok: true });
+
+  const m = String(cb.data).match(/^sw:(a|d):([0-9a-f-]{36})$/);
+  if (!m) { await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id }); return c.json({ ok: true }); }
+
+  const action = m[1];
+  const id = m[2];
+  const from = cb.from as Record<string, unknown>;
+  const approver = from?.username ? `@${from.username}` : String(from?.first_name ?? 'неизвестно');
+  const cbMsg = cb.message as Record<string, unknown>;
+
+  const raw = await c.env.AUTH_KV.get(`swap:${id}`);
+  if (!raw) {
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Заявка не найдена или истекла' });
+    return c.json({ ok: true });
+  }
+  const rec = JSON.parse(raw) as Record<string, unknown>;
+
+  if (rec.status !== 'pending') {
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Уже: ${rec.status === 'approved' ? 'апрув' : 'отказ'}` });
+    return c.json({ ok: true });
+  }
+
+  if (action === 'd') {
+    rec.status = 'denied'; rec.decidedBy = approver; rec.decidedAt = new Date().toISOString();
+    await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(rec), { expirationTtl: SWAP_TTL });
+    await tgApi(c.env, 'editMessageText', {
+      chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
+      message_id: cbMsg?.message_id ?? rec.tgMessageId,
+      text: swapTgText(rec) + `\n\n❌ <b>Отказано</b> · ${escTg(approver)}`,
+      parse_mode: 'HTML',
+    });
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Отказано' });
+    return c.json({ ok: true });
+  }
+
+  try { await applySwapToSchedule(c.env, rec, approver); } catch (e) {
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Ошибка применения к графику!' });
+    return c.json({ ok: true });
+  }
+
+  rec.status = 'approved'; rec.decidedBy = approver; rec.decidedAt = new Date().toISOString();
+  await c.env.AUTH_KV.put(`swap:${id}`, JSON.stringify(rec), { expirationTtl: SWAP_TTL });
+  await tgApi(c.env, 'editMessageText', {
+    chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
+    message_id: cbMsg?.message_id ?? rec.tgMessageId,
+    text: swapTgText(rec) + `\n\n✅ <b>Апрув</b> · ${escTg(approver)} · применено к графику`,
+    parse_mode: 'HTML',
+  });
+  await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Апрув, график обновлён' });
+  return c.json({ ok: true });
 });
 
 // ── Sales ──────────────────────────────────────────────────────────────────

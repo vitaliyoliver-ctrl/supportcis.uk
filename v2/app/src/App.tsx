@@ -60,6 +60,7 @@ const TLDataPage      = React.lazy(() => import('./pages/tl/TLDataPage'));
 const TLDailyReport   = React.lazy(() => import('./pages/tl/TLDailyReport'));
 const TLFcrPage       = React.lazy(() => import('./pages/tl/TLFcrPage'));
 const TLRolesPage     = React.lazy(() => import('./pages/tl/TLRolesPage'));
+const TLCsatPage      = React.lazy(() => import('./pages/tl/TLCsatPage'));
 
 const OpsPage         = React.lazy(() => import('./pages/ops/OpsPage'));
 const OpsStructure    = React.lazy(() => import('./pages/ops/OpsStructure'));
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/tl/data"         element={<RequireRole roles={['tl','ops']}><TLDataPage /></RequireRole>} />
         <Route path="/tl/daily-report" element={<RequireRole roles={['tl','ops']}><TLDailyReport /></RequireRole>} />
         <Route path="/tl/fcr"          element={<RequireRole roles={['tl','ops']}><TLFcrPage /></RequireRole>} />
+        <Route path="/tl/csat"         element={<RequireRole roles={['tl','ops']}><TLCsatPage /></RequireRole>} />
         <Route path="/tl/roles"        element={<RequireRole roles={['tl','ops']}><TLRolesPage /></RequireRole>} />
 
         {/* Ops */}

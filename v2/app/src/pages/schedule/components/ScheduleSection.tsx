@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import type { SectionDef } from '@/lib/useScheduleState';
 import type { Override } from '@/lib/scheduleLogic';
 import { calcDayHours, dateStr, shiftCellClass, shiftCellLabel } from '@/lib/scheduleLogic';
@@ -25,6 +25,7 @@ interface ScheduleSectionProps {
   onQuickEdit: (name: string, ds: string, di: number) => void;
   onOpenPattern: (name: string) => void;
   onMoveOperator: (srcName: string, fromKey: string, toKey: string, beforeName: string | null, insertAfter: boolean) => void;
+  onRemoveMember?: (name: string, sectionKey: string) => void;
 }
 
 const WEEKDAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -68,8 +69,10 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   onQuickEdit,
   onOpenPattern,
   onMoveOperator,
+  onRemoveMember,
 }) => {
-  const [dragOver, setDragOver] = useState<string | null>(null);
+  // Drag refs — no state updates during drag to prevent flickering
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
   const allMembers = useMemo(() => allSections.flatMap(s => s.members), [allSections]);
 
@@ -128,22 +131,37 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
     return -1;
   }, [section.members, getEmp]);
 
+  const clearDragStyles = () => {
+    rowRefs.current.forEach(el => el.classList.remove('drag-over-top'));
+  };
+
   const handleDragStart = (e: React.DragEvent, name: string) => {
     e.dataTransfer.setData('text/plain', JSON.stringify({ name, fromKey: section.key }));
+    (e.currentTarget as HTMLElement).style.opacity = '0.4';
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '';
+    clearDragStyles();
+  };
+
+  const handleDragOver = (e: React.DragEvent, name: string) => {
+    e.preventDefault();
+    clearDragStyles();
+    rowRefs.current.get(name)?.classList.add('drag-over-top');
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).classList.remove('drag-over-top');
   };
 
   const handleDrop = (e: React.DragEvent, beforeName: string | null, insertAfter: boolean) => {
     e.preventDefault();
-    setDragOver(null);
+    clearDragStyles();
     try {
       const data = JSON.parse(e.dataTransfer.getData('text/plain'));
       onMoveOperator(data.name, data.fromKey, section.key, beforeName, insertAfter);
     } catch {}
-  };
-
-  const handleDragOver = (e: React.DragEvent, key: string) => {
-    e.preventDefault();
-    setDragOver(key);
   };
 
   return (
@@ -220,29 +238,39 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                     <React.Fragment key={name}>
                       {dividerAfterIndex === memberIndex - 1 && (
                         <tr>
-                          <td colSpan={days.length + (infoColumnVisible ? 3 : 2)} className="section-divider" />
+                          <td colSpan={days.length + (infoColumnVisible ? 3 : 2)} className="section-divider-cell">ОПЕРАТОРЫ</td>
                         </tr>
                       )}
                       <tr
+                        ref={el => { if (el) rowRefs.current.set(name, el); }}
                         draggable={positionsMode}
                         onDragStart={positionsMode ? e => handleDragStart(e, name) : undefined}
+                        onDragEnd={positionsMode ? handleDragEnd : undefined}
                         onDragOver={positionsMode ? e => handleDragOver(e, name) : undefined}
+                        onDragLeave={positionsMode ? handleDragLeave : undefined}
                         onDrop={positionsMode ? e => handleDrop(e, name, false) : undefined}
-                        onDragLeave={() => setDragOver(null)}
-                        className={dragOver === name ? 'drop-zone' : ''}
                       >
                         <td className="col-name name-cell" style={isDismissed ? { opacity: 0.5 } : undefined}>
                           {positionsMode && <span style={{ cursor: 'grab', marginRight: 4 }}>⠿</span>}
                           <span style={{ cursor: isAdmin ? 'pointer' : 'default' }} onClick={() => isAdmin && onQuickEdit(name, dateStr(year, month, days[0].d), 0)}>
                             {name}
                           </span>
-                          {isAdmin && (
+                          {isAdmin && !positionsMode && (
                             <button
                               style={{ marginLeft: 4, fontSize: 10, opacity: 0.6, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                               onClick={e => { e.stopPropagation(); onOpenPattern(name); }}
                               title="Паттерн"
                             >
                               ⚙
+                            </button>
+                          )}
+                          {positionsMode && onRemoveMember && (
+                            <button
+                              style={{ marginLeft: 4, fontSize: 10, opacity: 0.5, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#f87171' }}
+                              onClick={e => { e.stopPropagation(); onRemoveMember(name, section.key); }}
+                              title="Убрать из секции"
+                            >
+                              ✕
                             </button>
                           )}
                         </td>
@@ -259,12 +287,13 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                           const key = `${name}:${ds}`;
                           const ovr = overrides[key];
                           const cls = shiftCellClass(type);
+                          const hasExtra = !!(ovr?.extraEvents?.length);
                           const label = shiftCellLabel(type, ovr, name, employeeHoursSeed);
                           const isSelected = ds === selectedDateStr;
                           return (
                             <td
                               key={day.d}
-                              className={`shift-cell ${cls}${isSelected ? ' is-selected' : ''}`}
+                              className={`shift-cell ${cls}${isSelected ? ' is-selected' : ''}${hasExtra ? ' cell-has-extra' : ''}`}
                               onClick={() => {
                                 if (isAdmin) onQuickEdit(name, ds, di);
                                 else onSelectDate(ds, di);

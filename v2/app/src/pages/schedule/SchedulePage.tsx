@@ -57,7 +57,7 @@ export default function SchedulePage() {
     const saved = localStorage.getItem('theme');
     return saved !== 'light';
   });
-  const [infoColumnVisible, setInfoColumnVisible] = useState(true);
+  const [infoColumnVisible, setInfoColumnVisible] = useState(false);
   const [positionsMode, setPositionsMode] = useState(false);
   const [logVisible, setLogVisible] = useState(false);
 
@@ -184,6 +184,15 @@ export default function SchedulePage() {
       showToast('Ошибка', 'err');
     }
   }, [st, showToast]);
+
+  const handleRemoveMember = useCallback((name: string, sectionKey: string) => {
+    const customOrder: Record<string, string[]> = {};
+    st.sections.forEach(s => {
+      customOrder[s.key] = [...(st.settings.customOrder?.[s.key] ?? s.members)];
+    });
+    customOrder[sectionKey] = customOrder[sectionKey].filter(n => n !== name);
+    handleSaveSettings({ ...st.settings, customOrder }, [{ action: `убран из секции: ${name}`, target: name }]);
+  }, [st.sections, st.settings, handleSaveSettings]);
 
   const handleMoveOperator = useCallback((
     srcName: string, fromKey: string, toKey: string,
@@ -441,17 +450,27 @@ export default function SchedulePage() {
             onQuickEdit={handleQuickEdit}
             onOpenPattern={(name) => { setPatternName(name); setPatternOpen(true); }}
             onMoveOperator={handleMoveOperator}
+            onRemoveMember={positionsMode ? handleRemoveMember : undefined}
           />
         ))}
       </React.Suspense>
 
-      {/* Log */}
-      {logVisible && (
-        <React.Suspense fallback={null}>
-          <LogPanel log={st.log} />
-        </React.Suspense>
-      )}
       </div>{/* /.main */}
+
+      {/* Log drawer (right side) */}
+      {logVisible && (
+        <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) setLogVisible(false); }}>
+          <div className="modal-panel" style={{ width: 420, maxWidth: '95vw', maxHeight: 'calc(100vh - 32px)' }}>
+            <div className="modal-title">
+              🕐 История изменений
+              <button className="modal-close" onClick={() => setLogVisible(false)}>✕</button>
+            </div>
+            <React.Suspense fallback={null}>
+              <LogPanel log={st.log} />
+            </React.Suspense>
+          </div>
+        </div>
+      )}
 
       {/* Shift editor */}
       {st.isAdmin && (

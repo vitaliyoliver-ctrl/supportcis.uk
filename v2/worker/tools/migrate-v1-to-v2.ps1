@@ -1,8 +1,18 @@
-param([switch]$Apply)
+# ОДНОРАЗОВЫЙ инструмент исходного владельца: переносит данные из старых
+# namespace'ов v1 (SCHEDULE_KV, OPS/role-lists) в KV формата v2.
+# Никаких id в коде — передаются параметрами, чтобы в репозитории не было
+# привязки к конкретному аккаунту:
+#   .\migrate-v1-to-v2.ps1 -SchedKv <id> -OpsKv <id> -TargetKv <id> [-Apply]
+param(
+  [Parameter(Mandatory=$true)][string]$SchedKv,
+  [Parameter(Mandatory=$true)][string]$OpsKv,
+  [Parameter(Mandatory=$true)][string]$TargetKv,
+  [switch]$Apply
+)
 
-$SCHED_KV = "0ebe3fb553fe4abf855ca1124d2bb597"
-$OPS_KV   = "2e73bd6374e944ac8b114c777eae15c9"
-$NEW_KV   = "e8660703a72b45e69d4e2750a6f88228"
+$SCHED_KV = $SchedKv
+$OPS_KV   = $OpsKv
+$NEW_KV   = $TargetKv
 
 $ErrorActionPreference = "Stop"
 

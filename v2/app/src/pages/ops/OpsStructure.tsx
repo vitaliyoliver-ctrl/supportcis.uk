@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
+import BackButton from '@/components/BackButton';
 
 // Operation Structure — port of ops/structure/index.html
 // Self-contained org-chart editor: contenteditable cards, interactive tree,
 // SVG connectors, autosave to external Worker API. The original is a tightly
 // coupled imperative DOM app; we preserve it verbatim inside a scoped effect.
 
-const API_URL = 'https://ops-structure-api.vitaliy-barkhanskiy.workers.dev/';
+// Оргструктура хранится в собственном воркере v2 (same-origin), не во внешнем сервисе.
+const API_URL = '/api/ops/structure';
 
 const BODY_HTML = `
 <div class="top-bar">
@@ -345,7 +347,7 @@ export default function OpsStructure() {
     function saveToAPI() {
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(DATA) })
+        fetch(API_URL, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(DATA) })
           .then((r) => { if (r.ok) showSaveStatus('✓ Сохранено', '#22c55e'); else showSaveStatus('✗ Ошибка', '#ef4444'); })
           .catch(() => showSaveStatus('✗ Нет связи', '#ef4444'));
       }, 800);
@@ -607,7 +609,7 @@ export default function OpsStructure() {
     document.addEventListener('keydown', onKey);
     window.addEventListener('resize', drawConnectors);
 
-    fetch(API_URL)
+    fetch(API_URL, { credentials: 'include' })
       .then((r) => r.json())
       .then((json: Dept[]) => {
         DATA = json.filter((d) => d.id !== 'pv');
@@ -633,6 +635,7 @@ export default function OpsStructure() {
   return (
     <div className="ops-structure" ref={rootRef}>
       <style>{CSS}</style>
+      <BackButton to="/ops" />
       <div dangerouslySetInnerHTML={{ __html: BODY_HTML }} />
     </div>
   );

@@ -162,9 +162,19 @@
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  color: inherit;
 }
 .cell-off .shift-cell-label,
 .cell-dismissed .shift-cell-label { font-weight: 400; font-size: 16px; text-shadow: none; }
+.cell-extra-day .shift-cell-label,
+.cell-extra-vip-day .shift-cell-label,
+.cell-morning .shift-cell-label,
+.cell-1200 .shift-cell-label,
+.cell-vip-day .shift-cell-label,
+.cell-vip-1200 .shift-cell-label,
+.cell-super-day .shift-cell-label,
+.cell-super-day8 .shift-cell-label,
+.cell-work8 .shift-cell-label { color: #111; text-shadow: none; }
 
 /* ── Шапка счётчиков ─────────────────────────────────────────────── */
 .thead-counts th {

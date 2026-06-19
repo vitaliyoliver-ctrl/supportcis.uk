@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import BackButton from '@/components/BackButton';
 
 // FCR Calculator — port of tl/fcr/index.html
@@ -60,7 +60,7 @@ function findOpCols(h: string[]): number[] {
   return res;
 }
 function detect(h: string[]): 'livechat' | 'chatwoot' {
-  const j = h.join(' ');
+  const j = h.map(c => c.toLowerCase()).join(' ');
   if (j.includes('conversation id') || j.includes('id чата') || j.includes('источник')) return 'chatwoot';
   return 'livechat';
 }
@@ -221,6 +221,24 @@ export default function TLFcrPage() {
   const [sortCol, setSortCol] = useState('total');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Бот → наиболее частый проект (для колонки «Проект» во вкладке Боты), как в v1.
+  const bpm = useMemo(() => {
+    const counts: Record<string, Record<string, number>> = {};
+    for (const x of data ?? []) {
+      if (!x.botName) continue;
+      const b = botBase(x.botName);
+      if (!counts[b]) counts[b] = {};
+      counts[b][x.project] = (counts[b][x.project] || 0) + 1;
+    }
+    const out: Record<string, string> = {};
+    for (const [b, projs] of Object.entries(counts)) {
+      let best = '', bn = 0;
+      for (const [k, n] of Object.entries(projs)) if (n > bn) { best = k; bn = n; }
+      out[b] = best;
+    }
+    return out;
+  }, [data]);
 
   const recalc = useCallback((d: Chat[], s: typeof src, f: typeof filter) => {
     let ctx = d;
@@ -444,7 +462,7 @@ export default function TLFcrPage() {
             {tab === 'projects' && <TableView rows={toRows(result.byProject)} nameLabel="Проект" />}
             {tab === 'tiers' && <TableView rows={toRows(result.byTier).map(r => ({ ...r, name: TL_LABELS[r.name] || r.name }))} nameLabel="Тир" />}
             {tab === 'operators' && <TableView rows={toRows(result.byOp)} nameLabel="Оператор" />}
-            {tab === 'bots' && src === 'livechat' && <TableView rows={toRows(result.byBot).map(r => { const b = botBase(r.name); return { ...r, botType: isPrvBot(r.name) ? 'PreVIP' : 'Regular' }; })} nameLabel="Бот" extraCols={[{ key: 'botType', label: 'Тип' }]} />}
+            {tab === 'bots' && src === 'livechat' && <TableView rows={toRows(result.byBot).map(r => { const b = botBase(r.name); return { ...r, botProject: bpm[b] || '—', botType: isPrvBot(r.name) ? 'PreVIP' : 'Regular' }; })} nameLabel="Бот" extraCols={[{ key: 'botProject', label: 'Проект' }, { key: 'botType', label: 'Тип' }]} />}
             {tab === 'tags' && <TableView rows={toRows(result.byTag)} nameLabel="Тег" />}
           </>
         )}

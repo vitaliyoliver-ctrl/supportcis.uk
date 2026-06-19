@@ -99,7 +99,12 @@ export default function ProfilePage() {
       const data = await res.json();
       if (res.status === 401) { navigate('/login?redirect=/profile', { replace: true }); return; }
       if (res.ok && data.ok) {
-        if (data.profile) { setProfile(p => ({ ...p!, ...data.profile })); }
+        if (data.profile) {
+          setProfile(p => ({ ...p!, ...data.profile }));
+          // Отразить в полях нормализованные сервером значения (без @, обрезанная дата).
+          if (typeof data.profile.telegram === 'string') setTelegram(data.profile.telegram);
+          if (typeof data.profile.since === 'string') setSince(data.profile.since);
+        }
         showToast('Сохранено', 'ok');
       } else {
         showToast(data.error || 'Не удалось сохранить', 'err');

@@ -10,7 +10,7 @@ import { SHIFT_DEFS } from './shiftDefs';
 
 // ── Сид-данные проектов (заменятся в v2.1 на API-запрос) ──────────────────────
 
-import { PROJECTS, type ProjectKey } from './projects';
+import { PROJECTS, type ProjectKey, type CountConfig } from './projects';
 
 // ── Типы ─────────────────────────────────────────────────────────────────────────
 
@@ -22,6 +22,10 @@ export interface SectionDef {
   label: string;
   color: string;
   members: string[];
+  /** Конфиг счётчиков «на смене» (если у секции они есть). */
+  count?: CountConfig;
+  /** Временная секция — исключается из подсчёта часов и итогов. */
+  isTemp?: boolean;
 }
 
 // ── Хук ───────────────────────────────────────────────────────────────────────────
@@ -66,9 +70,11 @@ export function useScheduleState(
       return {
         ...s,
         members: Array.isArray(order) && order.length ? [...order] : [...s.members],
+        count: seed.countSections[s.key],
+        isTemp: seed.tempSectionKeys.includes(s.key),
       };
     });
-  }, [settings.customOrder, seed.sections]);
+  }, [settings.customOrder, seed]);
 
   // getEmp — единый доступ к данным сотрудника
   const getEmp = useCallback((name: string): EmployeeData => {
@@ -166,7 +172,8 @@ export function useScheduleState(
     // Секции
     sections, filteredSections,
     // Проект
-    filters: seed.filters, projectLabel: seed.label, project, swapSectionKeys: seed.swapSectionKeys,
+    filters: seed.filters, projectLabel: seed.label, project,
+    statCards: seed.statCards, onlineOperatorsOnly: seed.onlineOperatorsOnly, swapSectionKeys: seed.swapSectionKeys,
     // Helpers
     getEmp, getShiftForCell,
     employeeHoursSeed: seed.operatorHours,

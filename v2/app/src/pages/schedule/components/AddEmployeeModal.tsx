@@ -55,14 +55,18 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       ...(settings.employeeOverrides ?? {}),
       [trimmedName]: { email: email.trim(), position: position.trim(), since: since || undefined },
     };
-    const newPeople = {
-      ...(settings.people ?? {}),
-      [trimmedName]: { section, order: 9999 },
+    // Добавляем имя в customOrder выбранной секции — именно его читает useScheduleState
+    // (как в v1). Раньше писали в settings.people, который нигде не читается → сотрудник
+    // сохранялся, но не появлялся ни в одной секции.
+    const sec = sections.find(s => s.key === section);
+    const newCustomOrder = {
+      ...(settings.customOrder ?? {}),
+      [section]: [...(sec ? sec.members : []), trimmedName],
     };
     const newSettings = {
       ...settings,
       employeeOverrides: newEmployeeOverrides,
-      people: newPeople,
+      customOrder: newCustomOrder,
     };
 
     setSaving(true);

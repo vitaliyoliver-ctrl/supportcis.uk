@@ -3,6 +3,7 @@ import type { SectionDef } from '@/lib/useScheduleState';
 import type { Override } from '@/lib/scheduleLogic';
 import { calcDayHours } from '@/lib/scheduleLogic';
 import { MIN_STAFF } from '@/lib/shiftDefs';
+import type { ProjectKey } from '@/lib/projects';
 
 interface DayInfoPanelProps {
   dateStr: string | null;
@@ -14,6 +15,7 @@ interface DayInfoPanelProps {
   employeeHoursSeed: Record<string, number>;
   getEmp: (name: string) => { hours?: number; position: string };
   onClose: () => void;
+  project: ProjectKey;
 }
 
 const REG_DAY_TYPES   = new Set(['morning', 'extra_morning']);
@@ -29,7 +31,7 @@ function isSup(pos: string) {
   return pos.includes('Supervisor') || pos.includes('VIP Sup') || pos.includes('Head');
 }
 
-const DayInfoPanel: React.FC<DayInfoPanelProps> = ({
+const SgDayInfo: React.FC<DayInfoPanelProps> = ({
   dateStr, dayIndex, days, sections, getShiftForCell, overrides, employeeHoursSeed, getEmp, onClose,
 }) => {
   const info = useMemo(() => {
@@ -188,5 +190,102 @@ const DayInfoPanel: React.FC<DayInfoPanelProps> = ({
     </div>
   );
 };
+
+// Панель дня для НК: «на смене» (Support NC день/ночь) + имена супервайзеров и
+// саппорта на смене. Секции/пороги берутся из конфига проекта (support_nk.count).
+const NkDayInfo: React.FC<DayInfoPanelProps> = ({
+  dateStr, dayIndex, days, sections, getShiftForCell, overrides, employeeHoursSeed, onClose,
+}) => {
+  const info = useMemo(() => {
+    if (dateStr === null || dayIndex < 0 || dayIndex >= days.length) return null;
+    const supportSec = sections.find(s => s.key === 'support_nk');
+    const supSec = sections.find(s => s.key === 'supervisors_nk');
+    const cfg = supportSec?.count;
+    const dayTypes = cfg?.dayTypes ?? ['morning', 'extra_morning'];
+    const nightTypes = cfg?.nightTypes ?? ['evening', 'extra_evening'];
+
+    const getType = (n: string) => getShiftForCell(n, dayIndex);
+    const getH = (n: string, t: string) => calcDayHours(t, overrides[`${n}:${dateStr}`], n, employeeHoursSeed);
+    const frac = (members: string[], types: string[]) => {
+      let s = 0;
+      for (const n of members) { const t = getType(n); if (types.includes(t)) s += getH(n, t) / 11; }
+      return s;
+    };
+    const namesOn = (members: string[], types: string[]) =>
+      members.filter(n => { const t = getType(n); return types.includes(t) && getH(n, t) > 0; });
+
+    const supportMembers = supportSec?.members ?? [];
+    const supMembers = supSec?.members ?? [];
+    const d = days[dayIndex];
+    return {
+      dateLabel: d.date.toLocaleDateString('ru', { day: 'numeric', month: 'long', weekday: 'long' }),
+      day: frac(supportMembers, dayTypes), night: frac(supportMembers, nightTypes),
+      dayMin: cfg?.dayMin ?? 2, nightMin: cfg?.nightMin ?? 1,
+      supDayNames: namesOn(supMembers, dayTypes), supNightNames: namesOn(supMembers, nightTypes),
+      supportDayNames: namesOn(supportMembers, dayTypes), supportNightNames: namesOn(supportMembers, nightTypes),
+    };
+  }, [dateStr, dayIndex, days, sections, getShiftForCell, overrides, employeeHoursSeed]);
+
+  const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
+  if (dateStr === null) return null;
+
+  const nameBlock = (title: string, rows: Array<{ color: string; label: string; names: string[] }>) => (
+    <div className="day-info-block">
+      <div className="day-info-block-title">{title}</div>
+      {rows.map(row => (
+        <div key={row.label} className="day-info-row day-info-row-names">
+          <span className="day-info-shift-label" style={{ color: row.color }}>
+            <span className="day-info-dot" style={{ background: row.color }} />{row.label}
+          </span>
+          <span className="day-info-names-list">
+            {row.names.length > 0
+              ? row.names.map(n => <span key={n} className="day-info-name">{n}</span>)
+              : <span className="day-info-name day-info-name-empty">—</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="day-info-panel open">
+      <div className="day-info-header">
+        <div className="day-info-title">{info?.dateLabel ?? ''}</div>
+        <button className="day-info-close" onClick={onClose}>✕</button>
+      </div>
+      {info && (
+        <div className="day-info-body">
+          <div className="day-info-block">
+            <div className="day-info-block-title">Support NC — на смене</div>
+            {([
+              { color: '#60a5fa', label: '09–21', val: info.day,   low: info.day   < info.dayMin },
+              { color: '#818cf8', label: '21–09', val: info.night, low: info.night < info.nightMin },
+            ] as const).map(row => (
+              <div key={row.label} className="day-info-row">
+                <span className="day-info-shift-label" style={{ color: row.color }}>
+                  <span className="day-info-dot" style={{ background: row.color }} />{row.label}
+                </span>
+                <span className="day-info-num" style={{ color: row.low ? 'var(--c-red)' : row.color }}>
+                  {fmt(row.val)}{row.low && <span className="day-info-warn">⚠</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+          {nameBlock('Supervisors', [
+            { color: '#facc15', label: 'День', names: info.supDayNames },
+            { color: '#991b1b', label: 'Ночь', names: info.supNightNames },
+          ])}
+          {nameBlock('Support NC', [
+            { color: '#60a5fa', label: 'День', names: info.supportDayNames },
+            { color: '#818cf8', label: 'Ночь', names: info.supportNightNames },
+          ])}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DayInfoPanel: React.FC<DayInfoPanelProps> = (props) =>
+  props.project === 'nk' ? <NkDayInfo {...props} /> : <SgDayInfo {...props} />;
 
 export default React.memo(DayInfoPanel);

@@ -418,6 +418,8 @@ export default function SchedulePage({ project = 'sg' }: { project?: ProjectKey 
       <React.Suspense fallback={null}>
         <StatsBar
           sections={st.sections}
+          statCards={st.statCards}
+          onlineOperatorsOnly={st.onlineOperatorsOnly}
           getShiftForCell={st.getShiftForCell}
           days={st.days}
           year={st.year}
@@ -450,6 +452,7 @@ export default function SchedulePage({ project = 'sg' }: { project?: ProjectKey 
           employeeHoursSeed={st.employeeHoursSeed}
           getEmp={st.getEmp}
           onClose={() => st.setSelectedDateStr(null)}
+          project={st.project}
         />
       </React.Suspense>
 

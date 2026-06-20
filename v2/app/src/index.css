@@ -1,2 +1,21 @@
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-family: sans-serif; background: #0a0c10; color: #fff; }
+
+/* Глобальные токены темы основного сайта. Страницы со своим scoped-CSS
+   (график, перерывы, продажи) переопределяют их у себя и не затрагиваются.
+   LoginPage и ProfilePage опираются именно на эти переменные. */
+:root {
+  --bg:        #0a0c10;
+  --bg-card:   #111318;
+  --bg-card2:  #15181f;
+  --border:    rgba(255, 255, 255, 0.08);
+  --text:      #e8eaf0;
+  --text-sub:  #9ca3b0;
+  --muted:     #6b7280;
+  --accent:    #4f8ef7;
+  --c-red:     #f87171;
+}
+
+body { margin: 0; font-family: 'Mulish', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }

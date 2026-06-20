@@ -512,7 +512,7 @@ export default function TLMainPage() {
   }
 
   return (
-    <div className="tlmain">
+    <div className="tlmain" style={{ paddingTop: 56 }}>
       <style>{CSS}</style>
       <BackButton to="/tl" />
       <div className="header"><h1>Metrics Analyzer</h1><div className="badge">MEET</div></div>

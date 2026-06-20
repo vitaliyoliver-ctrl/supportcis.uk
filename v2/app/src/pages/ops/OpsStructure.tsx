@@ -633,7 +633,7 @@ export default function OpsStructure() {
   }, []);
 
   return (
-    <div className="ops-structure" ref={rootRef}>
+    <div className="ops-structure" ref={rootRef} style={{ paddingTop: 56 }}>
       <style>{CSS}</style>
       <BackButton to="/ops" />
       <div dangerouslySetInnerHTML={{ __html: BODY_HTML }} />

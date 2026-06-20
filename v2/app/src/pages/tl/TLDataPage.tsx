@@ -1036,7 +1036,7 @@ export default function TLDataPage() {
   }, []);
 
   return (
-    <div className="tldata" ref={rootRef}>
+    <div className="tldata" ref={rootRef} style={{ paddingTop: 56 }}>
       <style>{CSS}</style>
       <BackButton to="/tl" />
       <div dangerouslySetInnerHTML={{ __html: BODY_HTML }} />

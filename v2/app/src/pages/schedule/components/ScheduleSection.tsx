@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import type { SectionDef } from '@/lib/useScheduleState';
 import type { Override } from '@/lib/scheduleLogic';
 import { calcDayHours, dateStr, shiftCellClass, shiftCellLabel } from '@/lib/scheduleLogic';
-import { MIN_STAFF, SHIFT_DEFS } from '@/lib/shiftDefs';
+import { SHIFT_DEFS } from '@/lib/shiftDefs';
 
 interface ScheduleSectionProps {
   section: SectionDef;
@@ -30,19 +30,8 @@ interface ScheduleSectionProps {
 
 const WEEKDAY_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 
-const COUNT_SECTION_KEYS = new Set(['regular_support', 'vip_support']);
-
-// Строки счётчиков по сменам — отдельно для regular и vip (как в v1).
-const SHIFT_ROWS_REG = [
-  { types: ['morning', 'extra_morning'],   label: '09–21', color: '#60a5fa', min: MIN_STAFF.day },
-  { types: ['evening', 'extra_evening'],   label: '21–09', color: '#818cf8', min: MIN_STAFF.night },
-  { types: ['shift1200', 'extra_1200'],    label: '12–00', color: '#f59e0b', min: MIN_STAFF.d12 },
-];
-const SHIFT_ROWS_VIP = [
-  { types: ['vip_evening', 'extra_vip_evening'], label: '09–21', color: '#2dd4bf', min: MIN_STAFF.day },
-  { types: ['vip_morning', 'extra_vip_morning'], label: '21–09', color: '#e879f9', min: MIN_STAFF.night },
-  { types: ['vip_1200', 'extra_vip_1200'],       label: '12–00', color: '#a3e635', min: MIN_STAFF.d12 },
-];
+// Конфиг счётчиков «на смене» теперь приходит из section.count (projects.ts),
+// поэтому одинаково работает и для SG, и для НК.
 
 function isSupervisorPosition(position: string): boolean {
   return position.includes('Supervisor') || position.includes('VIP Sup');
@@ -80,8 +69,9 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
   const todayD = isCurrentMonth ? today.getDate() : -1;
 
-  const isCountSection = COUNT_SECTION_KEYS.has(section.key);
-  const shiftRows = section.key === 'vip_support' ? SHIFT_ROWS_VIP : SHIFT_ROWS_REG;
+  const countCfg = section.count;
+  const isCountSection = !!countCfg;
+  const shiftRows = countCfg?.rows ?? [];
 
   // Count rows data: для каждой строки смены (09–21/21–09/12–00) — дробный
   // headcount по дням (суммарные часы / 11), как в v1.
@@ -106,15 +96,14 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
 
   // Красная точка на дате, если днём/ночью недобор (по числу людей).
   const dayLowFlags = useMemo(() => {
-    if (!isCountSection) return null;
-    const dayTypes = section.key === 'vip_support' ? ['vip_evening', 'extra_vip_evening'] : ['morning', 'extra_morning'];
-    const nightTypes = section.key === 'vip_support' ? ['vip_morning', 'extra_vip_morning'] : ['evening', 'extra_evening'];
+    if (!countCfg) return null;
+    const { dayTypes, nightTypes, dayMin, nightMin } = countCfg;
     return days.map((_, di) => {
       const dayCount = allMembers.filter(n => dayTypes.includes(getShiftForCell(n, di))).length;
       const nightCount = allMembers.filter(n => nightTypes.includes(getShiftForCell(n, di))).length;
-      return dayCount < MIN_STAFF.day || nightCount < MIN_STAFF.night;
+      return dayCount < dayMin || nightCount < nightMin;
     });
-  }, [isCountSection, section.key, allMembers, days, getShiftForCell]);
+  }, [countCfg, allMembers, days, getShiftForCell]);
 
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 
@@ -310,7 +299,7 @@ const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                             </td>
                           );
                         })}
-                        <td className="col-total total-cell">{totalHours}</td>
+                        <td className="col-total total-cell">{section.isTemp ? '—' : totalHours}</td>
                       </tr>
                     </React.Fragment>
                   );

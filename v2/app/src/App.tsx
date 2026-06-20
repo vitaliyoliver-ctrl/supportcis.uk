@@ -97,9 +97,9 @@ export default function App() {
         <Route path="/tl/roles"        element={<RequireRole roles={['tl','ops']}><TLRolesPage /></RequireRole>} />
 
         {/* Ops */}
-        <Route path="/ops"             element={<RequireRole roles={['ops']}><OpsPage /></RequireRole>} />
-        <Route path="/ops/structure"   element={<RequireRole roles={['ops']}><OpsStructure /></RequireRole>} />
-        <Route path="/ops/payment"     element={<RequireRole roles={['ops']}><OpsPayment /></RequireRole>} />
+        <Route path="/ops"             element={<RequireRole roles={['ops','tl']}><OpsPage /></RequireRole>} />
+        <Route path="/ops/structure"   element={<RequireRole roles={['ops','tl']}><OpsStructure /></RequireRole>} />
+        <Route path="/ops/payment"     element={<RequireRole roles={['ops','tl']}><OpsPayment /></RequireRole>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

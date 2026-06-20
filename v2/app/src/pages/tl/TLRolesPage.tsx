@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { EMPLOYEES_SEED } from '@/lib/seed';
+import { PROJECTS } from '@/lib/projects';
 
 // Управление ролями и профилями — порт tl/roles/index.html
 
@@ -12,10 +12,14 @@ const ROLES = [
 type RoleKey = typeof ROLES[number]['key'];
 const ALLOWED_DOMAINS = ['velvix.org', 'gameup.club', 'visiongridcore.com'];
 
-// email → {name, position, since} из EMPLOYEES_SEED (там ключ — имя)
+// email → {name, position, since} из всех проектов графика (SG + НК).
+// Первое вхождение по email выигрывает (основной проект — SG идёт первым).
 const EMP_SEED: Record<string, { name: string; position: string; since: string }> = {};
-for (const [name, emp] of Object.entries(EMPLOYEES_SEED)) {
-  if (emp.email) EMP_SEED[emp.email.toLowerCase()] = { name, position: emp.position, since: emp.since };
+for (const proj of Object.values(PROJECTS)) {
+  for (const [name, emp] of Object.entries(proj.employees)) {
+    const key = emp.email?.toLowerCase();
+    if (key && !EMP_SEED[key]) EMP_SEED[key] = { name, position: emp.position, since: emp.since };
+  }
 }
 
 interface Profile { name?: string; position?: string; since?: string; telegram?: string }
@@ -64,6 +68,7 @@ export default function TLRolesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
+  const [rosterSearch, setRosterSearch] = useState('');
 
   // профиль-модалка
   const [pfEmail, setPfEmail] = useState<string | null>(null);
@@ -130,6 +135,18 @@ export default function TLRolesPage() {
   }, [apiRoles, loadProfiles, navigate]);
 
   const dirty = ROLES.some(r => { const d = diffRole(original[r.key], state[r.key]); return d.added.length || d.removed.length; });
+
+  // Ростер команды: все люди из графика (сид) + все, у кого есть профиль.
+  const rosterEmails = (() => {
+    const set = new Set(Object.keys(EMP_SEED));
+    Object.keys(profiles).forEach(e => set.add(e));
+    return [...set];
+  })();
+  const rq = rosterSearch.trim().toLowerCase();
+  const rosterPeople = rosterEmails
+    .map(e => ({ email: e, name: displayName(e), position: profiles[e]?.position || seedFor(e).position || '' }))
+    .filter(x => !rq || x.name.toLowerCase().includes(rq) || x.email.includes(rq) || x.position.toLowerCase().includes(rq))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
   function displayName(email: string) {
     return profiles[email]?.name || seedFor(email).name || email.split('@')[0];
@@ -270,6 +287,37 @@ export default function TLRolesPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* Команда — профили: все люди из графика, у каждого есть карточка */}
+        <div style={{ marginTop: 30 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div>
+              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Команда — профили <span style={{ color: C.faint, fontWeight: 400 }}>{rosterPeople.length}</span></h2>
+              <div style={{ color: C.faint, fontSize: 12.5, marginTop: 2 }}>Все люди из графика (SG и НК). Кликни по карточке — откроется профиль: имя, позиция, телеграм, дата начала.</div>
+            </div>
+            <input value={rosterSearch} onChange={e => setRosterSearch(e.target.value)} placeholder="Поиск по имени, email, позиции…" autoCapitalize="off" spellCheck={false} style={{ background: C.bg, border: `1px solid ${C.border2}`, borderRadius: 8, color: C.text, padding: '8px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit', minWidth: 240 }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(255px, 1fr))', gap: 8 }}>
+            {!rosterPeople.length && <div style={{ color: C.faint, fontSize: 12.5, padding: '14px 10px' }}>Никого не найдено</div>}
+            {rosterPeople.map(x => {
+              const prof = profiles[x.email];
+              return (
+                <div key={x.email} onClick={() => openProfile(x.email)} title="Открыть профиль"
+                  style={{ display: 'flex', flexDirection: 'column', gap: 4, background: C.panel, border: `1px solid ${C.border2}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = C.accent; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.border2; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600 }}>{x.name}</span>
+                    {x.position && <span style={{ fontSize: 11, color: C.muted, background: C.panel2, border: `1px solid ${C.border2}`, borderRadius: 5, padding: '1px 7px' }}>{x.position}</span>}
+                    {prof?.telegram && <span style={{ fontSize: 11, color: C.accent, background: C.accentDim, borderRadius: 5, padding: '1px 6px' }}>@{prof.telegram}</span>}
+                  </div>
+                  <span style={{ fontSize: 11.5, color: C.faint, wordBreak: 'break-all' }}>{x.email}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div style={{ position: 'sticky', bottom: 0, marginTop: 22, padding: '14px 0 0', display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'flex-end', flexWrap: 'wrap' }}>

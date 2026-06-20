@@ -11,11 +11,10 @@ import './breaks.css';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-// Supabase (Realtime + REST). Конфигурируется через env — никаких зашитых
-// значений конкретного проекта, чтобы версию можно было поднять на любом аккаунте.
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_KEY);
+// Supabase для перерывов/обедов (Realtime + REST). Проект общий и остаётся
+// прежним — он спокойно работает параллельно на обоих сайтах. env может переопределить.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://rteemqmqwhcgjuvqtlhz.supabase.co';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_fvme3q6CpvhlRiTMHKkapg_y8_EL17v';
 
 const MAX_BREAKS = 4;
 const MAX_LUNCHES = 1;
@@ -218,30 +217,6 @@ interface LogEntry {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function BreaksPage() {
-  // Без сконфигурированного Supabase (env) перерывы работать не могут — показываем
-  // понятное сообщение вместо тихого обращения к чужому проекту.
-  if (!SUPABASE_CONFIGURED) return <BreaksNotConfigured />;
-  return <BreaksPageInner />;
-}
-
-function BreaksNotConfigured() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#0a0c10', color: '#e8eaf0', fontFamily: "'Mulish', system-ui, sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <BackButton to="/support" />
-      <div style={{ maxWidth: 440, textAlign: 'center', background: '#111318', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '32px 28px' }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>☕</div>
-        <h2 style={{ color: '#fff', fontSize: 18, marginBottom: 10 }}>Перерывы не настроены</h2>
-        <p style={{ color: '#9ca3af', fontSize: 14, lineHeight: 1.6 }}>
-          Задайте переменные <code style={{ color: '#4f8ef7' }}>VITE_SUPABASE_URL</code> и{' '}
-          <code style={{ color: '#4f8ef7' }}>VITE_SUPABASE_ANON_KEY</code> при сборке фронтенда,
-          чтобы подключить Supabase Realtime для этого окружения.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function BreaksPageInner() {
   // ── auth ──
   const { data: authData } = useQuery({
     queryKey: ['auth'],

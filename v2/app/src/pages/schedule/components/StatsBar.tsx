@@ -1,11 +1,14 @@
 import React, { useMemo } from 'react';
 import type { SectionDef } from '@/lib/useScheduleState';
 import type { Override } from '@/lib/scheduleLogic';
+import type { StatCard } from '@/lib/projects';
 import { calcDayHours } from '@/lib/scheduleLogic';
 import { SHIFT_DEFS } from '@/lib/shiftDefs';
 
 interface StatsBarProps {
   sections: SectionDef[];
+  statCards: StatCard[];
+  onlineOperatorsOnly: boolean;
   getShiftForCell: (name: string, di: number) => string;
   days: Array<{ d: number; date: Date }>;
   year: number;
@@ -21,6 +24,8 @@ function isSupervisorPosition(position: string): boolean {
 
 const StatsBar: React.FC<StatsBarProps> = ({
   sections,
+  statCards,
+  onlineOperatorsOnly,
   getShiftForCell,
   days,
   year,
@@ -33,71 +38,51 @@ const StatsBar: React.FC<StatsBarProps> = ({
     const now = new Date();
     const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
     const currentHour = now.getHours();
+    const pad = (n: number) => String(n).padStart(2, '0');
 
-    const regularSection = sections.find(s => s.key === 'regular_support');
-    const vipSection = sections.find(s => s.key === 'vip_support');
+    // Все участники нетемповых секций (временные не считаются в итогах/онлайне).
+    const allMembers = sections.filter(s => !s.isTemp).flatMap(s => s.members);
+    const total = allMembers.length;
 
-    let regularCount = 0;
-    let vipCount = 0;
+    // Карточки-отделы: число людей в указанных секциях.
+    const cardCounts = statCards.map(card => {
+      const members = sections.filter(s => card.sectionKeys.includes(s.key)).flatMap(s => s.members);
+      const count = card.operatorsOnly
+        ? members.filter(n => !isSupervisorPosition(getEmp(n).position)).length
+        : members.length;
+      return { label: card.label, count, sub: card.operatorsOnly ? 'операторов в отделе' : 'человек в отделе' };
+    });
 
+    let onlineTotal = 0;
+    const onlineNames: string[] = [];
     if (isCurrentMonth) {
       const todayIndex = now.getDate() - 1;
       const yesterdayIndex = todayIndex - 1;
-
-      const calcOnline = (members: string[]): { count: number; names: string[] } => {
-        let count = 0;
-        const names: string[] = [];
-        for (const name of members) {
-          if (isSupervisorPosition(getEmp(name).position)) continue;
-          const type = getShiftForCell(name, todayIndex);
-          const def = SHIFT_DEFS[type];
-          if (!def?.window) continue;
-          const [start, end] = def.window;
-          if (currentHour >= start && currentHour < end) {
-            const key = `${name}:${year}-${String(month).padStart(2, '0')}-${String(days[todayIndex].d).padStart(2, '0')}`;
-            const ovr = overrides[key];
-            const h = calcDayHours(type, ovr, name, employeeHoursSeed);
-            count += h / 11;
-            names.push(name);
-          }
-          if (end > 24 && currentHour < end - 24 && yesterdayIndex >= 0) {
-            const yType = getShiftForCell(name, yesterdayIndex);
-            const yDef = SHIFT_DEFS[yType];
-            if (yDef?.window && yDef.window[1] > 24 && currentHour < yDef.window[1] - 24) {
-              const d = days[yesterdayIndex].d;
-              const key = `${name}:${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-              const ovr = overrides[key];
-              const h = calcDayHours(yType, ovr, name, employeeHoursSeed);
-              count += h / 11;
-              if (!names.includes(name)) names.push(name);
-            }
+      for (const name of allMembers) {
+        if (onlineOperatorsOnly && isSupervisorPosition(getEmp(name).position)) continue;
+        const type = getShiftForCell(name, todayIndex);
+        const def = SHIFT_DEFS[type];
+        if (!def?.window) continue;
+        const [start, end] = def.window;
+        if (currentHour >= start && currentHour < end) {
+          const key = `${name}:${year}-${pad(month)}-${pad(days[todayIndex].d)}`;
+          onlineTotal += calcDayHours(type, overrides[key], name, employeeHoursSeed) / 11;
+          onlineNames.push(name);
+        }
+        if (end > 24 && currentHour < end - 24 && yesterdayIndex >= 0) {
+          const yType = getShiftForCell(name, yesterdayIndex);
+          const yDef = SHIFT_DEFS[yType];
+          if (yDef?.window && yDef.window[1] > 24 && currentHour < yDef.window[1] - 24) {
+            const key = `${name}:${year}-${pad(month)}-${pad(days[yesterdayIndex].d)}`;
+            onlineTotal += calcDayHours(yType, overrides[key], name, employeeHoursSeed) / 11;
+            if (!onlineNames.includes(name)) onlineNames.push(name);
           }
         }
-        return { count, names };
-      };
-
-      const regResult = regularSection ? calcOnline(regularSection.members) : { count: 0, names: [] as string[] };
-      const vipResult = vipSection ? calcOnline(vipSection.members) : { count: 0, names: [] as string[] };
-      regularCount = regResult.count;
-      vipCount = vipResult.count;
-      const onlineNames = [...regResult.names, ...vipResult.names];
-
-      const regularOps = (regularSection?.members ?? []).filter(n => !isSupervisorPosition(getEmp(n).position)).length;
-      const vipOps = (vipSection?.members ?? []).filter(n => !isSupervisorPosition(getEmp(n).position)).length;
-      const total = sections.flatMap(s => s.members).length;
-      const onlineTotal = regularCount + vipCount;
-
-      return { regularOps, vipOps, onlineTotal, total, isCurrentMonth, onlineNames };
+      }
     }
 
-    // Размеры отделов — только операторы (без супервайзеров), как в v1.
-    const regularOps = (regularSection?.members ?? []).filter(n => !isSupervisorPosition(getEmp(n).position)).length;
-    const vipOps = (vipSection?.members ?? []).filter(n => !isSupervisorPosition(getEmp(n).position)).length;
-    const total = sections.flatMap(s => s.members).length;
-    const onlineTotal = regularCount + vipCount;
-
-    return { regularOps, vipOps, onlineTotal, total, isCurrentMonth, onlineNames: [] as string[] };
-  }, [sections, getShiftForCell, days, year, month, overrides, employeeHoursSeed, getEmp]);
+    return { cardCounts, total, onlineTotal, isCurrentMonth, onlineNames };
+  }, [sections, statCards, onlineOperatorsOnly, getShiftForCell, days, year, month, overrides, employeeHoursSeed, getEmp]);
 
   const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 
@@ -116,16 +101,13 @@ const StatsBar: React.FC<StatsBarProps> = ({
           </div>
         )}
       </div>
-      <div className="stat-card">
-        <div className="stat-label">Regular Support</div>
-        <div className="stat-val">{stats.regularOps}</div>
-        <div className="stat-sub">операторов в отделе</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-label">VIP Support</div>
-        <div className="stat-val">{stats.vipOps}</div>
-        <div className="stat-sub">операторов в отделе</div>
-      </div>
+      {stats.cardCounts.map(c => (
+        <div className="stat-card" key={c.label}>
+          <div className="stat-label">{c.label}</div>
+          <div className="stat-val">{c.count}</div>
+          <div className="stat-sub">{c.sub}</div>
+        </div>
+      ))}
       <div className="stat-card">
         <div className="stat-label">Всего персонала</div>
         <div className="stat-val">{stats.total}</div>

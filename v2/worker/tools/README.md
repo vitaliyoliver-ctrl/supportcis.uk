@@ -33,3 +33,18 @@ node kv-import.mjs <TARGET_NAMESPACE_ID> kv-dump.json
 
 > Продажи и оргструктура из v1 переносятся отдельно (ключи `sales` и
 > `ops-structure` в KV v2) — см. форматы в `src/index.ts`.
+
+## Обновить график свежими данными из v1 (SG + НК)
+
+`migrate-schedule-v1-to-v2.ps1` переносит **только график** (overrides + settings +
+version + log) из v1 `SCHEDULE_KV` в v2 `AUTH_KV`, для обоих проектов (SG и НК).
+Профили/роли не трогает. Можно запускать повторно — обновляет соответствующие
+месяцы свежими данными со старого сайта. По умолчанию сухой прогон, запись — `-Apply`:
+
+```powershell
+# показать, что будет перенесено
+.\migrate-schedule-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -TargetKv <v2_AUTH_KV>
+# выполнить
+.\migrate-schedule-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -TargetKv <v2_AUTH_KV> -Apply
+```
+

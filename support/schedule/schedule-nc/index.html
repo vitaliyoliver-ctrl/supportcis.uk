@@ -356,6 +356,20 @@
     html.light .stat-label { color: #6b7280; }
     html.light .stat-sub { color: #9ca3af; }
     html.light .stat-card { background: #fff; border-color: rgba(0,0,0,0.08); }
+    .stat-card.has-tip { cursor: default; }
+    .online-tip {
+      display: none; position: absolute; top: calc(100% + 8px); left: 12px; z-index: 50;
+      background: var(--surface); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 10px 14px; min-width: 200px; max-width: 280px;
+      font-size: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    }
+    .stat-card.has-tip { position: relative; }
+    .stat-card.has-tip:hover .online-tip { display: block; }
+    .online-tip-group { margin-bottom: 8px; }
+    .online-tip-group:last-child { margin-bottom: 0; }
+    .online-tip-title { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted, #6b7280); margin-bottom: 3px; }
+    .online-tip-names { color: var(--text, #e5e7eb); font-weight: 500; }
+    html.light .online-tip { background: #fff; border-color: rgba(0,0,0,0.12); box-shadow: 0 12px 32px rgba(0,0,0,0.15); }
     html.light .name-pos { color: #6b7280; }
     html.light .name-email { color: #6b7280; }
     html.light .name-since { color: #9ca3af; }
@@ -562,9 +576,11 @@
     /* Positions mode */
     .note-dot {
       position: absolute; bottom: 2px; right: 2px;
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #fbbf24; pointer-events: none; z-index: 1;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #fbbf24; box-shadow: 0 0 4px rgba(251,191,36,0.6);
+      pointer-events: none; z-index: 1;
     }
+    .btn-delete-row {
       display: none; position: absolute; right: 4px; top: 50%;
       transform: translateY(-50%);
       width: 20px; height: 20px; border-radius: 50%;
@@ -763,8 +779,10 @@
         <span class="theme-toggle-label" id="theme-label">Светлая</span>
       </button>
       <button class="filter-btn" id="toggle-info-btn" onclick="toggleInfoColumn()" style="font-size:11px;padding:5px 12px">⇔ Инфо</button>
-      <button class="filter-btn" onclick="exportToExcel()" style="font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
+      <button class="filter-btn" id="export-btn" onclick="exportToExcel()" style="display:none;font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="history-btn" onclick="openHistoryPanel()" style="display:none;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa">🕐 История</button>
+      <button class="admin-btn" id="swap-btn" onclick="openSwapPanel()" style="display:none;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#34d399">🔄 Отдать смену</button>
+      <button class="admin-btn" id="migrate-patterns-btn" onclick="migrateHardcodedPatterns()" style="display:none;background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60a5fa" title="Перенести захардкоженные паттерны в настройки">📌 Паттерны</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
       <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
       <button class="admin-btn" id="dismiss-nav-btn" onclick="openDismissModal()" style="display:none;background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#f87171">🚫 Увольнение</button>
@@ -775,10 +793,11 @@
 
     <!-- STATS -->
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card has-tip">
         <div class="stat-label">Операторов онлайн</div>
         <div class="stat-val" id="stat-online">—</div>
         <div class="stat-sub">сейчас на смене</div>
+        <div class="online-tip" id="online-tip"></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Supervisors</div>
@@ -916,6 +935,41 @@
       <button class="btn-save" id="btn-save" onclick="saveShift()">Сохранить</button>
     </div>
   </div>
+
+  <!-- ПРОФИЛЬ ПАНЕЛЬ -->
+  <div class="admin-panel" id="profile-panel" style="width:340px;display:none">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">✏ Профиль сотрудника</div>
+      <button class="close-btn" onclick="closeProfilePanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Сотрудник</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)" id="profile-name-label">—</div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Позиция</div>
+        <input type="text" class="admin-input" id="profile-position" placeholder="Supervisor NC / Support NC" maxlength="60" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Email</div>
+        <input type="text" class="admin-input" id="profile-email" placeholder="name@velvix.org" maxlength="80" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">В компании с</div>
+        <input type="date" class="admin-input" id="profile-since" />
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часов в смене по умолчанию</div>
+        <input type="number" class="admin-input" id="profile-hours" min="0" max="16" step="0.5" placeholder="пусто = по типу смены" />
+      </div>
+      <div class="save-msg" id="profile-save-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeProfilePanel()">Отмена</button>
+      <button class="btn-save" onclick="saveProfile()">Сохранить</button>
+    </div>
+  </div>
 </div>
 
 <!-- DISMISS MODAL -->
@@ -940,6 +994,55 @@
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeDismissModal()">Отмена</button>
       <button class="btn-save" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 16px rgba(239,68,68,0.3)" onclick="applyDismissal()">Уволить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ОБМЕН СМЕНАМИ -->
+<div class="admin-overlay" id="swap-overlay" onclick="if(event.target===this)closeSwapPanel()">
+  <div class="admin-panel" style="width:420px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">🔄 Отдать смену</div>
+      <button class="close-btn" onclick="closeSwapPanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Кто отдаёт</div>
+        <select class="admin-select" id="swap-giver" onchange="swapOnGiverChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата и смена</div>
+        <select class="admin-select" id="swap-date" onchange="swapOnDateChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часы (с / по)</div>
+        <div style="display:flex;gap:8px">
+          <select class="admin-select" id="swap-from" onchange="swapOnFromChange()" style="flex:1"></select>
+          <select class="admin-select" id="swap-to" onchange="swapOnRangeChange()" style="flex:1"></select>
+        </div>
+        <div class="admin-label" id="swap-hours-label" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Кому отдать</div>
+        <select class="admin-select" id="swap-recipient"></select>
+        <div class="admin-label" id="swap-cand-hint" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="swap-lunch" style="width:18px;height:18px;accent-color:#34d399;cursor:pointer;flex-shrink:0" />
+          <span class="admin-label" style="margin:0;text-transform:none">Отдать смену вместе с обедом</span>
+        </label>
+        <div class="admin-label" style="margin-top:6px;text-transform:none">Обед не делится: либо остаётся у вас, либо передаётся получателю целиком</div>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Комментарий (необязательно)</div>
+        <input type="text" class="admin-input" id="swap-comment" maxlength="300" placeholder="Причина обмена..." />
+      </div>
+      <div class="save-msg" id="swap-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeSwapPanel()">Отмена</button>
+      <button class="btn-save" id="swap-submit" onclick="submitSwapRequest()">Отправить заявку</button>
     </div>
   </div>
 </div>
@@ -986,7 +1089,7 @@
       </div>
       <div class="admin-field">
         <div class="admin-label">Позиция</div>
-        <input type="text" class="admin-input" id="new-emp-position" placeholder="Support / VIP / Supervisor..." />
+        <input type="text" class="admin-input" id="new-emp-position" placeholder="Supervisor NC / Support NC" />
       </div>
       <div class="admin-field">
         <div class="admin-label">Дата начала работы</div>
@@ -995,10 +1098,9 @@
       <div class="admin-field">
         <div class="admin-label">Отдел</div>
         <select class="admin-select" id="new-emp-section">
-          <option value="regular_support">Regular Support</option>
-          <option value="vip_support">VIP Support</option>
-          <option value="management">Management</option>
-          <option value="qa">QA</option>
+          <option value="supervisors_nk">Supervisors</option>
+          <option value="support_nk">Support NC</option>
+          <option value="temp_support">Временные (SG)</option>
         </select>
       </div>
       <div class="save-msg" id="add-emp-msg"></div>
@@ -1018,21 +1120,34 @@ const PROJECT = 'nk';
 
 // ── Навигация по месяцам ──
 const CYCLE_START = new Date(2026, 5, 1); // 1 июня 2026 — точка отсчёта паттернов
-const AVAILABLE_MONTHS = [
-  { year: 2026, month: 6,  label: 'Июнь 2026' },
-  { year: 2026, month: 7,  label: 'Июль 2026' },
-  { year: 2026, month: 8,  label: 'Август 2026' },
-  { year: 2026, month: 9,  label: 'Сентябрь 2026' },
-  { year: 2026, month: 10, label: 'Октябрь 2026' },
-  { year: 2026, month: 11, label: 'Ноябрь 2026' },
-  { year: 2026, month: 12, label: 'Декабрь 2026' },
-];
-
+const MONTHS_PAST  = 3;
+const MONTHS_AHEAD = 6;
+const RU_MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                   'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+function monthIndex(year, month) { return year * 12 + (month - 1); }
+function fromMonthIndex(idx) { return { year: Math.floor(idx / 12), month: (idx % 12) + 1 }; }
 const TODAY_REAL = new Date();
-let MONTH = TODAY_REAL.getFullYear() === 2026 ? TODAY_REAL.getMonth() + 1 : 6;
-if (MONTH < 6) MONTH = 6;
-if (MONTH > 12) MONTH = 12;
-let YEAR = 2026;
+const AVAILABLE_MONTHS = (() => {
+  const curIdx   = monthIndex(TODAY_REAL.getFullYear(), TODAY_REAL.getMonth() + 1);
+  const floorIdx = monthIndex(CYCLE_START.getFullYear(), CYCLE_START.getMonth() + 1);
+  const startIdx = Math.max(floorIdx, curIdx - MONTHS_PAST);
+  const endIdx   = Math.max(startIdx, curIdx + MONTHS_AHEAD);
+  const out = [];
+  for (let i = startIdx; i <= endIdx; i++) {
+    const { year, month } = fromMonthIndex(i);
+    out.push({ year, month, label: `${RU_MONTHS[month - 1]} ${year}` });
+  }
+  return out;
+})();
+let YEAR, MONTH;
+{
+  const curIdx   = monthIndex(TODAY_REAL.getFullYear(), TODAY_REAL.getMonth() + 1);
+  const firstIdx = monthIndex(AVAILABLE_MONTHS[0].year, AVAILABLE_MONTHS[0].month);
+  const lastIdx  = monthIndex(AVAILABLE_MONTHS[AVAILABLE_MONTHS.length - 1].year, AVAILABLE_MONTHS[AVAILABLE_MONTHS.length - 1].month);
+  const clamped  = fromMonthIndex(Math.min(Math.max(curIdx, firstIdx), lastIdx));
+  YEAR  = clamped.year;
+  MONTH = clamped.month;
+}
 
 // ── Данные сотрудников: email, дата, позиция ──
 const EMPLOYEES = {
@@ -1126,8 +1241,7 @@ const OPERATOR_BASE_SHIFTS = {};
 Object.keys(BASE_PATTERNS).forEach(name => {
   const pattern = BASE_PATTERNS[name];
   const cycleLen = pattern.length;
-  OPERATOR_BASE_SHIFTS[name] = (di) => {
-    const date = DAYS[di].date;
+  OPERATOR_BASE_SHIFTS[name] = (date) => {
     const globalDi = Math.floor((date - CYCLE_START) / 86400000);
     const pos = ((globalDi % cycleLen) + cycleLen) % cycleLen;
     return pattern[pos];
@@ -1174,10 +1288,13 @@ const collapsedSections = new Set();
         document.getElementById('dismiss-nav-btn').style.display = 'flex';
         document.getElementById('positions-btn').style.display = 'flex';
         document.getElementById('history-btn').style.display = 'flex';
+        document.getElementById('migrate-patterns-btn').style.display = 'flex';
+        document.getElementById('export-btn').style.display = 'inline-flex';
       }
       if (isSupervisor) {
         document.getElementById('admin-btn').classList.add('visible');
         document.getElementById('history-btn').style.display = 'flex';
+        document.getElementById('export-btn').style.display = 'inline-flex';
       }
     }
   } catch {}
@@ -1213,6 +1330,7 @@ const collapsedSections = new Set();
   updateStats();
   populateOperatorSelect();
   updateColumnHighlight();
+  initSwapUi();
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -1254,6 +1372,7 @@ async function switchMonth(year, month) {
   renderAll();
   updateStats();
   updateColumnHighlight();
+  initSwapUi();
 }
 
 function updateMonthNav() {
@@ -1299,17 +1418,39 @@ const PATTERN_PRESETS = {
   'team2_2': ['off','off','super_night','super_night','off','off','super_day','super_day','off','off','super_day','super_day'],
 };
 
+function parseLocalDate(s) {
+  const [y, m, d] = String(s).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function localDs(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function plusDays(ds, n) {
+  const d = parseLocalDate(ds);
+  d.setDate(d.getDate() + n);
+  return localDs(d);
+}
+
+function getPatternEntries(name) {
+  const raw = (scheduleSettings.operatorPatterns || {})[name];
+  if (!raw) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  return arr
+    .filter(e => e && Array.isArray(e.pattern) && e.pattern.length && e.cycleStart)
+    .map(e => (e.v >= 2 ? e : { ...e, cycleStart: plusDays(e.cycleStart, 1), v: 2 }))
+    .sort((a, b) => (a.cycleStart < b.cycleStart ? -1 : 1));
+}
+
 function getPatternShift(name, date) {
-  const patterns = scheduleSettings.operatorPatterns || {};
-  const op = patterns[name];
-  if (!op || !op.pattern || !op.cycleStart) return null;
-  const start = new Date(op.cycleStart);
-  // До даты начала — паттерн не применяется, fallback на BASE_PATTERNS
-  if (date < start) return null;
-  const diffDays = Math.floor((date - start) / 86400000);
-  const cycle = op.pattern.length;
-  const pos = ((diffDays % cycle) + cycle) % cycle;
-  return op.pattern[pos];
+  const entries = getPatternEntries(name);
+  if (!entries.length) return null;
+  const ds = localDs(date);
+  let active = null;
+  for (const e of entries) { if (e.cycleStart <= ds) active = e; }
+  if (!active) return null;
+  const diffDays = Math.round((parseLocalDate(ds) - parseLocalDate(active.cycleStart)) / 86400000);
+  const cycle = active.pattern.length;
+  return active.pattern[((diffDays % cycle) + cycle) % cycle];
 }
 
 function getShift(name, dayIndex) {
@@ -1318,9 +1459,9 @@ function getShift(name, dayIndex) {
   // Сначала проверяем operatorPatterns из settings
   const patternShift = getPatternShift(name, DAYS[dayIndex].date);
   if (patternShift !== null) return patternShift;
-  // Fallback на захардкоженные паттерны июня
+  // Fallback на захардкоженные паттерны
   const fn = OPERATOR_BASE_SHIFTS[name];
-  return fn ? fn(dayIndex) : 'off';
+  return fn ? fn(DAYS[dayIndex].date) : 'off';
 }
 
 // Дефолтные часы по типу смены
@@ -1688,25 +1829,63 @@ function renderSection(s) {
   return section;
 }
 
+// Окна смен для онлайн-счётчика
+const SHIFT_WINDOWS = {
+  morning: [9, 21], evening: [21, 33], night: [21, 33],
+  super_day: [9, 21], super_night: [21, 33],
+  extra_morning: [9, 21], extra_evening: [21, 33],
+  work8: [9, 18],
+};
+
 // ── Stats ──
 function updateStats() {
-  const now = new Date();
-  const h = now.getHours();
+  const h = TODAY_REAL_DATE.getHours();
   let online = 0;
   const todayDi = TODAY_REAL_DATE.getMonth() === (MONTH - 1) && TODAY_REAL_DATE.getFullYear() === YEAR
     ? TODAY_REAL_DATE.getDate() - 1 : -1;
 
   if (todayDi >= 0) {
     const allMembers = SECTIONS.flatMap(s => s.members);
+    const onlineNames = [];
+
     allMembers.forEach(name => {
       const type = getShift(name, todayDi);
-      if (type === 'morning' && h >= 6 && h < 15) online++;
-      if (type === 'evening' && h >= 15) online++;
-      if (type === 'night' && h < 10) online++;
-      if (type === 'super_day' && h >= 9 && h < 21) online++;
-      if (type === 'super_night' && (h >= 21 || h < 9)) online++;
-      if (type === 'work8' && h >= 9 && h < 18) online++;
+      const win = SHIFT_WINDOWS[type];
+      let isOn = false;
+      if (win) {
+        isOn = h >= win[0] && h < Math.min(win[1], 24);
+      }
+      // хвост вчерашней ночной
+      if (!isOn && todayDi > 0) {
+        const ty = getShift(name, todayDi - 1);
+        const wy = SHIFT_WINDOWS[ty];
+        if (wy && wy[1] > 24 && h < wy[1] - 24) isOn = true;
+      }
+      if (isOn) { online++; onlineNames.push({ name, type }); }
     });
+
+    // Тултип
+    const tipEl = document.getElementById('online-tip');
+    if (tipEl) {
+      const groups = {};
+      const SHIFT_LABELS_TIP = {
+        morning: '09–21', extra_morning: '09–21',
+        evening: '21–09', extra_evening: '21–09', night: '21–09',
+        super_day: 'Sup 09–21', super_night: 'Sup 21–09',
+        work8: '09–18',
+      };
+      onlineNames.forEach(({ name, type }) => {
+        const label = SHIFT_LABELS_TIP[type] || type;
+        (groups[label] = groups[label] || []).push(name);
+      });
+      tipEl.innerHTML = Object.keys(groups).length
+        ? Object.entries(groups).map(([label, names]) => `
+            <div class="online-tip-group">
+              <div class="online-tip-title">${label} · ${names.length}</div>
+              <div class="online-tip-names">${names.join(', ')}</div>
+            </div>`).join('')
+        : '<div class="online-tip-names">Сейчас на смене никого нет</div>';
+    }
   }
 
   const totalStaff = SECTIONS.filter(s => s.key !== 'temp_support').flatMap(s => s.members).length;
@@ -1976,7 +2155,7 @@ function closeAddEmployeeModal() {
   document.getElementById('add-employee-overlay').classList.remove('open');
 }
 
-function addEmployee() {
+async function addEmployee() {
   const name = document.getElementById('new-emp-name').value.trim();
   const email = document.getElementById('new-emp-email').value.trim();
   const position = document.getElementById('new-emp-position').value.trim();
@@ -1995,21 +2174,46 @@ function addEmployee() {
     return;
   }
 
-  // Добавляем в EMPLOYEES
-  EMPLOYEES[name] = { email, position, since };
-
-  // Добавляем в секцию
   const sec = SECTIONS.find(s => s.key === sectionKey);
-  if (sec) sec.members.push(name);
+  const newEmployeeOverrides = {
+    ...(scheduleSettings.employeeOverrides || {}),
+    [name]: { email, position, ...(since ? { since } : {}) }
+  };
+  const newCustomOrder = {
+    ...(scheduleSettings.customOrder || {}),
+    [sectionKey]: [...(sec ? sec.members : []), name]
+  };
+  const newSettings = { ...scheduleSettings, employeeOverrides: newEmployeeOverrides, customOrder: newCustomOrder };
 
-  // Добавляем паттерн (пустой — всё будет через overrides)
-  OPERATOR_BASE_SHIFTS[name] = () => 'off';
-
-  updateGroupsFromSections();
-  closeAddEmployeeModal();
-  renderAll();
-  updateColumnHighlight();
-  showToast(`${name} добавлен`, 'ok');
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: 'добавлен сотрудник', target: name }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      // Обновляем локальное состояние
+      EMPLOYEES[name] = { email, position, since };
+      if (sec) sec.members.push(name);
+      OPERATOR_BASE_SHIFTS[name] = () => 'off';
+      updateGroupsFromSections();
+      closeAddEmployeeModal();
+      renderAll();
+      updateColumnHighlight();
+      showToast(`${name} добавлен`, 'ok');
+    } else {
+      msgEl.textContent = data.error || 'Ошибка сохранения';
+      msgEl.className = 'save-msg err';
+    }
+  } catch {
+    msgEl.textContent = 'Ошибка сети';
+    msgEl.className = 'save-msg err';
+  }
 }
 
 function deleteEmployee(name, sectionKey) {
@@ -2557,6 +2761,93 @@ function selectShiftType(btn) {
   renderExtraEvents();
 }
 
+// ── Profile helpers ──
+function getEmp(name) {
+  const ov = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const emp = EMPLOYEES[name] || {};
+  return {
+    name,
+    email:    String(ov.email ?? emp.email ?? '').trim(),
+    position: String(ov.position ?? emp.position ?? '').trim(),
+    since:    ov.since ?? emp.since ?? '',
+    hours:    ov.hours !== undefined ? Number(ov.hours) : undefined,
+  };
+}
+
+function openProfilePanel() {
+  const name = document.getElementById('ap-operator').value;
+  if (!name) return;
+  const emp = getEmp(name);
+  document.getElementById('profile-name-label').textContent = name;
+  document.getElementById('profile-position').value = emp.position;
+  document.getElementById('profile-email').value    = emp.email;
+  document.getElementById('profile-since').value    = emp.since ? String(emp.since).slice(0,10) : '';
+  document.getElementById('profile-hours').value    = emp.hours ?? '';
+  document.getElementById('profile-save-msg').className = 'save-msg';
+  document.getElementById('profile-panel').style.display = 'flex';
+}
+
+function closeProfilePanel() {
+  document.getElementById('profile-panel').style.display = 'none';
+}
+
+async function saveProfile() {
+  const name     = document.getElementById('profile-name-label').textContent;
+  const position = document.getElementById('profile-position').value.trim();
+  const email    = document.getElementById('profile-email').value.trim();
+  const msg      = document.getElementById('profile-save-msg');
+  const since    = document.getElementById('profile-since').value;
+  const hoursRaw = document.getElementById('profile-hours').value.trim();
+
+  if (hoursRaw !== '' && !Number.isFinite(Number(hoursRaw))) {
+    msg.textContent = 'Часы: некорректное число';
+    msg.className = 'save-msg err show';
+    return;
+  }
+
+  const prev = (scheduleSettings.employeeOverrides || {})[name] || {};
+  const entry = { ...prev, position, email };
+  if (since) entry.since = since; else delete entry.since;
+  if (hoursRaw !== '') entry.hours = Number(hoursRaw); else delete entry.hours;
+
+  const newSettings = {
+    ...scheduleSettings,
+    employeeOverrides: {
+      ...(scheduleSettings.employeeOverrides || {}),
+      [name]: entry
+    }
+  };
+
+  try {
+    const monthStr = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+    const res = await fetch(`${API}/schedule?month=${monthStr}&project=nk`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: 'профиль', target: name }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      // Обновляем EMPLOYEES для отображения
+      if (!EMPLOYEES[name]) EMPLOYEES[name] = {};
+      Object.assign(EMPLOYEES[name], entry);
+      renderAll();
+      updateStats();
+      closeProfilePanel();
+      showToast(`Профиль ${name} обновлён`, 'ok');
+    } else {
+      msg.textContent = 'Ошибка сохранения';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  }
+}
+
 async function saveShift() {
   const operator = document.getElementById('ap-operator').value;
   const dateFrom = document.getElementById('ap-date-from').value;
@@ -2788,6 +3079,278 @@ function exportToExcel() {
   XLSX.writeFile(wb, `График_Июнь_${YEAR}.xlsx`);
 }
 
+// ── Обмен сменами ──
+const SWAP_PROJECT = 'nk';
+const SWAP_MIN_REST = 6;
+
+const SWAP_GIVABLE = {
+  morning: [9, 21], evening: [21, 33], extra_morning: [9, 21], extra_evening: [21, 33],
+  super_day: [9, 21], super_night: [21, 33],
+};
+const SWAP_BUSY_WINDOWS = {
+  morning: [9, 21], evening: [21, 33], extra_morning: [9, 21], extra_evening: [21, 33],
+  super_day: [9, 21], super_night: [21, 33], work8: [9, 18], nk: [0, 24],
+};
+const SWAP_NIGHT_TYPES = new Set(['evening', 'extra_evening', 'super_night']);
+const SWAP_BLOCK_DAY = new Set(['vacation','sick','nk','birthday','dismissed']);
+
+function swapEmpOv(name) { return getEmp(name); }
+function swapGroupOf(name) {
+  const sec = SECTIONS.find(s => s.members.includes(name));
+  if (!sec) return null;
+  if (sec.key === 'supervisors_nk') return 'supervisor';
+  if (sec.key === 'support_nk' || sec.key === 'temp_support') return 'support';
+  return null;
+}
+function swapFindMyName() {
+  if (!currentUser?.email) return null;
+  const e = currentUser.email.toLowerCase();
+  const all = [...new Set(SECTIONS.flatMap(s => s.members))];
+  return all.find(n => swapEmpOv(n).email.toLowerCase() === e) || null;
+}
+function swapAllOperators() {
+  return [...new Set(SECTIONS.flatMap(s => s.members))].filter(n => swapGroupOf(n) && !(dismissedEmployees && dismissedEmployees[n]));
+}
+function swapFmtH(h) { return `${String(((h % 24) + 24) % 24).padStart(2,'0')}:00`; }
+function swapFmtRange(s, e) { return `${swapFmtH(s)}-${swapFmtH(e)}${e > 24 ? ' (+1д)' : ''}`; }
+
+function swapShiftOnDate(name, date) {
+  if (date.getFullYear() === YEAR && date.getMonth() + 1 === MONTH) {
+    return getShift(name, date.getDate() - 1);
+  }
+  const dis = dismissedEmployees[name];
+  if (dis && localDs(date) > dis) return 'dismissed';
+  const p = getPatternShift(name, date);
+  if (p !== null) return p;
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  return fn ? fn(date) : 'off';
+}
+
+function swapBusyIntervals(name, baseDate) {
+  const res = [];
+  for (let off = -1; off <= 1; off++) {
+    const d = new Date(baseDate); d.setDate(d.getDate() + off);
+    const t = swapShiftOnDate(name, d);
+    let ovr = null;
+    if (d.getFullYear() === YEAR && d.getMonth() + 1 === MONTH) {
+      ovr = scheduleOverrides[`${name}:${dateStr(d.getDate())}`];
+    }
+    if (t === 'nk') { res.push([off * 24, off * 24 + 24]); continue; }
+    const takeWins = (ovr?.extraEvents || []).filter(e => e.type === 'extra_swap_take' && Array.isArray(e.win)).map(e => e.win);
+    if (t && t.startsWith('extra_') && takeWins.length) {
+      takeWins.forEach(w => res.push([off * 24 + w[0], off * 24 + w[1]]));
+      continue;
+    }
+    const w = SWAP_BUSY_WINDOWS[t];
+    if (w) res.push([off * 24 + w[0], off * 24 + w[1]]);
+    takeWins.forEach(w2 => res.push([off * 24 + w2[0], off * 24 + w2[1]]));
+  }
+  return res;
+}
+
+function swapRemainingHours(name, dNum, type) {
+  const ovr = scheduleOverrides[`${name}:${dateStr(dNum)}`];
+  let base = ovr?.customHours || getHours(type) || 0;
+  let minus = 0;
+  (ovr?.extraEvents || []).forEach(ev => {
+    if (ev.hours > 0 && ev.type.startsWith('loss_')) minus += ev.hours;
+  });
+  return Math.max(0, base - minus);
+}
+
+function swapCandidateOk(cand, giver, dateObj, win, shiftType) {
+  if (cand === giver) return false;
+  const g1 = swapGroupOf(giver), g2 = swapGroupOf(cand);
+  if (!g1 || g1 !== g2) return false;
+  const dayType = swapShiftOnDate(cand, dateObj);
+  if (SWAP_BLOCK_DAY.has(dayType)) return false;
+  const prev = new Date(dateObj); prev.setDate(prev.getDate() - 1);
+  if (SWAP_NIGHT_TYPES.has(swapShiftOnDate(cand, prev)) && !SWAP_NIGHT_TYPES.has(shiftType)) return false;
+  const takeLen = win[1] - win[0];
+  for (const [s, e] of swapBusyIntervals(cand, dateObj)) {
+    const rest     = (e + SWAP_MIN_REST <= win[0]) || (win[1] + SWAP_MIN_REST <= s);
+    const adjacent = ((e === win[0]) || (win[1] === s)) && takeLen <= SWAP_MIN_REST;
+    if (!(rest || adjacent)) return false;
+  }
+  return true;
+}
+
+function initSwapUi() {
+  const btn = document.getElementById('swap-btn');
+  if (!btn) return;
+  const myName = swapFindMyName();
+  btn.style.display = (isAdmin || (myName && swapGroupOf(myName))) ? 'flex' : 'none';
+}
+
+function openSwapPanel() {
+  const myName = swapFindMyName();
+  const giverSel = document.getElementById('swap-giver');
+  if (isAdmin) {
+    const ops = swapAllOperators();
+    giverSel.innerHTML = ops.map(n => `<option value="${n}" ${n === myName ? 'selected' : ''}>${n}</option>`).join('');
+    giverSel.disabled = false;
+  } else {
+    if (!myName || !swapGroupOf(myName)) { showToast('Ваш email не привязан к оператору в графике', 'err'); return; }
+    giverSel.innerHTML = `<option value="${myName}">${myName}</option>`;
+    giverSel.disabled = true;
+  }
+  document.getElementById('swap-comment').value = '';
+  document.getElementById('swap-lunch').checked = false;
+  document.getElementById('swap-msg').className = 'save-msg';
+  swapOnGiverChange();
+  document.getElementById('swap-overlay').classList.add('open');
+}
+
+function closeSwapPanel() {
+  document.getElementById('swap-overlay').classList.remove('open');
+}
+
+function swapShiftLabelOf(type) {
+  const t = SHIFT_TYPES_ALL.find(x => x.type === type);
+  return t ? `${t.group ? t.group + ' ' : ''}${t.label} (${t.time})` : type;
+}
+
+function swapOnGiverChange() {
+  const giver = document.getElementById('swap-giver').value;
+  const dateSel = document.getElementById('swap-date');
+  let minDay = 1;
+  const isCurrent = TODAY_REAL_DATE.getFullYear() === YEAR && TODAY_REAL_DATE.getMonth() + 1 === MONTH;
+  const isPast = new Date(YEAR, MONTH - 1, 1) < new Date(TODAY_REAL_DATE.getFullYear(), TODAY_REAL_DATE.getMonth(), 1);
+  if (isCurrent) minDay = TODAY_REAL_DATE.getDate();
+  const opts = [];
+  if (!isPast) {
+    for (let d = minDay; d <= DAYS.length; d++) {
+      const type = getShift(giver, d - 1);
+      if (!SWAP_GIVABLE[type]) continue;
+      if (swapRemainingHours(giver, d, type) <= 0) continue;
+      opts.push(`<option value="${d}|${type}">${String(d).padStart(2,'0')}.${String(MONTH).padStart(2,'0')} · ${swapShiftLabelOf(type)}</option>`);
+    }
+  }
+  dateSel.innerHTML = opts.length ? opts.join('') : '<option value="">Нет смен для отдачи</option>';
+  swapOnDateChange();
+}
+
+function swapSelectedDateInfo() {
+  const v = document.getElementById('swap-date').value;
+  if (!v) return null;
+  const [dStr, type] = v.split('|');
+  const d = parseInt(dStr, 10);
+  return { d, type, dateObj: new Date(YEAR, MONTH - 1, d), win: SWAP_GIVABLE[type] };
+}
+
+function swapOnDateChange() {
+  const info = swapSelectedDateInfo();
+  const fromSel = document.getElementById('swap-from');
+  const toSel = document.getElementById('swap-to');
+  if (!info) { fromSel.innerHTML = ''; toSel.innerHTML = ''; swapOnRangeChange(); return; }
+  const [w0, w1] = info.win;
+  let f = '';
+  for (let h = w0; h < w1; h++) f += `<option value="${h}">${swapFmtH(h)}</option>`;
+  fromSel.innerHTML = f;
+  fromSel.value = String(w0);
+  swapOnFromChange(true);
+}
+
+function swapOnFromChange(keepFull) {
+  const info = swapSelectedDateInfo();
+  const toSel = document.getElementById('swap-to');
+  if (!info) { toSel.innerHTML = ''; swapOnRangeChange(); return; }
+  const [, w1] = info.win;
+  const from = parseInt(document.getElementById('swap-from').value, 10);
+  let t = '';
+  for (let h = from + 1; h <= w1; h++) t += `<option value="${h}">${swapFmtH(h)}${h > 24 ? ' (+1д)' : ''}</option>`;
+  toSel.innerHTML = t;
+  toSel.value = String(w1);
+  swapOnRangeChange();
+}
+
+function swapComputedHours() {
+  const info = swapSelectedDateInfo();
+  if (!info) return { hours: 0, remaining: 0, from: 0, to: 0 };
+  const from = parseInt(document.getElementById('swap-from').value, 10);
+  const to = parseInt(document.getElementById('swap-to').value, 10);
+  const remaining = swapRemainingHours(document.getElementById('swap-giver').value, info.d, info.type);
+  if (isNaN(from) || isNaN(to) || to <= from) return { hours: 0, remaining, from: 0, to: 0 };
+  return { hours: Math.min(to - from, remaining), remaining, from, to };
+}
+
+function swapOnRangeChange() {
+  const { hours, remaining } = swapComputedHours();
+  const lbl = document.getElementById('swap-hours-label');
+  lbl.textContent = hours > 0 ? `Будет передано: ${hours}ч (доступно ${remaining}ч)` : 'Выберите корректный диапазон';
+  swapRebuildRecipients();
+}
+
+function swapRebuildRecipients() {
+  const sel = document.getElementById('swap-recipient');
+  const hint = document.getElementById('swap-cand-hint');
+  const info = swapSelectedDateInfo();
+  const { hours, from, to } = swapComputedHours();
+  if (!info || hours <= 0) { sel.innerHTML = '<option value="">·</option>'; hint.textContent = ''; return; }
+  const giver = document.getElementById('swap-giver').value;
+  const all = swapAllOperators();
+  const ok = all.filter(c => swapCandidateOk(c, giver, info.dateObj, [from, to], info.type));
+  sel.innerHTML = ok.length
+    ? ok.map(n => `<option value="${n}">${n}</option>`).join('')
+    : '<option value="">Нет доступных получателей</option>';
+  hint.textContent = `Доступно получателей: ${ok.length} из ${all.length - 1} (учтены конфликты, ночь накануне, отдых ${SWAP_MIN_REST}ч)`;
+}
+
+async function submitSwapRequest() {
+  const info = swapSelectedDateInfo();
+  const { hours, from, to } = swapComputedHours();
+  const giver = document.getElementById('swap-giver').value;
+  const recipient = document.getElementById('swap-recipient').value;
+  const msg = document.getElementById('swap-msg');
+  const btn = document.getElementById('swap-submit');
+
+  if (!info || hours <= 0) { msg.textContent = 'Выберите смену и корректный диапазон часов'; msg.className = 'save-msg err show'; return; }
+  if (!recipient) { msg.textContent = 'Выберите получателя'; msg.className = 'save-msg err show'; return; }
+  const recipientEmail = swapEmpOv(recipient).email;
+  if (!recipientEmail) { msg.textContent = `У ${recipient} не указан email в профиле`; msg.className = 'save-msg err show'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Отправка...';
+  msg.className = 'save-msg';
+
+  try {
+    const res = await fetch(`${API}/swap-request`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: SWAP_PROJECT,
+        month: `${YEAR}-${String(MONTH).padStart(2,'0')}`,
+        date: dateStr(info.d),
+        giver,
+        recipient,
+        recipientEmail,
+        shiftType: info.type,
+        shiftLabel: swapShiftLabelOf(info.type),
+        range: swapFmtRange(from, to),
+        hours,
+        win: [from, to],
+        withLunch: document.getElementById('swap-lunch').checked,
+        comment: document.getElementById('swap-comment').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      closeSwapPanel();
+      showToast('Заявка отправлена ТЛ-ам на рассмотрение', 'ok');
+    } else {
+      msg.textContent = data.error || 'Ошибка отправки заявки';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Отправить заявку';
+  }
+}
+
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -2846,20 +3409,80 @@ const PATTERN_PRESET_LABELS = {
   'custom':          'Кастомный (не менять)',
 };
 
+// ── МИГРАЦИЯ: фиксируем захардкоженные паттерны в settings.operatorPatterns ──
+function deriveBasePattern(name) {
+  const fn = OPERATOR_BASE_SHIFTS[name];
+  if (!fn) return null;
+  const N = 336;
+  const sample = [];
+  for (let i = 0; i < N; i++) {
+    const d = new Date(CYCLE_START);
+    d.setDate(d.getDate() + i);
+    sample.push(fn(d));
+  }
+  for (let p = 1; p <= 84; p++) {
+    let ok = true;
+    for (let i = 0; i + p < N; i++) {
+      if (sample[i] !== sample[i + p]) { ok = false; break; }
+    }
+    if (ok) return { pattern: sample.slice(0, p), cycleStart: localDs(CYCLE_START), v: 2 };
+  }
+  return null;
+}
+
+async function migrateHardcodedPatterns() {
+  const all = [...new Set(SECTIONS.flatMap(s => s.members))];
+  const newPatterns = { ...(scheduleSettings.operatorPatterns || {}) };
+  let added = 0, skipped = 0;
+  const failed = [];
+
+  all.forEach(name => {
+    if (getPatternEntries(name).length || dismissedEmployees[name]) { skipped++; return; }
+    const entry = deriveBasePattern(name);
+    if (!entry) { failed.push(name); return; }
+    newPatterns[name] = [entry];
+    added++;
+  });
+
+  if (!added && !failed.length) { showToast('Все паттерны уже зафиксированы в настройках', 'ok'); return; }
+  const summary = `Зафиксировать паттерны в настройках?\n\nБудет записано: ${added}\nУже есть в настройках / уволены: ${skipped}` +
+    (failed.length ? `\nНе удалось вычислить цикл: ${failed.join(', ')}` : '');
+  if (!confirm(summary)) return;
+
+  const newSettings = { ...scheduleSettings, operatorPatterns: newPatterns };
+  try {
+    const res = await fetch(`${API}/schedule?month=${YEAR}-${String(MONTH).padStart(2,'0')}&project=nk`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overrides: scheduleOverrides, settings: newSettings, version: scheduleVersion, logEntries: [{ action: `миграция паттернов (${added})`, target: null }] })
+    });
+    const data = await res.json();
+    if (res.status === 409) { showStaleWarning(); return; }
+    if (res.ok && data.ok) {
+      if (data.version) scheduleVersion = data.version;
+      if (data.log) scheduleLog = data.log;
+      scheduleSettings = newSettings;
+      renderAll();
+      showToast(`Паттерны зафиксированы: ${added}`, 'ok');
+    } else {
+      showToast('Ошибка сохранения', 'err');
+    }
+  } catch { showToast('Ошибка сети', 'err'); }
+}
+
 function openPatternModal(name) {
   patternModalName = name;
   document.getElementById('pattern-modal-title').textContent = `Паттерн: ${name}`;
   
-  const patterns = scheduleSettings.operatorPatterns || {};
-  const existing = patterns[name];
-  
-  // Определяем текущий пресет
+  const entries = getPatternEntries(name);
+  const latest = entries.length ? entries[entries.length - 1] : null;
+
   let currentPreset = 'morning_evening';
-  if (existing?.pattern) {
-    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === existing.pattern.join(','));
+  let currentPattern = latest?.pattern || null;
+  if (currentPattern) {
+    const found = Object.keys(PATTERN_PRESETS).find(k => PATTERN_PRESETS[k].join(',') === currentPattern.join(','));
     currentPreset = found || 'custom';
   }
-  // Устанавливаем значение кастомного селекта
   document.getElementById('pattern-preset-select').value = currentPreset;
   const optEl = document.querySelector(`#pattern-select-dropdown [data-value="${currentPreset}"]`);
   if (optEl) {
@@ -2867,8 +3490,8 @@ function openPatternModal(name) {
     document.querySelectorAll('#pattern-select-dropdown .custom-select-option').forEach(o => o.classList.remove('selected'));
     optEl.classList.add('selected');
   }
-  
-  document.getElementById('pattern-cycle-start').value = existing ? existing.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
+
+  document.getElementById('pattern-cycle-start').value = latest ? latest.cycleStart : `${YEAR}-${String(MONTH).padStart(2,'0')}-01`;
   
   document.getElementById('pattern-modal-overlay').classList.add('open');
 }
@@ -2921,12 +3544,17 @@ async function savePattern() {
 
   const pattern = PATTERN_PRESETS[presetKey];
   if (!pattern) return;
-  
+
+  const existingEntries = getPatternEntries(patternModalName);
+  const newEntry = { pattern, cycleStart, v: 2 };
+  const newEntries = [...existingEntries.filter(e => e.cycleStart !== cycleStart), newEntry]
+    .sort((a, b) => (a.cycleStart < b.cycleStart ? -1 : 1));
+
   const newSettings = {
     ...scheduleSettings,
     operatorPatterns: {
       ...(scheduleSettings.operatorPatterns || {}),
-      [patternModalName]: { pattern, cycleStart }
+      [patternModalName]: newEntries
     }
   };
   

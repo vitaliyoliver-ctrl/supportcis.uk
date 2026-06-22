@@ -16,6 +16,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# Don't let a single wrangler stderr line / transient non-zero exit abort the
+# whole run (PowerShell 7.3+ makes native commands honor ErrorActionPreference).
+$PSNativeCommandUseErrorActionPreference = $false
 
 # Force UTF-8 so Cyrillic inside KV values (notes/log) is preserved on write.
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -23,15 +26,25 @@ $OutputEncoding           = [System.Text.Encoding]::UTF8
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $tmp = Join-Path $PWD "migrate-sched-tmp.json"
 
+# Run a wrangler command with retries; returns stdout as a single string.
+function Invoke-Wr($wrArgs, $retries = 4) {
+  for ($i = 1; $i -le $retries; $i++) {
+    $global:LASTEXITCODE = 0
+    $out = & npx wrangler @wrArgs 2>$null | Out-String
+    if ($LASTEXITCODE -eq 0) { return $out }
+    if ($i -lt $retries) { Start-Sleep -Seconds ($i * 2) }
+  }
+  throw "wrangler failed after $retries tries: wrangler $($wrArgs -join ' ')"
+}
+
 function KvGet($nsId, $key) {
-  $bytes = & npx wrangler kv key get $key --namespace-id $nsId --remote 2>$null
-  if ($bytes -is [array]) { $raw = $bytes -join "" } else { $raw = [string]$bytes }
+  $raw = Invoke-Wr @('kv','key','get',$key,'--namespace-id',$nsId,'--remote')
   return $raw.TrimEnd("`r","`n")
 }
 
 function KvPut($nsId, $key, $value) {
   [System.IO.File]::WriteAllText($tmp, $value, $utf8NoBom)
-  npx wrangler kv key put $key --namespace-id $nsId --remote --path $tmp | Out-Null
+  Invoke-Wr @('kv','key','put',$key,'--namespace-id',$nsId,'--remote','--path',$tmp) | Out-Null
 }
 
 # v1 settings-<proj> -> v2 settings JSON (merge customHours into employeeOverrides.hours)
@@ -61,7 +74,7 @@ function Get-SettingsJson($schedKv, $proj) {
 }
 
 Write-Host "Reading SCHEDULE_KV key list..."
-$allKeys = (npx wrangler kv key list --namespace-id $SchedKv --remote 2>$null | Out-String | ConvertFrom-Json) | ForEach-Object { $_.name }
+$allKeys = (Invoke-Wr @('kv','key','list','--namespace-id',$SchedKv,'--remote') | ConvertFrom-Json) | ForEach-Object { $_.name }
 
 $total = 0
 foreach ($proj in @('sg','nk')) {

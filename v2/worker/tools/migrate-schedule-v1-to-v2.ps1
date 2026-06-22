@@ -1,12 +1,14 @@
-# Перенос АКТУАЛЬНОГО графика из v1 (SCHEDULE_KV) в KV формата v2 (AUTH_KV).
-# Только график: overrides + settings + version + log, для проектов SG и НК.
-# Профили/роли НЕ трогает. Можно запускать повторно — обновляет график свежими
-# данными со старого сайта (перезаписывает соответствующие месяцы в v2).
+# Migrate the CURRENT schedule from v1 (SCHEDULE_KV) into v2-format KV (AUTH_KV).
+# Schedule only: overrides + settings + version + log, for projects SG and NK.
+# Does NOT touch profiles/roles. Safe to re-run (refreshes the months in v2 with
+# the latest data from the old site).
 #
-# По умолчанию — сухой прогон (только показывает, что будет). Для записи: -Apply
+# Dry-run by default (prints what would happen). Use -Apply to write.
 #
 #   .\migrate-schedule-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -TargetKv <v2_AUTH_KV>
 #   .\migrate-schedule-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -TargetKv <v2_AUTH_KV> -Apply
+#
+# ASCII-only on purpose: avoids cp1251/UTF-8 parse issues in Windows PowerShell.
 param(
   [Parameter(Mandatory=$true)][string]$SchedKv,
   [Parameter(Mandatory=$true)][string]$TargetKv,
@@ -15,7 +17,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# UTF-8, чтобы кириллица в заметках/логе не билась
+# Force UTF-8 so Cyrillic inside KV values (notes/log) is preserved on write.
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -32,7 +34,7 @@ function KvPut($nsId, $key, $value) {
   npx wrangler kv key put $key --namespace-id $nsId --remote --path $tmp | Out-Null
 }
 
-# settings-<proj> (v1) -> JSON формата v2 (customHours сливается в employeeOverrides.hours)
+# v1 settings-<proj> -> v2 settings JSON (merge customHours into employeeOverrides.hours)
 function Get-SettingsJson($schedKv, $proj) {
   $raw = KvGet $schedKv "settings-$proj"
   if ([string]::IsNullOrWhiteSpace($raw)) { return "{}" }
@@ -63,17 +65,17 @@ $allKeys = (npx wrangler kv key list --namespace-id $SchedKv --remote 2>$null | 
 
 $total = 0
 foreach ($proj in @('sg','nk')) {
-  $months = $allKeys | Where-Object { $_ -match "^schedule-$proj`:(\d{4}-\d{2})$" }
+  $months = $allKeys | Where-Object { $_ -match "^schedule-${proj}:(\d{4}-\d{2})$" }
   Write-Host ""
-  Write-Host "=== Проект $($proj.ToUpper()): $($months.Count) месяцев ==="
+  Write-Host "=== Project $($proj.ToUpper()): $($months.Count) month(s) ==="
   if (-not $months) { continue }
 
   $settingsJson = Get-SettingsJson $SchedKv $proj
 
   foreach ($key in $months) {
-    $key -match "^schedule-$proj`:(\d{4}-\d{2})$" | Out-Null
+    $key -match "^schedule-${proj}:(\d{4}-\d{2})$" | Out-Null
     $ym     = $Matches[1]
-    $newKey = "schedule:$proj`:$ym"
+    $newKey = "schedule:${proj}:$ym"
 
     if (-not $Apply) {
       Write-Host "  [dry] $key  ->  $newKey"
@@ -84,8 +86,8 @@ foreach ($proj in @('sg','nk')) {
     $blob = (KvGet $SchedKv $key) | ConvertFrom-Json
     $verRaw = if ($null -ne $blob.version) { [long]$blob.version } else { 0 }
 
-    # overrides — объект (возможно пустой); log — массив (возможно пустой).
-    # Собираем JSON вручную, сохраняя исходные строки (кириллица в заметках/логе).
+    # overrides = object (maybe empty); log = array (maybe empty). Build JSON by
+    # hand to keep original strings (Cyrillic in notes/log) intact.
     $ovJson = $blob.overrides | ConvertTo-Json -Depth 20 -Compress
     if ([string]::IsNullOrWhiteSpace($ovJson)) { $ovJson = "{}" }
 
@@ -111,7 +113,7 @@ if (Test-Path $tmp) { Remove-Item $tmp -Force }
 
 Write-Host ""
 if ($Apply) {
-  Write-Host "Готово. Перенесено месяцев: $total"
+  Write-Host "Done. Months migrated: $total"
 } else {
-  Write-Host "Сухой прогон. Для записи добавь -Apply"
+  Write-Host "Dry run. Add -Apply to write."
 }

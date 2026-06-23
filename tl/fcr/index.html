@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCR Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{--bg:#0f1117;--surface:#1a1d27;--border:#2a2e3d;--accent:#6c5ce7;--accent-light:#a29bfe;--text:#e8e6f0;--muted:#8b8a9e;--dim:#5a5970;--ok:#00b894;--warn:#fdcb6e;--bad:#e17055;--card:#161922;--mono:'JetBrains Mono',monospace}
+  *{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system,sans-serif;min-height:100vh}
+  .header{background:linear-gradient(135deg,#1a1d27,#0f1117);border-bottom:1px solid var(--border);padding:24px 32px}.header-row{display:flex;align-items:center;gap:12px;margin-bottom:4px}.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}.header h1{font-size:22px;font-weight:700;font-family:var(--mono);letter-spacing:-0.02em}.header p{margin-left:20px;font-size:13px;color:var(--muted)}
+  .container{padding:24px 32px;max-width:1200px;margin:0 auto}.upload-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;max-width:600px}.upload-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-family:var(--mono)}.upload-area{display:block;padding:16px;border:2px dashed var(--border);border-radius:8px;text-align:center;cursor:pointer;transition:all .2s}.upload-area:hover{border-color:var(--accent)}.upload-area.loaded{border-color:var(--ok);background:rgba(0,184,148,.05)}.upload-area input{display:none}.upload-text{font-size:13px;color:var(--muted)}.upload-area.loaded .upload-text{color:var(--ok)}
+  .source-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-family:var(--mono);font-weight:600;margin-left:8px}.source-badge.livechat{background:rgba(0,184,148,.15);color:var(--ok)}.source-badge.chatwoot{background:rgba(108,92,231,.15);color:var(--accent-light)}
+  .controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+  .tab-btn{padding:8px 18px;border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:8px;cursor:pointer;font-size:13px;font-weight:400;transition:all .2s;font-family:var(--mono)}.tab-btn.active{border-color:var(--accent);background:rgba(108,92,231,.15);color:var(--accent-light);font-weight:600}.tab-btn:hover:not(.active){border-color:var(--muted)}
+  select,input[type="date"]{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;font-family:var(--mono);cursor:pointer}select option{background:var(--surface);color:var(--text)}input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.7);cursor:pointer}
+  .date-group{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-family:var(--mono)}.date-hint{font-size:11px;color:var(--dim);margin-bottom:16px;font-family:var(--mono);padding:8px 12px;background:rgba(108,92,231,.06);border:1px solid rgba(108,92,231,.15);border-radius:8px;display:none}.date-hint.visible{display:block}
+  .cards{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;min-width:160px;flex:1 1 160px}.card-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;font-family:var(--mono)}.card-value{font-size:28px;font-weight:700;font-family:var(--mono)}.card-sub{font-size:12px;color:var(--dim);margin-top:4px}
+  .tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--card)}table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--mono)}th{text-align:left;padding:12px 16px;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}th.active{background:rgba(108,92,231,.08)}th.right,td.right{text-align:right}td{padding:10px 16px;border-bottom:1px solid var(--border)}tr:last-child td{border-bottom:none}
+  .bar{display:flex;align-items:center;gap:8px}.bar-track{width:80px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}.bar-fill{height:100%;border-radius:3px;transition:width .4s}.bar-val{font-weight:600;font-size:13px;min-width:50px}
+  #results{display:none}#results.visible{display:block}
+  .chart-section{margin-bottom:28px}.chart-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-family:var(--mono)}
+  .chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;position:relative}
+  canvas{width:100%!important}
+  .chart-tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);pointer-events:none;display:none;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<div class="header"><div class="header-row"><div class="dot"></div><h1>FCR Calculator</h1></div><p>First Contact Resolution — анализ обращений · порог 24 часа</p></div>
+<div class="container">
+  <div class="upload-box"><div class="upload-label">Выгрузка чатов <span id="sourceBadge"></span></div><label class="upload-area" id="uploadArea"><input type="file" accept=".csv,.xlsx,.xls" id="fileInput"><div class="upload-text" id="uploadText">CSV или XLSX · LiveChat или Chatwoot</div></label></div>
+  <div id="results">
+    <div class="controls">
+      <div class="date-group">с <input type="date" id="dateFrom"> по <input type="date" id="dateTo"></div>
+      <select id="projectFilter"><option value="all">Все проекты</option></select>
+      <select id="tierFilter"><option value="all">Все тиры</option></select>
+      <select id="botFilter"><option value="all">Все чаты</option><option value="only_bot">Только бот</option><option value="with_op">С оператором</option></select>
+    </div>
+    <div class="date-hint" id="dateHint"></div><div class="cards" id="cardsRow"></div><div class="tabs" id="tabsRow"></div><div id="tableArea"></div>
+  </div>
+</div>
+<script>
+const TL={vip:"VIP",privip:"PreVIP",regular:"Regular",tg:"Telegram",unknown:"—"};
+let D=null,R=null,SRC="";
+let S={project:"all",tier:"all",bot:"all",tab:"overview",df:"",dt:""};
+
+function isLCBot(n){if(!n)return!1;const p=n.trim().split(/\s+/);return p.length>=2&&/^[A-Z]/.test(p[0])&&/^[A-Z]/.test(p[1])}
+function isPrvBot(n){return isLCBot(n)&&/\bM\.\s*$/.test(n)}
+function botBase(n){return n.replace(/\s+M\.\s*$/,"").trim()}
+function cl(v){if(v==null)return"";let s=String(v).replace(/^\uFEFF/,"").trim();if(s==="None"||s==="none"||s==="null")return"";if(s.length>=2&&s[0]==="'"&&s[s.length-1]==="'")s=s.slice(1,-1);return s.trim()}
+function csvParse(text,delim){const rows=[];let cur=[],f="",q=!1;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=!1}else f+=c}else{if(c==='"')q=!0;else if(c===delim){cur.push(f);f=""}else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;cur.push(f);f="";if(cur.length>1||cur[0]!=="")rows.push(cur);cur=[]}else f+=c}}cur.push(f);if(cur.length>1||cur[0]!=="")rows.push(cur);return rows}
+function xlsxToRows(data){const wb=XLSX.read(data,{type:'array',cellDates:false,raw:false});const ws=wb.Sheets[wb.SheetNames[0]];return XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""}).map(r=>r.map(c=>c==null?"":String(c)))}
+function textToRows(text){const head=text.substring(0,3000);const delim=(head.match(/;/g)||[]).length>(head.match(/,/g)||[]).length?';':',';let rows=csvParse(text,delim);while(rows.length&&rows[0].join('').trim()==='')rows.shift();return rows}
+function findCol(h,names){for(const name of names){const idx=h.findIndex(c=>c.toLowerCase().includes(name.toLowerCase()));if(idx>=0)return idx}return-1}
+function findCols(h,patterns){const res=[];for(let i=0;i<h.length;i++){for(const p of patterns){if(h[i].toLowerCase().includes(p.toLowerCase())){res.push(i);break}}}return res}
+function findOpCols(h){const res=[];for(let i=0;i<h.length;i++){const lo=h[i].toLowerCase();if((lo.includes("operator name")||lo.includes("ник оператора"))&&!lo.includes("duration")&&!lo.includes("длительность"))res.push(i)}return res}
+function detect(h){const joined=h.map(c=>cl(c).toLowerCase()).join(' ');if(joined.includes('conversation id')||joined.includes('id чата')||joined.includes('источник'))return"chatwoot";if(joined.includes('conferenceid')||joined.includes('visitor livechat'))return"livechat";return"livechat"}
+
+function parseLC(rows){if(rows.length<2)return[];const h=rows[0].map(c=>cl(c)),data=[];
+  const ic=h.indexOf("conferenceId"),id=findCol(h,["chat creation date"]),ig=findCol(h,["group name"]),iv=findCol(h,["visitor livechat id"]);
+  const oc=[],tc=[];for(let i=0;i<h.length;i++){if(/^operator \d+ nick$/.test(h[i]))oc.push(i);if(/^tag \d+$/.test(h[i]))tc.push(i)}
+  for(let r=1;r<rows.length;r++){const row=rows[r];if(row.length<10)continue;const cid=cl(row[ic]);if(!cid)continue;
+    const ds=cl(row[id]),gr=cl(row[ig]),vid=cl(row[iv]);
+    const ops=[];for(const o of oc){const v=cl(row[o]);if(v)ops.push(v)}
+    const hb=ops.some(o=>isLCBot(o)),hh=ops.some(o=>!isLCBot(o));
+    let lo="";for(let i=ops.length-1;i>=0;i--){if(!isLCBot(ops[i])){lo=ops[i];break}}if(!lo&&ops.length)lo=ops[ops.length-1];
+    const bn=hb?ops.find(o=>isLCBot(o)):"";const tags=[];for(const t of tc){const v=cl(row[t]);if(v)tags.push(v)}
+    const gs=gr.split(",").map(g=>g.trim()).filter(Boolean),last=gs[gs.length-1]||"";
+    let pr="",ti="regular";if(last){const p=last.split(" ");pr=p[0]||"";const rest=p.slice(1).join(" ").toLowerCase();
+      if(rest.includes("vip support"))ti="vip";else if(rest.includes("privip"))ti="privip";else if(rest.includes("tg"))ti="tg";else ti="regular"}
+    data.push({confId:cid,date:ds,dateOnly:ds.substring(0,10),visitorId:vid,lastOp:lo,tags,project:pr,tier:ti,hasBot:hb,hasHuman:hh,botName:bn})}return data}
+
+function parseCW(rows){while(rows.length&&rows[0].map(c=>cl(c)).join('')==='')rows.shift();if(rows.length<2)return[];
+  const h=rows[0].map(c=>cl(c)),data=[];
+  const iC=findCol(h,["conversation ID","ID чата"]),iD=findCol(h,["Start date","Дата и время начала"]),iI=findCol(h,["Inbox","Источник"]);
+  const opCols=findOpCols(h);const catCols=findCols(h,["Category ","Категория "]).filter(i=>{const lo=h[i].toLowerCase();return!lo.includes("score")&&!lo.includes("оценка")});
+  const iAvatar=findCol(h,["avatar_url_hash"]),iTgId=findCol(h,["social_telegram_user_id"]),iUserId=findCol(h,["user_id"]);
+  for(let r=1;r<rows.length;r++){const row=rows[r];if(row.length<10)continue;const cid=cl(row[iC]);if(!cid)continue;
+    const ds=cl(row[iD]),inbox=cl(row[iI]);
+    let vid="";if(iAvatar>=0){const v=cl(row[iAvatar]);if(v)vid=v}if(!vid&&iTgId>=0){const v=cl(row[iTgId]);if(v)vid="tg_"+v}if(!vid&&iUserId>=0){const v=cl(row[iUserId]);const m=v.match(/(\d{4,})/);if(m)vid="uid_"+m[1]}
+    const ops=[];for(const o of opCols){const v=cl(row[o]);if(v)ops.push(v)}
+    const hb=ops.length===0,hh=ops.length>0,lo=ops.length?ops[ops.length-1]:"";
+    const tags=[];for(const c of catCols){const v=cl(row[c]);if(v)tags.push(v)}
+    let pr="",ti="regular";const il=inbox.toLowerCase();
+    if(il.endsWith(" tg")){pr=inbox.split(" ")[0];ti="tg"}else if(il.endsWith(" support")){pr=inbox.replace(/ Support$/i,"").trim();ti="regular"}else if(il.startsWith("support ")){pr=inbox.replace(/^Support /i,"").trim();ti="privip"}else{pr=inbox;ti="vip"}
+    data.push({confId:cid,date:ds,dateOnly:ds.substring(0,10),visitorId:vid,lastOp:lo,tags,project:pr,tier:ti,hasBot:hb,hasHuman:hh,botName:""})}return data}
+
+const CW_META=new Set(["atom","motor","regular","vip","privip","tg","чат-бот","velora"]);
+function isSaleTag(t){return t.toLowerCase().includes("продаж")||t.toLowerCase()==="spam"||t.toLowerCase().includes("spam")}
+function getRealTags(tags){return tags.filter(t=>!isSaleTag(t)&&!(SRC==="chatwoot"&&CW_META.has(t.toLowerCase())))}
+
+function computeFCR(all,filtered){
+  const byV={};for(const c of all){const k=c.visitorId||("_e_"+c.confId);(byV[k]=byV[k]||[]).push(c)}
+  const tid=new Set(filtered.map(c=>c.confId));const res=[];
+  for(const chats of Object.values(byV)){chats.sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const tagChats={};for(const c of chats){for(const tag of getRealTags(c.tags)){(tagChats[tag]=tagChats[tag]||[]).push(c)}}
+    for(const[tag,tc]of Object.entries(tagChats)){for(let i=0;i<tc.length;i++){if(!tid.has(tc[i].confId))continue;let fcr=!0;
+      if(tc[i+1]){if((new Date(tc[i+1].date)-new Date(tc[i].date))/36e5<=24)fcr=!1}res.push({...tc[i],isFCR:fcr,fcrTag:tag})}}}return res}
+
+function agg(res){const t=res.length,f=res.filter(r=>r.isFCR).length;
+  const bP={},bT={},bO={},bG={},bB={},bD={};
+  const inc=(o,k,ok)=>{if(!o[k])o[k]={total:0,fcr:0};o[k].total++;if(ok)o[k].fcr++};
+  for(const r of res){inc(bP,r.project||"(нет)",r.isFCR);inc(bT,r.tier,r.isFCR);
+    const op=r.lastOp||"(нет оператора)";if(!isLCBot(op))inc(bO,op,r.isFCR);
+    inc(bG,r.fcrTag||"(без тега)",r.isFCR);if(r.botName)inc(bB,r.botName,r.isFCR);inc(bD,r.dateOnly,r.isFCR)}
+  return{total:t,fcrCount:f,byProject:bP,byTier:bT,byOp:bO,byTag:bG,byBot:bB,byDate:bD}}
+
+/* ── Chart drawing ── */
+function drawLineChart(canvasId,labels,values,color,yLabel){
+  const canvas=document.getElementById(canvasId);if(!canvas)return;
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.parentElement.getBoundingClientRect();
+  const W=rect.width-40,H=220;
+  canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const pad={t:20,r:20,b:50,l:50};
+  const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const mn=Math.max(Math.min(...values)-5,0),mx=Math.min(Math.max(...values)+5,100);
+  const range=mx-mn||1;
+  const toX=i=>pad.l+(i/(labels.length-1||1))*cW;
+  const toY=v=>pad.t+cH-(((v-mn)/range)*cH);
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  const steps=5;for(let i=0;i<=steps;i++){
+    const v=mn+(range/steps)*i;const y=toY(v);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle='#5a5970';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(v.toFixed(0)+'%',pad.l-8,y+3)}
+
+  // X labels
+  ctx.fillStyle='#5a5970';ctx.font='10px JetBrains Mono';ctx.textAlign='center';
+  const skip=Math.max(1,Math.floor(labels.length/15));
+  for(let i=0;i<labels.length;i++){if(i%skip!==0&&i!==labels.length-1)continue;
+    ctx.save();ctx.translate(toX(i),H-8);ctx.rotate(-Math.PI/4);ctx.fillText(labels[i],0,0);ctx.restore()}
+
+  // Area fill
+  ctx.beginPath();ctx.moveTo(toX(0),toY(values[0]));
+  for(let i=1;i<values.length;i++)ctx.lineTo(toX(i),toY(values[i]));
+  ctx.lineTo(toX(values.length-1),toY(mn));ctx.lineTo(toX(0),toY(mn));ctx.closePath();
+  const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grad.addColorStop(0,color+'30');grad.addColorStop(1,color+'05');ctx.fillStyle=grad;ctx.fill();
+
+  // Line
+  ctx.beginPath();ctx.moveTo(toX(0),toY(values[0]));
+  for(let i=1;i<values.length;i++)ctx.lineTo(toX(i),toY(values[i]));
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+
+  // Dots
+  for(let i=0;i<values.length;i++){
+    const x=toX(i),y=toY(values[i]);
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fillStyle='#161922';ctx.fill()}
+
+  // Hover
+  const tooltip=canvas.parentElement.querySelector('.chart-tooltip');
+  canvas.onmousemove=function(e){
+    const br=canvas.getBoundingClientRect();const mx2=e.clientX-br.left;
+    let closest=-1,minD=Infinity;
+    for(let i=0;i<values.length;i++){const d=Math.abs(toX(i)-mx2);if(d<minD){minD=d;closest=i}}
+    if(closest>=0&&minD<30){
+      tooltip.style.display='block';tooltip.style.left=(toX(closest)+10)+'px';tooltip.style.top=(toY(values[closest])-10)+'px';
+      tooltip.innerHTML=`<div style="color:var(--muted)">${labels[closest]}</div><div style="color:${color};font-weight:700">${values[closest].toFixed(1)}%</div>`}
+    else tooltip.style.display='none'};
+  canvas.onmouseleave=function(){tooltip.style.display='none'}}
+
+/* ── UI ── */
+const pct=(a,b)=>b===0?"—":((a/b)*100).toFixed(1)+"%";const pn=(a,b)=>b===0?0:(a/b)*100;
+const bc=n=>n>=85?"#00b894":n>=70?"#fdcb6e":"#e17055";
+function bh(v){const n=parseFloat(v),c=bc(n);return`<div class="bar"><div class="bar-track"><div class="bar-fill" style="width:${Math.min(n,100)}%;background:${c}"></div></div><span class="bar-val" style="color:${c}">${v}</span></div>`}
+function renderCards(c){document.getElementById("cardsRow").innerHTML=`<div class="card"><div class="card-label">Всего обращений</div><div class="card-value">${c.total.toLocaleString()}</div></div><div class="card"><div class="card-label">FCR</div><div class="card-value" style="color:var(--ok)">${c.fcrCount.toLocaleString()}</div></div><div class="card"><div class="card-label">Не FCR</div><div class="card-value" style="color:var(--bad)">${(c.total-c.fcrCount).toLocaleString()}</div></div><div class="card"><div class="card-label">FCR %</div><div class="card-value" style="color:var(--accent-light)">${pct(c.fcrCount,c.total)}</div><div class="card-sub">24ч порог</div></div>`}
+function renderTabs(){const t=[["overview","Обзор"],["projects","Проекты"],["tiers","Тиры"],["operators","Операторы"]];if(SRC==="livechat")t.push(["bots","Боты"]);t.push(["tags","Теги"]);
+  document.getElementById("tabsRow").innerHTML=t.map(([k,l])=>`<button class="tab-btn ${S.tab===k?'active':''}" data-tab="${k}">${l}</button>`).join("");
+  document.querySelectorAll("#tabsRow .tab-btn").forEach(b=>{b.onclick=()=>{S.tab=b.dataset.tab;render()}})}
+function toR(o){return Object.entries(o).map(([k,v])=>({name:k,total:v.total,fcr:v.fcr,pct:v.total>0?((v.fcr/v.total)*100).toFixed(1)+"%":"0.0%",pctNum:pn(v.fcr,v.total)})).filter(r=>r.total>0)}
+let cs={col:"total",dir:"desc"};
+function sr(rows,col,dir){return[...rows].sort((a,b)=>{const va=a[col],vb=b[col];if(typeof va==="number")return dir==="asc"?va-vb:vb-va;return dir==="asc"?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va))})}
+function rt(rows,nl,sc,ec){cs={col:sc||"total",dir:"desc"};_rt(rows,nl,ec)}
+function _rt(rows,nl,ec){const sorted=sr(rows,cs.col,cs.dir),aw=k=>cs.col===k?(cs.dir==="asc"?" ↑":" ↓"):"",cla=k=>cs.col===k?"active":"";
+  let cols=[{key:"name",label:nl,right:!1}];if(ec)cols=cols.concat(ec);cols=cols.concat([{key:"total",label:"Обращений",right:!0},{key:"fcr",label:"FCR",right:!0},{key:"pctNum",label:"FCR %",right:!0,isBar:!0}]);
+  const a=document.getElementById("tableArea");
+  a.innerHTML=`<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th class="${c.right?'right ':''} ${cla(c.key)}" data-col="${c.key}">${c.label}${aw(c.key)}</th>`).join("")}</tr></thead><tbody>${sorted.map(r=>`<tr>${cols.map(c=>{let v;if(c.isBar)v=bh(r.pct);else if(c.key==="total"||c.key==="fcr")v=r[c.key].toLocaleString();else v=r[c.key]||"";return`<td class="${c.right?'right':''}">${v}</td>`}).join("")}</tr>`).join("")}</tbody></table></div>`;
+  a.querySelectorAll("th[data-col]").forEach(th=>{th.onclick=()=>{const c=th.dataset.col;if(cs.col===c)cs.dir=cs.dir==="asc"?"desc":"asc";else{cs.col=c;cs.dir="desc"}_rt(rows,nl,ec)}})}
+let bpm={};
+function buildBPM(d){const c={};for(const x of d){if(!x.botName)continue;const b=botBase(x.botName);if(!c[b])c[b]={};c[b][x.project]=(c[b][x.project]||0)+1}bpm={};for(const[b,p]of Object.entries(c)){let best="",bn=0;for(const[k,n]of Object.entries(p)){if(n>bn){best=k;bn=n}}bpm[b]=best}}
+
+function renderOverview(c){
+  const a=document.getElementById("tableArea");
+  const days=Object.entries(c.byDate).sort((x,y)=>x[0].localeCompare(y[0]));
+  const tagRows=toR(c.byTag).sort((a,b)=>a.pctNum-b.pctNum).slice(0,10);
+  const opRows=toR(c.byOp).filter(r=>r.name!=="(нет оператора)").sort((a,b)=>a.pctNum-b.pctNum).slice(0,10);
+
+  let html=`<div class="chart-section"><div class="chart-title">FCR % по дням</div><div class="chart-wrap"><canvas id="dailyChart"></canvas><div class="chart-tooltip"></div></div></div>`;
+  html+=`<div style="display:flex;gap:20px;flex-wrap:wrap">`;
+
+  // Top worst categories table
+  if(tagRows.length){
+    html+=`<div style="flex:1;min-width:300px" class="chart-section"><div class="chart-title">Топ-10 категорий · наименьший FCR</div><div class="table-wrap"><table><thead><tr><th>Категория</th><th class="right">Обращений</th><th class="right">FCR %</th></tr></thead><tbody>`;
+    for(const r of tagRows){const col=bc(r.pctNum);html+=`<tr><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.name}">${r.name}</td><td class="right">${r.total}</td><td class="right" style="color:${col};font-weight:600">${r.pct}</td></tr>`}
+    html+=`</tbody></table></div></div>`}
+
+  // Top worst operators table
+  if(opRows.length){
+    html+=`<div style="flex:1;min-width:300px" class="chart-section"><div class="chart-title">Топ-10 операторов · наименьший FCR</div><div class="table-wrap"><table><thead><tr><th>Оператор</th><th class="right">Обращений</th><th class="right">FCR %</th></tr></thead><tbody>`;
+    for(const r of opRows){const col=bc(r.pctNum);html+=`<tr><td>${r.name}</td><td class="right">${r.total}</td><td class="right" style="color:${col};font-weight:600">${r.pct}</td></tr>`}
+    html+=`</tbody></table></div></div>`}
+
+  html+=`</div>`;
+  a.innerHTML=html;
+
+  if(days.length>=2){
+    const labels=days.map(d=>d[0].substring(5));
+    const values=days.map(d=>pn(d[1].fcr,d[1].total));
+    setTimeout(()=>drawLineChart('dailyChart',labels,values,'#a29bfe'),50)}
+}
+
+function render(){if(!R)return;renderCards(R);renderTabs();
+  if(S.tab==="overview")renderOverview(R);
+  else if(S.tab==="projects")rt(toR(R.byProject),"Проект");
+  else if(S.tab==="tiers")rt(toR(R.byTier).map(r=>({...r,name:TL[r.name]||r.name})),"Тир");
+  else if(S.tab==="operators")rt(toR(R.byOp),"Оператор");
+  else if(S.tab==="bots"){rt(toR(R.byBot).map(r=>{const b=botBase(r.name);return{...r,botProject:bpm[b]||"—",botType:isPrvBot(r.name)?"PreVIP":"Regular"}}),"Бот","total",[{key:"botProject",label:"Проект",right:!1},{key:"botType",label:"Тип",right:!1}])}
+  else if(S.tab==="tags")rt(toR(R.byTag),"Тег")}
+
+function recalc(){if(!D)return;let ctx=D;
+  if(S.project!=="all")ctx=ctx.filter(x=>x.project===S.project);
+  if(S.tier!=="all")ctx=ctx.filter(x=>x.tier===S.tier);
+  let t=ctx;
+  if(S.bot==="only_bot")t=t.filter(x=>x.hasBot&&!x.hasHuman);
+  else if(S.bot==="with_op")t=t.filter(x=>x.hasHuman);
+  if(S.df)t=t.filter(x=>x.dateOnly>=S.df);if(S.dt)t=t.filter(x=>x.dateOnly<=S.dt);
+  const h=document.getElementById("dateHint");
+  if(S.df||S.dt){const ad=D.map(x=>x.dateOnly).sort();h.textContent=`Выгрузка: ${ad[0]} — ${ad[ad.length-1]} · Считаем FCR: ${S.df||ad[0]} — ${S.dt||ad[ad.length-1]} · Чатов в периоде: ${t.length}`;h.classList.add("visible")}else h.classList.remove("visible");
+  R=agg(computeFCR(ctx,t));render()}
+
+function processRows(rows,fileName){
+  while(rows.length&&rows[0].map(c=>cl(c)).join('')==='')rows.shift();if(!rows.length)return;
+  SRC=detect(rows[0].map(c=>cl(c)));D=SRC==="chatwoot"?parseCW(rows):parseLC(rows);buildBPM(D);
+  document.getElementById("uploadArea").classList.add("loaded");document.getElementById("uploadText").textContent=`✓ ${fileName} — ${D.length} чатов`;
+  const b=document.getElementById("sourceBadge");b.className="source-badge "+SRC;b.textContent=SRC==="chatwoot"?"Chatwoot":"LiveChat";
+  document.getElementById("results").classList.add("visible");
+  document.getElementById("projectFilter").innerHTML='<option value="all">Все проекты</option>'+[...new Set(D.map(c=>c.project).filter(Boolean))].sort().map(p=>`<option value="${p}">${p}</option>`).join("");
+  document.getElementById("tierFilter").innerHTML='<option value="all">Все тиры</option>'+[...new Set(D.map(c=>c.tier))].sort().map(t=>`<option value="${t}">${TL[t]||t}</option>`).join("");
+  const ad=[...new Set(D.map(c=>c.dateOnly))].sort();
+  if(ad.length>=3){S.df=ad[1];S.dt=ad[ad.length-2]}else{S.df=ad[0]||"";S.dt=ad[ad.length-1]||""}
+  document.getElementById("dateFrom").value=S.df;document.getElementById("dateTo").value=S.dt;S.tab="overview";recalc()}
+
+document.getElementById("fileInput").addEventListener("change",function(e){const file=e.target.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='xlsx'||ext==='xls'){const r=new FileReader();r.onload=function(ev){processRows(xlsxToRows(new Uint8Array(ev.target.result)),file.name)};r.readAsArrayBuffer(file)}
+  else{const r=new FileReader();r.onload=function(ev){processRows(textToRows(ev.target.result),file.name)};r.readAsText(file,"utf-8")}});
+document.getElementById("projectFilter").addEventListener("change",e=>{S.project=e.target.value;recalc()});
+document.getElementById("tierFilter").addEventListener("change",e=>{S.tier=e.target.value;recalc()});
+document.getElementById("botFilter").addEventListener("change",e=>{S.bot=e.target.value;recalc()});
+document.getElementById("dateFrom").addEventListener("change",e=>{S.df=e.target.value;recalc()});
+document.getElementById("dateTo").addEventListener("change",e=>{S.dt=e.target.value;recalc()});
+</script>
+</body>
+</html>

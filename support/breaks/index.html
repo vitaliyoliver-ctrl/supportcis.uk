@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Перерывы и обеды</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f11;
+  --surface: #18181c;
+  --surface2: #222228;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f0f4;
+  --muted: #7a7a8c;
+  --accent-day: #6ee7b7;
+  --accent-day-dim: rgba(110,231,183,0.12);
+  --accent-day-border: rgba(110,231,183,0.35);
+  --accent-night: #a78bfa;
+  --accent-night-dim: rgba(167,139,250,0.12);
+  --accent-night-border: rgba(167,139,250,0.35);
+  --danger: #f87171;
+  --danger-dim: rgba(248,113,113,0.10);
+  --warn: #fbbf24;
+  --warn-dim: rgba(251,191,36,0.10);
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-day); display: inline-block; margin-right: 6px; transition: background 0.3s; }
+body.night .logo-dot { background: var(--accent-night); }
+
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.op-wrap { position: relative; }
+select {
+  appearance: none;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 8px 36px 8px 14px;
+  cursor: pointer;
+  outline: none;
+  min-width: 160px;
+  transition: border-color 0.15s;
+}
+select:hover, select:focus { border-color: var(--accent-day-border); }
+body.night select:hover, body.night select:focus { border-color: var(--accent-night-border); }
+.select-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); font-size: 10px; }
+
+.op-badge {
+  display: none;
+  align-items: center;
+  background: var(--accent-day-dim);
+  border: 1px solid var(--accent-day-border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-day);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+body.night .op-badge { background: var(--accent-night-dim); border-color: var(--accent-night-border); color: var(--accent-night); }
+body.vip .op-badge { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.35); color: var(--warn); }
+body.nc .op-badge { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.35); color: var(--danger); }
+body.nc .logo-dot { background: var(--danger); }
+.seg-btn.active-nc { background: rgba(248,113,113,0.12); color: var(--danger); font-weight: 500; }
+body.vip .logo-dot { background: var(--warn); }
+.seg-btn.active-vip { background: rgba(251,191,36,0.12); color: var(--warn); font-weight: 500; }
+
+.seg { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg-btn { padding: 7px 14px; font-size: 13px; font-family: var(--sans); color: var(--muted); background: transparent; border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.seg-btn.active-day { background: var(--accent-day-dim); color: var(--accent-day); font-weight: 500; }
+.seg-btn.active-night { background: var(--accent-night-dim); color: var(--accent-night); font-weight: 500; }
+
+.main { padding: 24px 28px; max-width: 100%; margin: 0 auto; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 28px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-family: var(--mono); }
+.card-val { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+.card-val small { font-size: 14px; font-weight: 400; color: var(--muted); }
+.card.hi-day { border-color: var(--accent-day-border); background: var(--accent-day-dim); }
+.card.hi-day .card-val { color: var(--accent-day); }
+.card.hi-night { border-color: var(--accent-night-border); background: var(--accent-night-dim); }
+.card.hi-night .card-val { color: var(--accent-night); }
+
+.section-head { display: flex; align-items: center; gap: 10px; margin: 24px 0 10px; }
+.section-title { font-size: 11px; font-weight: 500; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); white-space: nowrap; }
+.section-sub { font-size: 10px; color: var(--muted); opacity: 0.5; font-family: var(--mono); font-weight: 400; }
+.section-line { flex: 1; height: 1px; background: var(--border); }
+.quota-warn { font-size: 11px; color: var(--danger); background: var(--danger-dim); border: 1px solid rgba(248,113,113,0.2); border-radius: 6px; padding: 3px 10px; font-family: var(--mono); white-space: nowrap; }
+
+.groups-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.group { margin-bottom: 14px; }
+.group-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.06em; margin-bottom: 7px; padding-left: 2px; display: flex; align-items: center; gap: 8px; }
+.hour-warn { font-size: 10px; color: var(--danger); background: var(--danger-dim); border-radius: 4px; padding: 1px 7px; }
+
+.slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.slot-grid.wide { grid-template-columns: repeat(8, 1fr); }
+
+.slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface); transition: border-color 0.13s, background 0.13s; }
+.slot.free:hover { border-color: var(--border2); }
+.slot.taken { background: rgba(255,255,255,0.02); }
+.slot.cross-blocked {
+  background: rgba(251,191,36,0.05);
+  border-color: rgba(251,191,36,0.2);
+  opacity: 0.7;
+}
+.slot.mine-day { background: var(--accent-day-dim); border-color: var(--accent-day-border); }
+.slot.mine-night { background: var(--accent-night-dim); border-color: var(--accent-night-border); }
+
+.slot-time { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.slot-who { font-size: 12px; color: var(--muted); min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-who.booked-day { color: var(--accent-day); font-weight: 500; }
+.slot-who.booked-night { color: var(--accent-night); font-weight: 500; }
+.slot-who.cross { color: var(--warn); font-size: 11px; }
+
+.slot-btn { margin-top: 8px; width: 100%; padding: 5px 0; font-size: 11px; font-family: var(--mono); border-radius: 5px; border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.13s; letter-spacing: 0.03em; }
+.slot-btn.day:hover:not(:disabled) { border-color: var(--accent-day-border); color: var(--accent-day); background: var(--accent-day-dim); }
+.slot-btn.night:hover:not(:disabled) { border-color: var(--accent-night-border); color: var(--accent-night); background: var(--accent-night-dim); }
+.slot-btn:disabled { opacity: 0.28; cursor: not-allowed; }
+.slot-btn.cancel { border-color: rgba(248,113,113,0.3); color: var(--danger); }
+.slot-btn.cancel:hover { background: var(--danger-dim); border-color: var(--danger); }
+
+.slot.emergency { border-color: rgba(251,191,36,0.3); }
+.slot-btn.emergency-btn {
+  border-color: rgba(251,191,36,0.4);
+  color: var(--warn);
+}
+.slot-btn.emergency-btn:hover:not(:disabled) {
+  border-color: var(--warn);
+  background: var(--warn-dim);
+  color: var(--warn);
+}
+
+.no-lunch-notice {
+  background: var(--surface);
+  border: 1px dashed var(--border2);
+  border-radius: 10px;
+  padding: 18px 20px;
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--mono);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* LOG PANEL */
+.log-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
+.log-overlay.active { display:flex; align-items:flex-end; justify-content:flex-end; }
+.log-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border2);
+  height: 100vh;
+  width: 380px;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.log-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.log-head-title { font-size: 14px; font-weight: 500; color: var(--text); font-family: var(--mono); }
+.log-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
+.log-close:hover { color: var(--text); }
+.log-body { flex: 1; overflow-y: auto; padding: 12px 0; }
+.log-empty { text-align: center; color: var(--muted); font-size: 13px; font-family: var(--mono); padding: 40px 20px; }
+.log-entry {
+  padding: 10px 20px;
+  border-bottom: 0.5px solid var(--border);
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.log-time { font-size: 11px; font-family: var(--mono); color: var(--muted); padding-top: 2px; }
+.log-info { }
+.log-op { font-size: 13px; font-weight: 500; color: var(--text); }
+.log-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.log-action-book { color: var(--accent-day); }
+.log-action-cancel { color: var(--danger); }
+.log-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  font-family: var(--mono);
+}
+.log-badge-sg { background: var(--accent-day-dim); color: var(--accent-day); }
+.log-badge-nc { background: var(--danger-dim); color: var(--danger); }
+.log-badge-vip { background: rgba(251,191,36,0.12); color: var(--warn); }
+.log-refresh { display: flex; align-items: center; gap: 6px; background: none; border: 0.5px solid var(--border2); border-radius: 6px; color: var(--muted); font-size: 11px; font-family: var(--mono); padding: 4px 10px; cursor: pointer; }
+.log-refresh:hover { color: var(--text); border-color: var(--border2); }
+
+/* ── ADMIN PANEL ── */
+.admin-overlay { display:none; position:fixed; inset:0; z-index:300; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px; }
+.admin-overlay.active { display:flex; }
+.admin-panel { background:var(--surface); border:1px solid var(--border2); border-radius:14px; width:560px; max-width:100%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; }
+.admin-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.admin-head-title { font-size:14px; font-weight:500; color:var(--warn); font-family:var(--mono); }
+.admin-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); flex-shrink:0; }
+.admin-tab { padding:10px 18px; font-size:12px; font-family:var(--mono); color:var(--muted); background:none; border:none; cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
+.admin-tab.active { color:var(--warn); border-bottom-color:var(--warn); }
+.admin-body { flex:1; overflow-y:auto; padding:20px; }
+
+/* operator pick modal */
+.op-pick-overlay { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; }
+.op-pick-overlay.active { display:flex; }
+.op-pick-box { background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:20px; width:320px; max-width:95vw; }
+.op-pick-box h3 { font-size:13px; font-family:var(--mono); color:var(--text); margin-bottom:12px; }
+.op-pick-box select { width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:14px; margin-bottom:12px; }
+.op-pick-btns { display:flex; gap:8px; justify-content:flex-end; }
+.op-pick-btns button { padding:7px 16px; font-size:13px; font-family:var(--mono); border-radius:8px; border:1px solid var(--border2); background:transparent; color:var(--muted); cursor:pointer; }
+.op-pick-btns .confirm { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.35); color:var(--warn); }
+
+/* transfer list */
+.transfer-list { display:flex; flex-direction:column; gap:6px; }
+.transfer-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--surface2); border-radius:8px; font-size:13px; }
+.transfer-badge { font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:4px; margin-left:6px; }
+.transfer-btn { font-size:11px; font-family:var(--mono); padding:4px 10px; border-radius:6px; border:1px solid var(--border2); background:transparent; color:var(--muted); cursor:pointer; }
+.transfer-btn:hover { color:var(--warn); border-color:rgba(251,191,36,0.35); }
+
+/* roster editor */
+.roster-section { margin-bottom:20px; }
+.roster-title { font-size:11px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+.roster-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.roster-chip { display:inline-flex; align-items:center; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:12px; }
+.roster-chip button { background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
+.roster-chip button:hover { color:var(--danger); }
+.roster-add { display:flex; gap:6px; margin-top:4px; }
+.roster-add input { flex:1; padding:6px 10px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:13px; }
+.roster-add button { padding:6px 14px; font-size:12px; font-family:var(--mono); background:rgba(110,231,183,0.1); border:1px solid var(--accent-day-border); border-radius:8px; color:var(--accent-day); cursor:pointer; }
+
+@media(max-width:600px) {
+  .header { padding: 12px 14px; }
+  .main { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px">
+  <div class="logo"><span class="logo-dot"></span>break<span id="logo-accent" style="color:var(--accent-day)">.</span>desk</div>
+  <div id="sync-status" style="font-size:11px;font-family:var(--mono);color:var(--muted);display:flex;align-items:center;gap:5px">
+    <span id="sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block"></span>
+    <span id="sync-text">подключение...</span>
+  </div>
+</div>
+  <div class="controls">
+    <div class="seg">
+      <button class="seg-btn active-day" id="btn-sect-sg" onclick="setSection('sg')">SG</button>
+      <button class="seg-btn" id="btn-sect-nc" onclick="setSection('nc')">NC</button>
+    </div>
+    <div class="seg" id="dept-seg">
+      <button class="seg-btn active-day" id="btn-dept-regular" onclick="setDept('regular')">Regular</button>
+      <button class="seg-btn" id="btn-dept-vip" onclick="setDept('vip')">★ VIP</button>
+    </div>
+    <div class="op-wrap">
+      <select id="opsel" onchange="setOp(this.value)">
+        <option value="">— оператор —</option>
+      </select>
+      <span class="select-arrow">▼</span>
+    </div>
+    <div id="op-badge" class="op-badge"></div>
+    <button id="admin-btn" onclick="openAdminPanel()" style="display:none;padding:7px 14px;font-size:12px;font-family:var(--mono);background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;color:var(--warn);cursor:pointer;white-space:nowrap">★ админ</button>
+    <button onclick="openLog()" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--muted);cursor:pointer;white-space:nowrap" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">☰ лог</button>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button id="notif-btn" onclick="toggleNotifications()" title="Включить/выключить уведомления" style="padding:7px 14px;font-size:12px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:8px 0 0 8px;border-right:none;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s">🔔</button>
+      <button class="notif-timing-btn" data-min="1" onclick="setNotifTiming(1)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-right:none;color:var(--muted);cursor:pointer">1м</button>
+      <button class="notif-timing-btn" data-min="2" onclick="setNotifTiming(2)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--accent-day-border);color:var(--accent-day);cursor:pointer;border-right:none">2м</button>
+      <button class="notif-timing-btn" data-min="5" onclick="setNotifTiming(5)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-right:none;color:var(--muted);cursor:pointer">5м</button>
+      <button class="notif-timing-btn" data-min="10" onclick="setNotifTiming(10)" style="padding:7px 8px;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border2);border-radius:0 8px 8px 0;color:var(--muted);cursor:pointer">10м</button>
+    </div>
+
+    <div class="seg">
+      <button class="seg-btn active-day" id="btn-day" onclick="setShiftType('day')">☀ День</button>
+      <button class="seg-btn" id="btn-night" onclick="setShiftType('night')">☽ Ночь</button>
+    </div>
+
+    <div class="seg" id="day-seg">
+      <button class="seg-btn active-day" id="btn-921" onclick="setShift('9-21')">09–21</button>
+      <button class="seg-btn" id="btn-1224" onclick="setShift('12-24')">12–00</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="summary" id="summary"></div>
+  <div id="board"></div>
+</div>
+
+<script>
+const OPERATORS = {
+  sg: {
+    regular: ['Balfour','Bill','Bob','Bowen','Bridget','Calvin','Charles','Colin','Earl','Fletcher','Florence','Gross','Hardy','Jonathan','Joseph','Kenzo','Lex','Meadow','Mike','Murphy','Nora','Norman','Robert','Robin','Rudy','Sherlock','Will'],
+    vip:     ['Alexia','Ashton','Casper','Chadwick','Christine','Denzel','Elijah','Fabio','Felicia','Holly','Isaac','Kiana','Morgan','Nolan','Plover','Reggie','River','Scott','Simon','Skylar','Tom','Trinity','Wade','Warren'],
+  },
+  nc: {
+    regular: ['Caleb','Grant','Shin','Frey','Luciana','Hector','Max','Leo','Debra','Quinn','Evelyn','Taylor','Ren'],
+  },
+};
+
+// Ночные перерывы по скрину: 22,23,0,1,2,3,4,5,6,7 + 8:xx только до 8:20
+// Делаем 22-23 полные (по 4 слота), затем 0-7 полные, затем 8 только :10 :20
+const NIGHT_BREAK_GROUPS = [
+  {label:'22:xx', hh:'22', slots:['22:10','22:40']},
+  {label:'23:xx', hh:'23', slots:['23:10','23:40']},
+  {label:'00:xx', hh:'00', slots:['00:10','00:40']},
+  {label:'01:xx', hh:'01', slots:['01:10','01:40']},
+  {label:'02:xx', hh:'02', slots:['02:10','02:20','02:30','02:40']},
+  {label:'03:xx', hh:'03', slots:['03:10','03:20','03:30','03:40']},
+  {label:'04:xx', hh:'04', slots:['04:10','04:20','04:30','04:40']},
+  {label:'05:xx', hh:'05', slots:['05:10','05:20','05:30','05:40']},
+  {label:'06:xx', hh:'06', slots:['06:10','06:40']},
+  {label:'07:xx', hh:'07', slots:['07:10','07:40']},
+  {label:'08:xx', hh:'08', slots:['08:00','08:10','08:20']},
+];
+
+function makeBreakGroups(hours) {
+  return hours.map(h => {
+    const hh = String(h).padStart(2,'0');
+    return { label: hh+':xx', hh, slots: [hh+':10', hh+':20', hh+':30', hh+':40'] };
+  });
+}
+function makeLunchSlots(hours) {
+  if (!hours) return [];
+  return hours.map(h => String(h).padStart(2,'0') + ':00');
+}
+
+// SHIFT CONFIG
+// lunchHours: null = нет обедов
+// crossShift: какую смену смотреть при кросс-блокировке (слоты с совпадающим временем)
+const SHIFT_CFG = {
+  '9-21':  {
+    breakGroups: [
+      {label:'10:xx', hh:'10', slots:['10:10','10:40']},
+      {label:'11:xx', hh:'11', slots:['11:10','11:40']},
+      ...makeBreakGroups([12,13,14,15,16,17,19]),
+      {label:'20:xx', hh:'20', slots:['20:00','20:10','20:20']},
+    ],
+    lunchHours: [12,13,14,15,16,17,18,19],
+    crossShift: null
+  },
+  '12-24': {
+    breakGroups: makeBreakGroups([13,14,15,16,17,18,19,20,21,22]),  // 23 убран
+    lunchHours: [20,21,22],
+    crossShift: null
+  },
+  'night': {
+    breakGroups: NIGHT_BREAK_GROUPS,
+    lunchHours: [1,2,3,4,5,6,7],
+    crossShift: '12-24'  // смотрим занятость слотов 22:xx и 23:xx из смены 12-24
+  }
+};
+
+
+// ── NC SHIFT CONFIGS ─────────────────────────────────────────
+function makeNCBreakGroups(hours) {
+  return hours.map(h => {
+    const hh = String(h).padStart(2,'0');
+    return { label: hh+':xx', hh, slots: [hh+':10', hh+':40'] };
+  });
+}
+
+const NC_NIGHT_BREAK_GROUPS = [
+  {label:'22:xx', hh:'22', slots:['22:10','22:40']},
+  {label:'23:xx', hh:'23', slots:['23:10','23:40']},
+  {label:'00:xx', hh:'00', slots:['00:10','00:40']},
+  {label:'01:xx', hh:'01', slots:['01:10','01:40']},
+  {label:'02:xx', hh:'02', slots:['02:10','02:40']},
+  {label:'03:xx', hh:'03', slots:['03:10','03:40']},
+  {label:'04:xx', hh:'04', slots:['04:10','04:40']},
+  {label:'05:xx', hh:'05', slots:['05:10','05:40']},
+  {label:'06:xx', hh:'06', slots:['06:10','06:40']},
+  {label:'07:xx', hh:'07', slots:['07:10','07:40']},
+];
+
+const NC_SHIFT_CFG = {
+  '9-21':  {
+    breakGroups: makeNCBreakGroups([10,11,12,13,14,15,16,17,19]),
+    lunchHours: [12,13,14,15,16,17,18,19],
+    crossShift: null,
+  },
+  '12-24': {
+    breakGroups: makeNCBreakGroups([13,14,15,16,17,18,19,21,22]),
+    lunchHours: [20,21,22],
+    crossShift: null,
+  },
+  'night': {
+    breakGroups: NC_NIGHT_BREAK_GROUPS,
+    lunchHours: [1,2,3,4,5,6,7],
+    crossShift: null,
+  },
+};
+
+const MAX_BREAKS = 4, MAX_LUNCHES = 1;
+let userEmail = ''; // filled from /api/check session
+
+const ADMINS = new Set([
+  'maksym.max@velvix.org',
+  'ruslan.irving@velvix.org',
+  'vitaliy.oliver@velvix.org',
+  'ayman.jordan@velvix.org',
+  'nataliia.naomi@velvix.org',
+  'viktor.matthew@velvix.org',
+  'kirill.curtis@velvix.org',
+  'ruslan.manuel@velvix.org',
+  'janelle.irma@velvix.org',
+  'ilia.solomon@velvix.org',
+  'osman.toby@velvix.org',
+  'vadym.adam@velvix.org',
+  'tamila.amelia@velvix.org',
+  'vladimir.lucas@velvix.org',
+ "maksym.reggie@velvix.org",
+]);
+
+function isAdmin() {
+  // Admin mode only when NO operator is selected
+  // If operator selected — admin acts as that operator (regular rules apply)
+  if (currentOp) return false;
+  return ADMINS.has(userEmail.toLowerCase());
+}
+
+function isAdminUser() {
+  // True regardless of operator selection — for UI elements
+  return ADMINS.has(userEmail.toLowerCase());
+}
+let currentSection = 'sg'; // 'sg' | 'nc'
+let currentDept = 'regular'; // 'regular' | 'vip' (only for sg)
+let shiftType = 'day';
+let currentShift = '9-21';
+let currentOp = '';
+// bookings key: shiftId|type|time  (type = b / l)
+let bookings = {};
+
+// ── SUPABASE CONFIG ────────────────────────────────────────────
+const SUPABASE_URL = 'https://rteemqmqwhcgjuvqtlhz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fvme3q6CpvhlRiTMHKkapg_y8_EL17v';
+
+function sbFetch(path, opts = {}) {
+  return fetch(SUPABASE_URL + path, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || '',
+      ...(opts.headers || {}),
+    },
+  });
+}
+
+let syncTimer = null;
+
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  if (!dot || !txt) return;
+  const map = {
+    connecting: ['var(--muted)',      'подключение...'],
+    online:     ['var(--accent-day)', 'синхронизировано'],
+    saving:     ['var(--warn)',        'сохранение...'],
+    offline:    ['var(--danger)',      'офлайн'],
+  };
+  const [color, label] = map[state] || ['var(--muted)', state];
+  dot.style.background = color;
+  txt.textContent = label;
+}
+
+async function initWorker() {
+  setSyncStatus('connecting');
+  sbFetch('/rest/v1/bookings?select=key,value')
+    .then(r => r.json())
+    .then(async rows => {
+      bookings = {};
+      (rows || []).forEach(r => { bookings[r.key] = r.value; });
+      await loadTransfers();
+      loadRoster();
+      setSyncStatus('online');
+      render();
+      startSyncPoll();
+      startRealtime();
+    })
+    .catch(() => {
+      setSyncStatus('offline');
+      render();
+    });
+}
+
+function refreshBookings() {
+  sbFetch('/rest/v1/bookings?select=key,value')
+    .then(r => r.json())
+    .then(rows => {
+      bookings = {};
+      (rows || []).forEach(r => { bookings[r.key] = r.value; });
+      loadTransfers();
+      setSyncStatus('online');
+      render();
+    })
+    .catch(() => setSyncStatus('offline'));
+}
+
+function startSyncPoll() {
+  // Fallback poll every 30s if realtime is not connected
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (realtimeConnected) return; // realtime handles it
+    sbFetch('/rest/v1/bookings?select=key,value')
+      .then(r => r.json())
+      .then(rows => {
+        bookings = {};
+        (rows || []).forEach(r => { bookings[r.key] = r.value; });
+        loadTransfers();
+        render();
+      })
+      .catch(() => {});
+  }, 30000);
+}
+
+let realtimeConnected = false;
+
+function startRealtime() {
+  // Supabase Realtime — subscribe to bookings table changes
+  const wsUrl = SUPABASE_URL.replace('https://', 'wss://') +
+    '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
+
+  let ws;
+  let heartbeat;
+
+  function connect() {
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      realtimeConnected = true;
+      setSyncStatus('online');
+      // Join channel
+      ws.send(JSON.stringify({
+        topic: 'realtime:public:bookings',
+        event: 'phx_join',
+        payload: { config: { broadcast: { self: false }, presence: { key: '' } } },
+        ref: '1'
+      }));
+      // Heartbeat every 20s
+      heartbeat = setInterval(() => {
+        ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: '0' }));
+      }, 20000);
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'DELETE') {
+        const row = msg.payload?.record || msg.payload?.old_record;
+        if (!row) return;
+        if (msg.event === 'DELETE') {
+          delete bookings[row.key];
+        } else {
+          bookings[row.key] = row.value;
+        }
+        loadTransfers();
+        render();
+      }
+    };
+
+    ws.onclose = () => {
+      realtimeConnected = false;
+      setSyncStatus('offline');
+      clearInterval(heartbeat);
+      // Reconnect after 3s
+      setTimeout(() => { setSyncStatus('connecting'); connect(); }, 3000);
+    };
+
+    ws.onerror = () => {
+      realtimeConnected = false;
+      ws.close();
+    };
+  }
+
+  connect();
+}
+
+
+// pollBookings removed
+
+// saveBookings removed — use atomicBook() and atomicCancel()
+
+function atomicBook(key, value, slotLabel, adminForce) {
+  setSyncStatus('saving');
+
+  if (adminForce) {
+    // Admin: find next free indexed key (key, key|1, key|2...)
+    // Base key is without |N suffix
+    const baseKey = key.replace(/\|\d+$/, '');
+    let writeKey = baseKey;
+    let idx = 1;
+    // Find first free slot locally
+    while (bookings[writeKey] && bookings[writeKey] !== value) {
+      writeKey = baseKey + '|' + idx;
+      idx++;
+      if (idx > 10) break;
+    }
+    // Optimistically update
+    bookings[writeKey] = value;
+    render();
+    // Write to Supabase with merge-duplicates (upsert)
+    sbFetch('/rest/v1/bookings', {
+      method: 'POST',
+      prefer: 'return=minimal,resolution=merge-duplicates',
+      body: JSON.stringify({ key: writeKey, value }),
+    })
+      .then(r => {
+        if (r.ok) setSyncStatus('online');
+        else { delete bookings[writeKey]; setSyncStatus('offline'); render(); }
+      })
+      .catch(() => {
+        delete bookings[writeKey];
+        setSyncStatus('offline');
+        render();
+      });
+    return;
+  }
+
+  // Regular user — optimistic update, conflict check on server
+  const prev = bookings[key];
+  bookings[key] = value;
+  render();
+
+  sbFetch('/rest/v1/bookings', {
+    method: 'POST',
+    prefer: 'return=representation,resolution=ignore-duplicates',
+    body: JSON.stringify({ key, value }),
+  })
+    .then(r => r.json())
+    .then(rows => {
+      if (Array.isArray(rows) && rows.length > 0) {
+        setSyncStatus('online');
+      } else {
+        // Conflict — rollback and show who took it
+        if (prev !== undefined) bookings[key] = prev;
+        else delete bookings[key];
+        render();
+        setSyncStatus('online');
+        sbFetch('/rest/v1/bookings?key=eq.' + encodeURIComponent(key) + '&select=value')
+          .then(r => r.json())
+          .then(r => {
+            const who = (r[0] && r[0].value) || 'другой оператор';
+            refreshBookings();
+            showConflict(slotLabel, who);
+          });
+      }
+    })
+    .catch(() => {
+      if (prev !== undefined) bookings[key] = prev;
+      else delete bookings[key];
+      setSyncStatus('offline');
+      render();
+      alert('Ошибка сети — попробуйте ещё раз');
+    });
+}
+
+function atomicCancel(key, value, slotLabel, adminForce) {
+  const prev = bookings[key];
+  delete bookings[key];
+  // Compact indexed keys locally
+  const baseKey = key.replace(/\|\d+$/, '');
+  compactSlotKeys(baseKey);
+  render();
+  setSyncStatus('saving');
+
+  // Delete from Supabase — admin can delete any, user only their own
+  const filter = adminForce
+    ? '?key=eq.' + encodeURIComponent(key)
+    : '?key=eq.' + encodeURIComponent(key) + '&value=eq.' + encodeURIComponent(value);
+
+  sbFetch('/rest/v1/bookings' + filter, { method: 'DELETE', prefer: 'return=minimal' })
+    .then(r => {
+      if (r.ok) {
+        setSyncStatus('online');
+        // Also compact indexed keys on server by refreshing
+        refreshBookings();
+      } else {
+        if (prev !== undefined) bookings[key] = prev;
+        setSyncStatus('offline');
+        render();
+      }
+    })
+    .catch(() => {
+      if (prev !== undefined) bookings[key] = prev;
+      setSyncStatus('offline');
+      render();
+    });
+}
+
+function showConflict(slot, who) {
+  // Show a non-blocking toast instead of alert
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+    'background:var(--danger);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;' +
+    'font-family:var(--mono);z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap';
+  toast.textContent = '✕ Слот ' + slot + ' уже занял ' + who + ' — страница обновлена';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function logAction(action, slot, overrideOp) {
+  const logOperator = overrideOp || currentOp || '(admin)';
+  // Get Kyiv time
+  const kyivTime = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit' });
+  const kyivNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const kyivH = kyivNow.getHours();
+  // Night shift 0-9am belongs to previous day's log date
+  const logDate = new Date(kyivNow);
+  if (currentShift === 'night' && kyivH < 9) logDate.setDate(logDate.getDate() - 1);
+  const shiftDate = logDate.toISOString().slice(0, 10);
+
+  sbFetch('/rest/v1/logs', {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: JSON.stringify({
+      shift_date: shiftDate,
+      time_kyiv: kyivTime,
+      section: currentSection,
+      dept: currentDept,
+      shift: currentShift,
+      operator: logOperator,
+      user_email: userEmail,
+      action,
+      slot,
+    }),
+  }).catch(() => {});
+}
+
+let logDayOffset = 0;
+
+function logChangeDay(dir) {
+  logDayOffset += dir;
+  if (logDayOffset > 0) logDayOffset = 0;
+  const title = document.getElementById('log-title');
+  if (title) {
+    if (logDayOffset === 0) title.textContent = 'Лог за сегодня';
+    else if (logDayOffset === -1) title.textContent = 'Лог за вчера';
+    else title.textContent = 'Лог: ' + Math.abs(logDayOffset) + ' дн. назад';
+  }
+  loadLog();
+}
+
+function openLog() {
+  logDayOffset = 0;
+  const title = document.getElementById('log-title');
+  if (title) title.textContent = 'Лог за сегодня';
+  document.getElementById('logOverlay').classList.add('active');
+  loadLog();
+}
+function closeLog() {
+  document.getElementById('logOverlay').classList.remove('active');
+}
+
+function loadLog() {
+  const body = document.getElementById('logBody');
+  body.innerHTML = '<div class="log-empty">загрузка...</div>';
+  const offset = (typeof logDayOffset !== 'undefined') ? logDayOffset : 0;
+  const kyivNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const targetDay = new Date(kyivNow);
+  targetDay.setDate(targetDay.getDate() + offset);
+  const targetDate = targetDay.toISOString().slice(0, 10);
+  // Also include prev day for night shift (0-9am)
+  const kyivH = kyivNow.getHours();
+  let dateFilter = 'shift_date=eq.' + targetDate;
+  if (offset === 0 && kyivH < 9) {
+    const prevDay = new Date(kyivNow);
+    prevDay.setDate(prevDay.getDate() - 1);
+    dateFilter = 'shift_date=in.(' + prevDay.toISOString().slice(0,10) + ',' + targetDate + ')';
+  }
+  sbFetch('/rest/v1/logs?' + dateFilter + '&order=id.desc&limit=200')
+    .then(r => r.json())
+    .then(entries => {
+      if (!Array.isArray(entries) || !entries.length) {
+        body.innerHTML = '<div class="log-empty">пока нет действий за сегодня</div>';
+        return;
+      }
+      const actionLabels = {
+        book_break:    { text: 'забронировал перерыв',  cls: 'log-action-book' },
+        cancel_break:  { text: 'отменил перерыв',       cls: 'log-action-cancel' },
+        book_lunch:    { text: 'забронировал обед',     cls: 'log-action-book' },
+        cancel_lunch:  { text: 'отменил обед',          cls: 'log-action-cancel' },
+      };
+      const shiftLabels = { '9-21': '09–21', '12-24': '12–00', 'night': 'Ночь' };
+      body.innerHTML = entries.map(e => {
+        const al = actionLabels[e.action] || { text: e.action, cls: '' };
+        const sectCls = e.section === 'nc' ? 'log-badge-nc' : (e.dept === 'vip' ? 'log-badge-vip' : 'log-badge-sg');
+        const sectLabel = e.section === 'nc' ? 'NC' : (e.dept === 'vip' ? 'VIP' : 'SG');
+        const userEmail_ = e.user_email || e.userEmail || '';
+        return `<div class="log-entry">
+          <div class="log-time">${e.time_kyiv || e.time}</div>
+          <div class="log-info">
+            <div class="log-op">${e.operator} <span class="log-badge ${sectCls}">${sectLabel}</span>${userEmail_ ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">(${userEmail_})</span>` : ''}</div>
+            <div class="log-detail"><span class="${al.cls}">${al.text}</span> · ${e.slot} · ${shiftLabels[e.shift] || e.shift}</div>
+          </div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {
+      body.innerHTML = '<div class="log-empty">ошибка загрузки</div>';
+    });
+}
+
+// Populate operator select
+const sel = document.getElementById('opsel');
+
+function populateOperators() {
+  sel.innerHTML = '<option value="">— оператор —</option>';
+  const opList = getEffectiveOperators(currentSection, currentDept);
+  opList.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n; sel.appendChild(o);
+  });
+  // Reset selection when dept changes
+  currentOp = '';
+  sel.value = '';
+  const badge = document.getElementById('op-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+function ac() { return shiftType === 'night' ? 'night' : 'day'; }
+
+function setSection(s) {
+  currentSection = s;
+  const isNC = s === 'nc';
+  document.body.classList.toggle('nc', isNC);
+  document.body.classList.remove('vip');
+  document.getElementById('btn-sect-sg').className = 'seg-btn' + (s === 'sg' ? ' active-day' : '');
+  document.getElementById('btn-sect-nc').className = 'seg-btn' + (isNC ? ' active-nc'  : '');
+  document.getElementById('dept-seg').style.display = isNC ? 'none' : 'flex';
+  // NC has no VIP — reset to regular
+  if (isNC) { currentDept = 'regular'; }
+  populateOperators();
+  render();
+}
+
+function setDept(d) {
+  currentDept = d;
+  document.body.classList.toggle('vip', d === 'vip');
+  document.body.classList.remove('nc');
+  document.getElementById('btn-dept-regular').className = 'seg-btn' + (d === 'regular' ? ' active-day' : '');
+  document.getElementById('btn-dept-vip').className     = 'seg-btn' + (d === 'vip'     ? ' active-vip'  : '');
+  populateOperators();
+  render();
+}
+
+function setOp(v) {
+  currentOp = v;
+  const badge = document.getElementById('op-badge');
+  if (v) { badge.textContent = v; badge.style.display = 'inline-flex'; }
+  else   { badge.style.display = 'none'; }
+  render();
+}
+
+function setShiftType(t) {
+  shiftType = t;
+  const night = t === 'night';
+  document.body.classList.toggle('night', night);
+  document.getElementById('btn-day').className   = 'seg-btn' + (!night ? ' active-day'   : '');
+  document.getElementById('btn-night').className = 'seg-btn' + (night  ? ' active-night' : '');
+  document.getElementById('day-seg').style.display = night ? 'none' : 'flex';
+  document.getElementById('logo-accent').style.color = night ? 'var(--accent-night)' : 'var(--accent-day)';
+  currentShift = night ? 'night' : '9-21';
+  if (!night) {
+    document.getElementById('btn-921').className  = 'seg-btn active-day';
+    document.getElementById('btn-1224').className = 'seg-btn';
+  }
+  render();
+}
+
+function setShift(s) {
+  currentShift = s;
+  document.getElementById('btn-921').className  = 'seg-btn' + (s === '9-21'  ? ' active-day' : '');
+  document.getElementById('btn-1224').className = 'seg-btn' + (s === '12-24' ? ' active-day' : '');
+  render();
+}
+
+function bKey(shift, time) { return currentSection + '|' + currentDept + '|' + shift + '|b|' + time; }
+function lKey(shift, time) { return currentSection + '|' + currentDept + '|' + shift + '|l|' + time; }
+
+function myBreaksCount() {
+  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|b|') && v === currentOp).length;
+}
+
+// Convert "HH:MM" to minutes. Night shift: times 00-08 treated as 24-32h so they sort after 22-23.
+function toMin(time, shiftId) {
+  const [h, m] = time.split(':').map(Number);
+  let total = h * 60 + m;
+  // For night shift, hours 0-8 are "next day" — add 24h
+  if (shiftId === 'night' && h < 12) total += 24 * 60;
+  return total;
+}
+
+// Returns the closest existing break OR lunch of current operator (in minutes), or null
+function closestMyBookingDistance(time) {
+  const prefix = currentSection + '|' + currentDept + '|' + currentShift + '|';
+  const myTimes = Object.entries(bookings)
+    .filter(([k, v]) => v === currentOp && (k.startsWith(prefix + 'b|') || k.startsWith(prefix + 'l|')))
+    .map(([k]) => k.includes('|b|') ? k.split('|b|')[1] : k.split('|l|')[1]);
+  if (!myTimes.length) return null;
+  const t = toMin(time, currentShift);
+  return Math.min(...myTimes.map(bt => Math.abs(toMin(bt, currentShift) - t)));
+}
+
+// True if placing a break/lunch at `time` would be within 60 min of any existing break/lunch
+function tooClose(time) {
+  const dist = closestMyBookingDistance(time);
+  return dist !== null && dist < 60;
+}
+
+// Get all break slots for current shift as flat array
+function allBreakSlots() {
+  return (currentSection === 'nc' ? NC_SHIFT_CFG : SHIFT_CFG)[currentShift].breakGroups.reduce((arr, g) => arr.concat(g.slots), []);
+}
+
+// Returns true if ALL remaining free slots are blocked by the 60-min rule for this operator
+// (used to unlock "emergency" booking ignoring the interval rule)
+function noValidSlotsLeft() {
+  if (!currentOp) return false;
+  const mb = myBreaksCount();
+  if (mb >= MAX_BREAKS) return false;
+  return allBreakSlots().every(time => {
+    const k = bKey(currentShift, time);
+    const who = bookings[k];
+    if (who) return true;             // taken by someone
+    if (crossBlockedBy(time)) return true; // cross-blocked
+    if (!tooClose(time)) return false; // this slot IS available — not all blocked
+    return true;                       // tooClose — counts as blocked
+  });
+}
+
+function myLunchCount() {
+  return Object.entries(bookings).filter(([k,v]) => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|l|') && v === currentOp).length;
+}
+
+// Кросс-блокировка: 9-21 и 12-24 блокируют один слот друг у друга
+// Работает внутри одной секции (sg/nc) и одного отдела (regular/vip)
+// NC и VIP независимы от других отделов
+function crossBlockedBy(time) {
+  // Only 9-21 <-> 12-24 cross-block each other
+  const crossMap = { '9-21': '12-24', '12-24': '9-21' };
+  const crossShift = crossMap[currentShift];
+  if (!crossShift) return null; // night has no cross-shift
+
+  // Build the cross key: same section|dept, different shift
+  const crossKey = currentSection + '|' + currentDept + '|' + crossShift + '|b|' + time;
+  return bookings[crossKey] || null;
+}
+
+function bookBreak(time, forceOverride) {
+  if (!currentOp) { alert('Выберите оператора'); return; }
+  const admin = isAdmin();
+  if (!admin && !shiftBookingAllowed(currentShift)) {
+    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
+    alert('Бронирование открывается в ' + (labels[currentShift] || '') + ' по Киеву');
+    return;
+  }
+  if (!admin) {
+    if (crossBlockedBy(time)) { alert('Слот ' + time + ' занят оператором смежной смены'); return; }
+    if (myBreaksCount() >= MAX_BREAKS) { alert('Лимит: 4 перерыва на смену'); return; }
+    if (tooClose(time) && !forceOverride) { alert('Между перерывами должен быть минимум 1 час'); return; }
+  }
+  logAction('book_break', time);
+  atomicBook(bKey(currentShift, time), currentOp, time, admin);
+}
+function cancelBreak(time) {
+  // Regular user cancels their own booking (find their key)
+  const baseKey = bKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const myEntry = occupants.find(o => o.name === currentOp);
+  if (myEntry) {
+    logAction('cancel_break', time);
+    atomicCancel(myEntry.key, currentOp, time, false);
+  }
+}
+
+function adminCancelBreak(fullKey) {
+  const who = bookings[fullKey];
+  if (!who) return;
+  logAction('cancel_break', fullKey.split('|b|')[1] || fullKey, who);
+  atomicCancel(fullKey, who, fullKey.split('|b|')[1] || fullKey, true);
+}
+
+function compactSlotKeys(baseKey) {
+  // After deletion, compact |1, |2... to avoid gaps
+  const names = [];
+  if (bookings[baseKey]) names.push(bookings[baseKey]);
+  let i = 1;
+  while (bookings[baseKey + '|' + i] !== undefined) {
+    if (bookings[baseKey + '|' + i]) names.push(bookings[baseKey + '|' + i]);
+    delete bookings[baseKey + '|' + i];
+    i++;
+  }
+  // Re-assign compactly
+  if (names.length > 0) bookings[baseKey] = names[0];
+  else delete bookings[baseKey];
+  for (let j = 1; j < names.length; j++) {
+    bookings[baseKey + '|' + j] = names[j];
+  }
+}
+function bookLunch(time) {
+  if (!currentOp) { alert('Выберите оператора'); return; }
+  const admin = isAdmin();
+  if (!admin && !shiftBookingAllowed(currentShift)) {
+    const labels = { '9-21': '08:45', '12-24': '11:45', 'night': '20:45' };
+    alert('Бронирование открывается в ' + (labels[currentShift] || '') + ' по Киеву');
+    return;
+  }
+  if (!admin) {
+    if (myLunchCount() >= MAX_LUNCHES) { alert('Обед уже забронирован'); return; }
+    if (tooClose(time)) { alert('Между перерывами и обедом должен быть минимум 1 час'); return; }
+  }
+  logAction('book_lunch', time);
+  atomicBook(lKey(currentShift, time), currentOp, time + ' обед', admin);
+}
+function cancelLunch(time) {
+  const baseKey = lKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const myEntry = occupants.find(o => o.name === currentOp);
+  if (myEntry) {
+    logAction('cancel_lunch', time + ' обед');
+    atomicCancel(myEntry.key, currentOp, time + ' обед', false);
+  }
+}
+
+function adminCancelLunch(fullKey) {
+  const who = bookings[fullKey];
+  if (!who) return;
+  const slot = (fullKey.split('|l|')[1] || fullKey) + ' обед';
+  logAction('cancel_lunch', slot, who);
+  atomicCancel(fullKey, who, slot, true);
+}
+
+function getSlotOccupants(baseKey) {
+  // Returns array of all names booked in this slot (base + extras)
+  const names = [];
+  if (bookings[baseKey]) names.push({ key: baseKey, name: bookings[baseKey] });
+  let i = 1;
+  while (bookings[baseKey + '|' + i]) {
+    names.push({ key: baseKey + '|' + i, name: bookings[baseKey + '|' + i] });
+    i++;
+    if (i > 10) break;
+  }
+  return names;
+}
+
+function renderSlotBreak(time, hh, emergencyMode) {
+  const a = ac();
+  const mb = myBreaksCount();
+  const tooNear = currentOp && tooClose(time);
+  const baseKey = bKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const crossWho = occupants.length === 0 ? crossBlockedBy(time) : null;
+  const myEntry = occupants.find(o => o.name === currentOp);
+  const isMe = !!myEntry;
+  const takenByOther = occupants.length > 0 && !isMe;
+  const taken = occupants.length > 0;
+
+  let cls = 'slot ';
+  if (isMe) cls += 'mine-'+a;
+  else if (taken) cls += 'taken';
+  else if (crossWho) cls += 'cross-blocked';
+  else if (tooNear && emergencyMode) cls += 'free emergency';
+  else cls += 'free';
+
+  const canBook = currentOp && !isMe && mb < MAX_BREAKS && !crossWho && (!tooNear || emergencyMode);
+
+  // Who line: show all occupants
+  let whoLine = '';
+  if (occupants.length > 0) {
+    whoLine = occupants.map(o =>
+      `<div class="slot-who booked-${a}" style="font-size:11px">${o.name}</div>`
+    ).join('');
+  } else if (crossWho) {
+    const crossLabel = currentShift === '9-21' ? '12–00' : '09–21';
+    whoLine = `<div class="slot-who cross">${crossLabel}: ${crossWho}</div>`;
+  } else if (tooNear && emergencyMode) {
+    whoLine = `<div class="slot-who" style="color:var(--warn);font-size:11px">↯ вне очереди</div>`;
+  } else {
+    whoLine = `<div class="slot-who">свободно</div>`;
+  }
+
+  let btn = '';
+  if (isMe) {
+    btn = `<button class="slot-btn cancel" onclick="cancelBreak('${time}')">отменить</button>`;
+  } else if (isAdmin()) {
+    let adminBtns = '';
+    // Cancel buttons for each occupant
+    occupants.forEach(o => {
+      adminBtns += `<button class="slot-btn cancel" onclick="adminCancelBreak('${o.key}')" style="margin-bottom:3px;font-size:10px">✕ ${o.name}</button>`;
+    });
+    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('break','${time}')" style="font-size:10px">★ добавить</button>`;
+    btn = adminBtns;
+  } else if (!taken && !crossWho) {
+    const fn = tooNear && emergencyMode ? `bookBreak('${time}', true)` : `bookBreak('${time}')`;
+    btn = `<button class="slot-btn ${a}${tooNear && emergencyMode ? ' emergency-btn' : ''}" onclick="${fn}" ${!canBook?'disabled':''}>занять</button>`;
+  }
+
+  return `<div class="${cls}">
+    <div class="slot-time">${time}</div>
+    ${whoLine}${btn}
+  </div>`;
+}
+
+function renderSlotLunch(time) {
+  const a = ac();
+  const ml = myLunchCount();
+  const baseKey = lKey(currentShift, time);
+  const occupants = getSlotOccupants(baseKey);
+  const myEntry = occupants.find(o => o.name === currentOp);
+  const isMe = !!myEntry;
+  const taken = occupants.length > 0;
+  const tooNearLunch = currentOp && !isMe && tooClose(time);
+  const canBook = currentOp && !isMe && ml < MAX_LUNCHES && !tooNearLunch;
+
+  let cls = 'slot ';
+  if (isMe) cls += 'mine-'+a;
+  else if (taken) cls += 'taken';
+  else cls += 'free';
+
+  let whoLine = '';
+  if (occupants.length > 0) {
+    whoLine = occupants.map(o =>
+      `<div class="slot-who booked-${a}" style="font-size:11px">${o.name}</div>`
+    ).join('');
+  } else {
+    whoLine = `<div class="slot-who">свободно</div>`;
+  }
+
+  let btn = '';
+  if (isMe) {
+    btn = `<button class="slot-btn cancel" onclick="cancelLunch('${time}')">отменить</button>`;
+  } else if (isAdmin()) {
+    let adminBtns = '';
+    occupants.forEach(o => {
+      adminBtns += `<button class="slot-btn cancel" onclick="adminCancelLunch('${o.key}')" style="margin-bottom:3px;font-size:10px">✕ ${o.name}</button>`;
+    });
+    adminBtns += `<button class="slot-btn ${a}" onclick="adminBook('lunch','${time}')" style="font-size:10px">★ добавить</button>`;
+    btn = adminBtns;
+  } else if (!taken) {
+    btn = `<button class="slot-btn ${a}" onclick="bookLunch('${time}')" ${!canBook?'disabled':''}>занять</button>`;
+  }
+
+  return `<div class="${cls}">
+    <div class="slot-time">${time}</div>
+    ${whoLine}
+    ${btn}
+  </div>`;
+}
+
+function render() {
+  const cfg = (currentSection === 'nc' ? NC_SHIFT_CFG : SHIFT_CFG)[currentShift];
+  const a = ac();
+  const mb = myBreaksCount(), ml = myLunchCount();
+  const lunchSlots = makeLunchSlots(cfg.lunchHours);
+  const hasLunch = cfg.lunchHours !== null;
+
+  const takenB = Object.keys(bookings).filter(k => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|b|')).length;
+  const takenL = Object.keys(bookings).filter(k => k.startsWith(currentSection+'|'+currentDept+'|'+currentShift+'|l|')).length;
+  const totalB = cfg.breakGroups.reduce((s,g) => s + g.slots.length, 0);
+  const hiClass = currentOp ? ' hi-'+a : '';
+
+  // Summary
+  let sumCards = `
+    <div class="card${hiClass}">
+      <div class="card-label">Мои перерывы</div>
+      <div class="card-val">${mb}<small>/${MAX_BREAKS}</small></div>
+    </div>`;
+  if (hasLunch) {
+    sumCards += `<div class="card${hiClass}">
+      <div class="card-label">Мой обед</div>
+      <div class="card-val">${ml}<small>/${MAX_LUNCHES}</small></div>
+    </div>`;
+  }
+  sumCards += `<div class="card">
+    <div class="card-label">Занято перерывов</div>
+    <div class="card-val">${takenB}<small>/${totalB}</small></div>
+  </div>`;
+  if (hasLunch) {
+    sumCards += `<div class="card">
+      <div class="card-label">Занято обедов</div>
+      <div class="card-val">${takenL}<small>/${lunchSlots.length}</small></div>
+    </div>`;
+  }
+  document.getElementById('summary').innerHTML = sumCards;
+
+  // Board
+  let html = '';
+
+  // Breaks section
+  // Emergency mode: all available slots are tooClose but operator still needs breaks
+  const emergencyMode = noValidSlotsLeft();
+
+  html += `<div class="section-head">
+    <div class="section-title">Перерывы</div>
+    ${(currentShift === '9-21' || currentShift === '12-24') ? '<span class="section-sub" style="opacity:.4;font-family:var(--mono);font-size:10px">★ янтарный = занят смежной сменой</span>' : ''}
+    ${currentOp && mb >= MAX_BREAKS ? '<span class="quota-warn">лимит 4/4</span>' : ''}
+    ${emergencyMode ? '<span class="quota-warn" style="color:var(--warn);background:var(--warn-dim);border-color:rgba(251,191,36,0.25)">↯ все слоты заняты — доступно вне очереди</span>' : ''}
+    <div class="section-line"></div>
+  </div>`;
+
+  html += `<div class="groups-wrap">`;
+  cfg.breakGroups.forEach(({ label, hh, slots }) => {
+    html += `<div class="group">
+      <div class="group-label">${label}</div>
+      <div class="slot-grid">`;
+    slots.forEach(t => { html += renderSlotBreak(t, hh, emergencyMode); });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+
+  // Lunch section
+  if (hasLunch) {
+    const lunchRange = cfg.lunchHours[0] + ':00 – ' + cfg.lunchHours[cfg.lunchHours.length-1] + ':00';
+    html += `<div class="section-head" style="margin-top:28px">
+      <div class="section-title">Обед <span class="section-sub">${lunchRange}</span></div>
+      ${currentOp && ml >= MAX_LUNCHES ? '<span class="quota-warn">обед занят</span>' : ''}
+      <div class="section-line"></div>
+    </div>
+    <div class="slot-grid wide">`;
+    lunchSlots.forEach(t => { html += renderSlotLunch(t); });
+    html += `</div>`;
+  }
+
+  document.getElementById('board').innerHTML = html;
+}
+
+// ── KYIV TIME HELPERS ─────────────────────────────────────────
+function kyivNow() {
+  // Returns current time as Date object in Kyiv timezone
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+}
+
+function kyivMinutes() {
+  // Total minutes since midnight in Kyiv time
+  const d = kyivNow();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+// Shift open times (booking allowed from 15 min before shift start)
+// Returns true if current Kyiv time allows booking for the given shift
+function shiftBookingAllowed(shiftId) {
+  const now = kyivMinutes();
+  if (shiftId === '9-21')  return now >= (8 * 60 + 45) && now < (21 * 60 + 5);
+  if (shiftId === '12-24') return now >= (11 * 60 + 45) && now < (24 * 60 + 5);
+  if (shiftId === 'night') return now >= (20 * 60 + 45) || now < (9 * 60 + 5);
+  return true;
+}
+
+
+// Shift reset is handled server-side in the Worker on every GET /bookings
+
+// Booking time check is inline in bookBreak/bookLunch
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────
+let notifAheadMin = 2; // default 2 minutes
+
+function setNotifTiming(min) {
+  notifAheadMin = min;
+  document.querySelectorAll('.notif-timing-btn').forEach(b => {
+    const active = parseInt(b.dataset.min) === min;
+    b.style.color = active ? 'var(--accent-day)' : 'var(--muted)';
+    b.style.borderColor = active ? 'var(--accent-day-border)' : 'rgba(255,255,255,0.13)';
+    b.style.background = active ? 'var(--accent-day-dim)' : 'var(--surface2)';
+  });
+}
+
+function adminBook(type, time) {
+  const doBook = (name) => {
+    const baseKey = type === 'break' ? bKey(currentShift, time) : lKey(currentShift, time);
+    const slotLabel = time + (type === 'lunch' ? ' обед' : '');
+    logAction(type === 'break' ? 'book_break' : 'book_lunch', slotLabel, name);
+    atomicBook(baseKey, name, slotLabel, true);
+  };
+
+  if (currentOp) {
+    doBook(currentOp);
+  } else {
+    openOpPick(name => doBook(name));
+  }
+}
+
+function adminOverrideBreak(time) {
+  if (!isAdmin()) return;
+  const k = bKey(currentShift, time);
+  const who = bookings[k];
+  if (who) { logAction('cancel_break', time + ' [admin override]'); atomicCancel(k, who, time, true); }
+  else { logAction('book_break', time + ' [admin override]'); atomicBook(k, currentOp, time, true); }
+}
+
+let notificationsEnabled = false;
+let notifTimer = null;
+// NOTIF_AHEAD_MIN is dynamic via notifAheadMin variable
+const firedNotifs = new Set(); // track already fired: "shiftId|type|time"
+
+function toggleNotifications() {
+  if (!('Notification' in window)) {
+    alert('Ваш браузер не поддерживает уведомления');
+    return;
+  }
+  if (notificationsEnabled) {
+    notificationsEnabled = false;
+    clearInterval(notifTimer);
+    notifTimer = null;
+    updateNotifBtn();
+    return;
+  }
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') {
+      notificationsEnabled = true;
+      startNotifTimer();
+      updateNotifBtn();
+      new Notification('break.desk', {
+        body: `Уведомления включены — напомним за ${notifAheadMin} мин до перерыва или обеда`,
+        icon: '',
+      });
+    } else {
+      alert('Разрешите уведомления в настройках браузера');
+    }
+  });
+}
+
+function updateNotifBtn() {
+  const btn = document.getElementById('notif-btn');
+  if (!btn) return;
+  if (notificationsEnabled) {
+    btn.textContent = '🔔 вкл';
+    btn.style.color = 'var(--accent-day)';
+    btn.style.borderColor = 'var(--accent-day-border)';
+  } else {
+    btn.textContent = '🔔 уведомления';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+function startNotifTimer() {
+  checkUpcomingBookings(); // run immediately
+  notifTimer = setInterval(checkUpcomingBookings, 30000); // check every 30s
+}
+
+function checkUpcomingBookings() {
+  if (!notificationsEnabled || !currentOp) return;
+
+  const kyiv = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const nowMin = kyiv.getHours() * 60 + kyiv.getMinutes();
+
+  const prefix = currentSection + '|' + currentDept + '|' + currentShift + '|';
+
+  Object.entries(bookings).forEach(([k, v]) => {
+    if (v !== currentOp) return;
+    const isBreak = k.startsWith(prefix + 'b|');
+    const isLunch = k.startsWith(prefix + 'l|');
+    if (!isBreak && !isLunch) return;
+
+    const timeStr = isBreak ? k.split('|b|')[1] : k.split('|l|')[1];
+    if (!timeStr) return;
+
+    const [hh, mm] = timeStr.split(':').map(Number);
+    let slotMin = hh * 60 + mm;
+    // Night shift: hours 0-8 are next day
+    if (currentShift === 'night' && hh < 12) slotMin += 24 * 60;
+
+    const diff = slotMin - nowMin;
+    const notifKey = k;
+
+    if (diff > 0 && diff <= notifAheadMin && !firedNotifs.has(notifKey)) {
+      firedNotifs.add(notifKey);
+      const typeLabel = isBreak ? 'Перерыв' : 'Обед';
+      new Notification(`☕ ${typeLabel} через ${diff} мин`, {
+        body: `${currentOp} · ${timeStr} · смена ${currentShift === '9-21' ? '09–21' : currentShift === '12-24' ? '12–00' : 'Ночь'} · за ${notifAheadMin} мин`,
+        icon: '',
+        tag: notifKey,
+      });
+    }
+
+    // Clear fired notif after slot time passes (so it can fire again if re-booked)
+    if (diff < -5) firedNotifs.delete(notifKey);
+  });
+}
+
+// ── TRANSFERS (temporary Regular<->VIP moves, reset at shift end) ──
+// Stored in bookings KV as: sg|transfers = { "OperatorName": "vip" | "regular" }
+let transfers = {}; // { name: targetDept } — loaded from bookings
+
+// ── TRANSFERS (Supabase) ────────────────────────────────────────
+// expires_at: day shifts → midnight (00:00 Kyiv), night → 09:00 Kyiv
+
+function getTransferExpiresAt(forShift) {
+  // Build expiry timestamp in Kyiv time, return as UTC ISO string
+  // Kyiv is UTC+2 (winter) or UTC+3 (summer) — detect via Intl
+  const now = new Date();
+  const kyivNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Kiev' }));
+  const kyivH = kyivNow.getHours();
+
+  // Build target Kyiv datetime
+  const kyivExpire = new Date(kyivNow);
+  if (forShift === 'night') {
+    // Expires at 09:00 Kyiv next calendar day
+    kyivExpire.setDate(kyivExpire.getDate() + 1);
+    kyivExpire.setHours(9, 0, 0, 0);
+  } else {
+    // Expires at 00:00 Kyiv next calendar day (midnight)
+    kyivExpire.setDate(kyivExpire.getDate() + 1);
+    kyivExpire.setHours(0, 0, 0, 0);
+  }
+
+  // Calculate the UTC offset for Kyiv at this moment
+  // kyivNow was built from now via toLocaleString → difference = Kyiv offset
+  const offsetMs = kyivNow.getTime() - now.getTime();
+  // Convert kyivExpire back to UTC: subtract the offset
+  const utcExpire = new Date(kyivExpire.getTime() - offsetMs);
+  return utcExpire.toISOString();
+}
+
+let transfersList = []; // array of active transfer objects from Supabase
+
+async function loadTransfers() {
+  try {
+    const r = await sbFetch('/rest/v1/transfers?select=*&expires_at=gt.' + new Date().toISOString() + '&order=id.asc');
+    const rows = await r.json();
+    transfersList = Array.isArray(rows) ? rows : [];
+    // Apply transfers to operator lists
+    applyTransfers();
+  } catch(e) {
+    transfersList = [];
+  }
+}
+
+function applyTransfers() {
+  // Reset to base operators first (reload from roster or defaults)
+  // Don't mutate OPERATORS directly — use transfersList when populating selects
+  // populateOperators() reads transfersList via getEffectiveOperators()
+}
+
+async function loadRoster() {
+  try {
+    const r = await sbFetch('/rest/v1/roster?select=section,dept,names');
+    const rows = await r.json();
+    if (!Array.isArray(rows) || rows.length === 0) return;
+    rows.forEach(row => {
+      if (row.section === 'sg' && row.dept === 'regular') OPERATORS.sg.regular = row.names;
+      if (row.section === 'sg' && row.dept === 'vip')     OPERATORS.sg.vip     = row.names;
+      if (row.section === 'nc' && row.dept === 'regular') OPERATORS.nc.regular = row.names;
+    });
+  } catch(e) {
+    console.warn('loadRoster failed:', e);
+  }
+}
+
+async function saveRoster() {
+  const rows = [
+    { section: 'sg', dept: 'regular', names: OPERATORS.sg.regular },
+    { section: 'sg', dept: 'vip',     names: OPERATORS.sg.vip     },
+    { section: 'nc', dept: 'regular', names: OPERATORS.nc.regular  },
+  ];
+  try {
+    await Promise.all(rows.map(row =>
+      sbFetch('/rest/v1/roster?section=eq.' + row.section + '&dept=eq.' + row.dept, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ names: row.names }),
+      })
+    ));
+  } catch(e) {
+    console.warn('saveRoster failed:', e);
+  }
+}
+
+function getEffectiveOperators(section, dept) {
+  // Returns base list + transferred-in operators - transferred-out operators
+  let base;
+  if (section === 'nc') base = [...OPERATORS.nc.regular];
+  else base = [...OPERATORS.sg[dept]];
+
+  // Add operators transferred INTO this section|dept
+  transfersList.forEach(t => {
+    if (t.to_section === section && t.to_dept === dept && !base.includes(t.operator)) {
+      base.push(t.operator);
+    }
+  });
+  // Remove operators transferred OUT of this section|dept
+  transfersList.forEach(t => {
+    if (t.from_section === section && t.from_dept === dept) {
+      base = base.filter(n => n !== t.operator);
+    }
+  });
+  return base.sort();
+}
+
+function saveTransfers() {
+  // No-op — transfers are saved individually via doTransfer2/revertTransfer2
+}
+
+async function doTransfer2(key, targetVal, name, toSection, toDept) {
+  // key = "fromSection|fromDept|name", targetVal = "toSection|toDept"
+  const parts = key.split('|');
+  const fromSection = parts[0];
+  const fromDept = parts[1];
+
+  // Determine which shift is currently active (for expiry)
+  const kyivH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kiev' })).getHours();
+  const activeShift = (kyivH >= 21 || kyivH < 9) ? 'night' : 'day';
+  const expiresAt = getTransferExpiresAt(activeShift);
+
+  const body = {
+    operator: name,
+    from_section: fromSection,
+    from_dept: fromDept,
+    to_section: toSection,
+    to_dept: toDept,
+    expires_at: expiresAt,
+  };
+
+  try {
+    await sbFetch('/rest/v1/transfers', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify(body),
+    });
+    await loadTransfers();
+    populateOperators();
+    renderTransferTab(document.getElementById('adminBody'));
+  } catch(e) {
+    alert('Ошибка сохранения трансфера');
+  }
+}
+
+async function revertTransfer2(key) {
+  // key = "fromSection|fromDept|name"
+  const parts = key.split('|');
+  const fromSection = parts[0];
+  const fromDept = parts[1];
+  const name = parts.slice(2).join('|');
+
+  try {
+    await sbFetch(
+      '/rest/v1/transfers?operator=eq.' + encodeURIComponent(name) +
+      '&from_section=eq.' + fromSection +
+      '&from_dept=eq.' + fromDept,
+      { method: 'DELETE', prefer: 'return=minimal' }
+    );
+    await loadTransfers();
+    populateOperators();
+    renderTransferTab(document.getElementById('adminBody'));
+  } catch(e) {
+    alert('Ошибка отмены трансфера');
+  }
+}
+
+
+function doTransfer(name, toDept) {
+  loadTransfers();
+  transfers[name] = toDept;
+  saveTransfers();
+  // Add to target dept list temporarily
+  if (toDept === 'vip' && !OPERATORS.sg.vip.includes(name)) OPERATORS.sg.vip.push(name);
+  if (toDept === 'regular' && !OPERATORS.sg.regular.includes(name)) OPERATORS.sg.regular.push(name);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
+function revertTransfer(name) {
+  loadTransfers();
+  const toDept = transfers[name];
+  delete transfers[name];
+  saveTransfers();
+  // Remove from target list
+  if (toDept === 'vip') OPERATORS.sg.vip = OPERATORS.sg.vip.filter(n => n !== name || OPERATORS.sg.vip.filter(x=>x===name).length > 1);
+  if (toDept === 'regular') OPERATORS.sg.regular = OPERATORS.sg.regular.filter(n => n !== name || OPERATORS.sg.regular.filter(x=>x===name).length > 1);
+  populateOperators();
+  renderTransferTab(document.getElementById('adminBody'));
+}
+
+let adminTab = 'transfer';
+
+function openAdminPanel() {
+  document.getElementById('adminOverlay').style.display = 'flex';
+  renderAdminTab(adminTab);
+}
+
+function closeAdminPanel() {
+  document.getElementById('adminOverlay').style.display = 'none';
+}
+
+function switchAdminTab(tab) {
+  adminTab = tab;
+  ['transfer','roster'].forEach(t => {
+    const btn = document.getElementById('atab-' + t);
+    if (!btn) return;
+    const active = t === tab;
+    btn.style.cssText = 'padding:10px 18px;font-size:12px;font-family:var(--mono);background:none;border:none;cursor:pointer;transition:all .15s;' +
+      (active ? 'color:var(--warn);border-bottom:2px solid var(--warn);' : 'color:var(--muted);border-bottom:2px solid transparent;');
+  });
+  renderAdminTab(tab);
+}
+
+function renderAdminTab(tab) {
+  const body = document.getElementById('adminBody');
+  if (tab === 'transfer') renderTransferTab(body);
+  else renderRosterTab(body);
+}
+
+function renderTransferTab(body) {
+  const sgRegular = OPERATORS.sg.regular;
+  const sgVip = OPERATORS.sg.vip;
+  const ncRegular = OPERATORS.nc.regular;
+
+  // Get active transfers from transfersList
+  function isTransferred(name, fromSection, fromDept) {
+    return transfersList.some(t => t.operator === name && t.from_section === fromSection && t.from_dept === fromDept);
+  }
+  function getTransferTarget(name, fromSection, fromDept) {
+    const t = transfersList.find(t => t.operator === name && t.from_section === fromSection && t.from_dept === fromDept);
+    return t ? { toSection: t.to_section, toDept: t.to_dept } : null;
+  }
+  function expiryLabel(name, fromSection, fromDept) {
+    const t = transfersList.find(t => t.operator === name && t.from_section === fromSection && t.from_dept === fromDept);
+    if (!t) return '';
+    const d = new Date(t.expires_at);
+    const kyivTime = d.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit' });
+    return ' до ' + kyivTime;
+  }
+
+  function row(name, fromSection, fromDept, toSection, toDept, toLabel, badgeStyle) {
+    const moved = isTransferred(name, fromSection, fromDept);
+    const key = fromSection + '|' + fromDept + '|' + name;
+    const exp = moved ? expiryLabel(name, fromSection, fromDept) : '';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px;margin-bottom:6px">' +
+      '<span>' + name + (moved ? '<span style="font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:4px;margin-left:6px;' + badgeStyle + '">→ ' + toLabel + exp + '</span>' : '') + '</span>' +
+      (moved
+        ? '<button onclick="revertTransfer2(\'' + key + '\')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">↩ вернуть</button>'
+        : '<button onclick="doTransfer2(\'' + key + '\',\'' + toSection + '|' + toDept + '\',\'' + name + '\',\'' + toSection + '\',\'' + toDept + '\')" style="font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">→ ' + toLabel + '</button>'
+      ) +
+      '</div>';
+  }
+
+  const note = '<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px">Сбрасывается: дневные в 00:00 · ночные в 09:00 (по Киеву)</div>';
+  const sec = (t) => '<div style="font-size:12px;font-weight:500;color:var(--text);margin:16px 0 8px">' + t + '</div>';
+
+  let html = note;
+  html += sec('SG Regular → VIP');
+  sgRegular.forEach(n => { html += row(n,'sg','regular','sg','vip','VIP','background:rgba(251,191,36,0.12);color:var(--warn)'); });
+  html += sec('SG VIP → Regular');
+  sgVip.forEach(n => { html += row(n,'sg','vip','sg','regular','Regular','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
+  html += sec('SG Regular → NC');
+  sgRegular.forEach(n => { html += row(n,'sg','regular','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
+  html += sec('NC → SG Regular');
+  ncRegular.forEach(n => { html += row(n,'nc','regular','sg','regular','SG','background:rgba(110,231,183,0.12);color:var(--accent-day)'); });
+  html += sec('SG VIP → NC');
+  sgVip.forEach(n => { html += row(n,'sg','vip','nc','regular','NC','background:rgba(248,113,113,0.12);color:var(--danger)'); });
+  body.innerHTML = html;
+}
+
+function renderRosterTab(body) {
+  const sections = [
+    { key: 'sg_regular', list: OPERATORS.sg.regular, label: 'SG · Regular' },
+    { key: 'sg_vip',     list: OPERATORS.sg.vip,     label: 'SG · VIP' },
+    { key: 'nc_regular', list: OPERATORS.nc.regular,  label: 'NC · Regular' },
+  ];
+
+  let html = '<div style="font-size:11px;color:var(--danger);font-family:var(--mono);margin-bottom:16px;padding:8px 12px;background:var(--danger-dim);border-radius:8px">⚠ Постоянное изменение списка — сохраняется навсегда</div>';
+
+  sections.forEach(({ key, list, label }) => {
+    html += '<div class="roster-section"><div class="roster-title">' + label + '</div>';
+    html += '<div class="roster-list" id="roster-' + key + '">';
+    list.forEach(name => {
+      html += '<span class="roster-chip">' + name +
+        '<button onclick="removeOperator(\'' + key + '\',\'' + name + '\')">✕</button>' +
+        '</span>';
+    });
+    html += '</div>';
+    html += '<div class="roster-add">' +
+      '<input type="text" id="new-op-' + key + '" placeholder="\u0418\u043c\u044f \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" onkeydown="if(event.keyCode===13)addOperator(\'' + key + '\')">' +
+      '<button onclick="addOperator(\'' + key + '\')">+ добавить</button>' +
+      '</div></div>';
+  });
+  body.innerHTML = html;
+}
+
+async function addOperator(key) {
+  const inp = document.getElementById('new-op-' + key);
+  const name = inp.value.trim();
+  if (!name) return;
+  const map = { sg_regular: OPERATORS.sg.regular, sg_vip: OPERATORS.sg.vip, nc_regular: OPERATORS.nc.regular };
+  if (!map[key].includes(name)) { map[key].push(name); map[key].sort(); }
+  inp.value = '';
+  saveRoster();
+  populateOperators();
+  renderRosterTab(document.getElementById('adminBody'));
+}
+
+async function removeOperator(key, name) {
+  if (!confirm('Удалить "' + name + '" из списка? Это нельзя отменить.')) return;
+  const map = { sg_regular: OPERATORS.sg.regular, sg_vip: OPERATORS.sg.vip, nc_regular: OPERATORS.nc.regular };
+  map[key] = map[key].filter(n => n !== name);
+  OPERATORS.sg.regular = map.sg_regular; OPERATORS.sg.vip = map.sg_vip; OPERATORS.nc.regular = map.nc_regular;
+  saveRoster();
+  populateOperators();
+  renderRosterTab(document.getElementById('adminBody'));
+}
+
+populateOperators();
+
+// Get auth session to identify who is making changes
+fetch('/api/check', { credentials: 'include' })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok && data.email) {
+      userEmail = data.email;
+      if (isAdmin()) {
+        const badge = document.createElement('span');
+        badge.textContent = '★ admin';
+        badge.style.cssText = 'font-size:10px;font-family:var(--mono);background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.3);border-radius:4px;padding:2px 7px;margin-left:4px';
+        document.getElementById('op-badge').after(badge);
+        document.getElementById('admin-btn').style.display = 'block';
+        // Show/hide admin mode based on operator selection
+        document.getElementById('opsel').addEventListener('change', () => {
+          const adminBadge = document.querySelector('[data-admin-badge]');
+          if (adminBadge) adminBadge.style.opacity = currentOp ? '0.4' : '1';
+        });
+      }
+    }
+  })
+  .catch(() => {})
+  .finally(() => initWorker());
+
+  // OPERATOR PICK MODAL
+  let _opPickCb = null;
+  function openOpPick(cb) {
+    _opPickCb = cb;
+    const sel = document.getElementById('opPickSel');
+    sel.innerHTML = '';
+    const ops = getEffectiveOperators(currentSection, currentDept);
+    ops.forEach(op => {
+      const o = document.createElement('option');
+      o.value = op; o.textContent = op;
+      sel.appendChild(o);
+    });
+    const overlay = document.getElementById('opPickOverlay');
+    overlay.style.display = 'flex';
+  }
+  function closeOpPick() {
+    document.getElementById('opPickOverlay').style.display = 'none';
+    _opPickCb = null;
+  }
+  function confirmOpPick() {
+    const sel = document.getElementById('opPickSel');
+    const name = sel.value;
+    document.getElementById('opPickOverlay').style.display = 'none';
+    if (_opPickCb && name) _opPickCb(name);
+    _opPickCb = null;
+  }
+
+</script>
+<!-- OPERATOR PICK MODAL -->
+</div>
+</div>
+
+<!-- OPERATOR PICK MODAL -->
+<div id="opPickOverlay" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:20px;width:320px;max-width:95vw">
+    <div style="font-size:13px;font-family:var(--mono);color:var(--text);margin-bottom:12px">Выберите оператора</div>
+    <select id="opPickSel" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px;font-family:var(--sans)"></select>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeOpPick()" style="padding:7px 16px;font-size:13px;font-family:var(--mono);border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer">Отмена</button>
+      <button onclick="confirmOpPick()" style="padding:7px 16px;font-size:13px;font-family:var(--mono);border-radius:8px;border:1px solid rgba(251,191,36,0.35);background:rgba(251,191,36,0.12);color:var(--warn);cursor:pointer">Забронировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<!-- ADMIN PANEL -->
+<div id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:560px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <span style="font-size:14px;font-weight:500;color:var(--warn);font-family:var(--mono)">★ Админ-панель</span>
+      <button onclick="closeAdminPanel()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button id="atab-transfer" onclick="switchAdminTab('transfer')" style="padding:10px 18px;font-size:12px;font-family:var(--mono);color:var(--warn);background:none;border:none;border-bottom:2px solid var(--warn);cursor:pointer">↔ Трансфер</button>
+      <button id="atab-roster" onclick="switchAdminTab('roster')" style="padding:10px 18px;font-size:12px;font-family:var(--mono);color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer">✎ Состав</button>
+    </div>
+    <div id="adminBody" style="flex:1;overflow-y:auto;padding:20px"></div>
+  </div>
+</div>
+
+<div class="log-overlay" id="logOverlay" onclick="if(event.target===this)closeLog()">
+  <div class="log-panel">
+    <div class="log-head">
+      <span class="log-head-title" id="log-title">Лог за сегодня</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="log-refresh" onclick="logChangeDay(-1)" style="padding:4px 10px">◀</button>
+        <button class="log-refresh" onclick="logChangeDay(1)" style="padding:4px 10px">▶</button>
+        <button class="log-refresh" onclick="loadLog()">↻</button>
+        <button class="log-close" onclick="closeLog()">✕</button>
+      </div>
+    </div>
+    <div class="log-body" id="logBody"><div class="log-empty">загрузка...</div></div>
+  </div>
+</div>
+</body>
+</html>

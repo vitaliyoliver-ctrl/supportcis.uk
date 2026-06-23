@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>SupportCIS — Личный кабинет</title>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0c10; --surface: #111318; --surface2: #15181f;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --border-active: rgba(79,142,247,0.6);
+      --text: #e8eaf0; --muted: #6b7280; --sub: #9ca3b0;
+      --accent: #4f8ef7; --accent-glow: rgba(79,142,247,0.18);
+      --support: #34d399; --error: #f87171; --input-bg: #0d0f14;
+    }
+    html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Mulish', sans-serif; overflow-x: hidden; }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px; pointer-events: none; z-index: 0;
+    }
+    .bg-glow { position: fixed; width: 600px; height: 600px; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; z-index: 0; }
+    .bg-glow-1 { background: var(--accent); top: -200px; left: -100px; }
+    .bg-glow-2 { background: var(--support); bottom: -200px; right: -100px; }
+
+    .back { position: fixed; top: 24px; left: 24px; display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: 13px; transition: color 0.2s; z-index: 10; }
+    .back:hover { color: var(--text); }
+    .logout-btn {
+      position: fixed; top: 24px; right: 24px; display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--muted); font-size: 12px; font-family: 'Mulish', sans-serif; padding: 7px 14px;
+      cursor: pointer; transition: color 0.2s, border-color 0.2s, background 0.2s; z-index: 10;
+    }
+    .logout-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.07); }
+
+    .wrapper {
+      position: relative; z-index: 1; min-height: 100vh; display: flex;
+      flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px 60px;
+    }
+
+    .header { text-align: center; margin-bottom: 28px; animation: fadeDown 0.6s ease both; }
+    .logo-mark { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--accent), var(--support)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .logo-text { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+    .logo-text span { color: var(--accent); }
+    .header-sub { font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 300; color: transparent; background: linear-gradient(90deg, var(--accent), var(--support)); -webkit-background-clip: text; background-clip: text; letter-spacing: 0.22em; text-transform: uppercase; }
+
+    .card {
+      position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 34px; width: 100%; max-width: 460px; overflow: hidden;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.6; }
+
+    /* TL: выбор оператора */
+    .tl-picker { margin-bottom: 24px; padding-bottom: 22px; border-bottom: 1px solid var(--border); display: none; }
+    .tl-picker.visible { display: block; }
+    .tl-badge {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px;
+      background: var(--accent-glow); color: var(--accent); margin-bottom: 12px;
+    }
+
+    .identity { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+    .avatar-initials {
+      width: 60px; height: 60px; border-radius: 16px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), #3a7bd5);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 22px; color: #fff;
+    }
+    .identity-meta { min-width: 0; }
+    .identity-name { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; word-break: break-word; }
+    .identity-sub { font-size: 13px; color: var(--sub); margin-top: 4px; }
+    .role-pill {
+      display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 2px 8px; border-radius: 6px; margin-left: 8px;
+      background: rgba(255,255,255,0.06); color: var(--sub);
+    }
+
+    .field { margin-bottom: 20px; }
+    label { display: block; font-family: 'Unbounded', sans-serif; font-size: 10px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+    .input-wrap { position: relative; }
+    .input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+    input[type="text"], input[type="date"] {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 15px; padding: 13px 16px;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input.has-prefix { padding-left: 34px; }
+    input[type="text"]:focus, input[type="date"]:focus { border-color: var(--border-active); box-shadow: 0 0 0 3px var(--accent-glow); }
+    input::placeholder { color: var(--muted); }
+    input:disabled, input.readonly { background: rgba(255,255,255,0.02); color: var(--sub); cursor: default; }
+    input[type="date"] { color-scheme: dark; }
+
+    .field-note { font-size: 12px; color: var(--muted); margin-top: 7px; line-height: 1.5; }
+    .field-note .tenure { color: var(--support); }
+    select.picker-select {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+      color: var(--text); font-family: 'Mulish', sans-serif; font-size: 14px; padding: 12px 14px; outline: none; cursor: pointer;
+    }
+    select.picker-select:focus { border-color: var(--border-active); }
+
+    .btn {
+      width: 100%; margin-top: 8px; padding: 14px; background: linear-gradient(135deg, var(--accent), #3a7bd5);
+      border: none; border-radius: 12px; color: #fff; font-family: 'Unbounded', sans-serif; font-weight: 700;
+      font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s; box-shadow: 0 4px 20px rgba(79,142,247,0.25);
+    }
+    .btn:hover:not(:disabled) { opacity: 0.92; box-shadow: 0 6px 28px rgba(79,142,247,0.35); }
+    .btn:active:not(:disabled) { transform: scale(0.99); }
+    .btn:disabled { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); cursor: not-allowed; box-shadow: none; }
+
+    .btn-loading { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+
+    .footer { margin-top: 28px; text-align: center; font-size: 12px; color: var(--muted); animation: fadeUp 0.6s 0.4s ease both; }
+
+    #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; }
+    .auth-spinner { width: 32px; height: 32px; border: 2px solid rgba(255,255,255,0.08); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+      background: var(--surface2); border: 1px solid var(--border2); color: var(--text);
+      padding: 11px 18px; border-radius: 10px; font-size: 13.5px; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s; z-index: 60; max-width: 90vw;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.ok { border-color: var(--support); }
+    .toast.err { border-color: var(--error); }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) { .card { padding: 28px 22px; } .wrapper { padding: 76px 16px 48px; } }
+  </style>
+</head>
+<body>
+
+<div id="auth-overlay"><div class="auth-spinner"></div></div>
+
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<a href="/" class="back">← На главную</a>
+<button class="logout-btn" onclick="logout()">↩ Выйти</button>
+
+<div class="wrapper">
+  <div class="header">
+    <div class="logo-mark">
+      <div class="logo-icon">🛡</div>
+      <div class="logo-text">Support<span>CIS</span></div>
+    </div>
+    <p class="header-sub">Личный кабинет</p>
+  </div>
+
+  <div class="card">
+    <div class="identity">
+      <div class="avatar-initials" id="avatar-initials">—</div>
+      <div class="identity-meta">
+        <div class="identity-name" id="identity-name">—</div>
+        <div class="identity-sub" id="identity-sub">—</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email-field">Рабочая почта</label>
+      <input type="text" id="email-field" class="readonly" readonly />
+      <div class="field-note">По этому адресу вы входите в портал. Изменить нельзя.</div>
+    </div>
+
+    <div class="field">
+      <label for="tg-field">Телеграм (рабочий аккаунт)</label>
+      <div class="input-wrap">
+        <span class="input-prefix">@</span>
+        <input type="text" id="tg-field" class="has-prefix" placeholder="username" autocapitalize="off" autocomplete="off" spellcheck="false" maxlength="32" />
+      </div>
+      <div class="field-note" id="tg-note">3–32 символа: латиница, цифры, нижнее подчёркивание.</div>
+    </div>
+
+    <div class="field">
+      <label for="since-field">Дата начала работы</label>
+      <input type="date" id="since-field" />
+      <div class="field-note" id="since-note"></div>
+    </div>
+
+    <button class="btn" id="save-btn" onclick="save()">Сохранить</button>
+  </div>
+
+  <div class="footer">© 2026 Velvix · Внутреннее использование</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+
+// ── Сид сотрудников (зеркалит EMPLOYEES из графика) ──
+// Используется для отображения имени/позиции/даты начала и списка операторов в режиме TL.
+// Источник истины для дат начала — график; здесь те же значения.
+const EMP_SEED = {
+  'vitaliy.oliver@velvix.org':       { name: 'Oliver',    position: 'Head',          since: '2022-10-24' },
+  'ayman.jordan@velvix.org':         { name: 'Jordan',    position: 'TL',            since: '2021-08-24' },
+  'nataliia.naomi@velvix.org':       { name: 'Naomi',     position: 'TL',            since: '2023-04-27' },
+  'viktor.matthew@velvix.org':       { name: 'Matthew',   position: 'TL',            since: '2023-03-30' },
+  'adil.ab@velvix.org':              { name: 'Robert',    position: 'Support',       since: '2026-01-12' },
+  'vladyslav.reed@velvix.org':       { name: 'Reed',      position: 'Complaints',    since: '2024-03-25' },
+  'ilia.jayden@velvix.org':          { name: 'Jayden',    position: 'Coach',         since: '2023-03-30' },
+  'anna.carrot@velvix.org':          { name: 'Anna',      position: 'Coach',         since: '2023-11-24' },
+  'nikita.lanaya@velvix.org':        { name: 'Nikita',    position: 'Analyst',       since: '2025-03-01' },
+  'kirill.curtis@velvix.org':        { name: 'Curtis',    position: 'Supervisor',    since: '2024-03-25' },
+  'ruslan.manuel@velvix.org':        { name: 'Manuel',    position: 'Supervisor',    since: '2024-04-08' },
+  'janelle.irma@velvix.org':         { name: 'Irma',      position: 'Supervisor',    since: '2024-06-24' },
+  'ilia.solomon@velvix.org':         { name: 'Solomon',   position: 'Supervisor',    since: '2023-06-30' },
+  'ivan.richard@velvix.org':         { name: 'Richard',   position: 'Supervisor',    since: '2022-06-23' },
+  'osman.toby@velvix.org':           { name: 'Toby',      position: 'Supervisor',    since: '2024-04-15' },
+  'rovshan.will@velvix.org':         { name: 'Will',      position: 'Support',       since: '2025-07-29' },
+  'elvira.as@velvix.org':            { name: 'Bridget',   position: 'Support',       since: '2025-12-08' },
+  'nijat.kenzo@velvix.org':          { name: 'Kenzo',     position: 'Support',       since: '2025-07-22' },
+  'alina.ja@velvix.org':             { name: 'Nora',      position: 'Support',       since: '2025-10-20' },
+  'banovsha.florence@velvix.org':    { name: 'Florence',  position: 'Support',       since: '2024-01-29' },
+  'sherzodjon.fletcher@velvix.org':  { name: 'Fletcher',  position: 'Support',       since: '2025-07-22' },
+  'teymur.ab@velvix.org':            { name: 'Charles',   position: 'Support',       since: '2026-01-26' },
+  'rashad.go@velvix.org':            { name: 'Earl',      position: 'Support',       since: '2026-01-12' },
+  'rufat.rudy@velvix.org':           { name: 'Rudy',      position: 'Support',       since: '2024-06-10' },
+  'emin.nu@velvix.org':              { name: 'Balfour',   position: 'Support',       since: '2025-10-20' },
+  'dmitriy.be@velvix.org':           { name: 'Jonathan',  position: 'Support',       since: '2025-11-17' },
+  'artsiom.pu@velvix.org':           { name: 'Bill',      position: 'Support',       since: '2026-01-12' },
+  'ruslan.mi@velvix.org':            { name: 'Gross',     position: 'Support',       since: '2026-03-02' },
+  'assel.meadow@velvix.org':         { name: 'Meadow',    position: 'Support',       since: '2024-08-08' },
+  'elvin.norman@velvix.org':         { name: 'Norman',    position: 'Support',       since: '2024-01-29' },
+  'mikita.ma@velvix.org':            { name: 'Robin',     position: 'Support',       since: '2025-12-08' },
+  'maksym.k@velvix.org':             { name: 'Bob',       position: 'Support',       since: '2025-10-20' },
+  'vladyslav.bi@velvix.org':         { name: 'Lex',       position: 'Support',       since: '2026-01-12' },
+  'radik.mu@velvix.org':             { name: 'Calvin',    position: 'Support',       since: '2026-03-02' },
+  'stanislav.mike@velvix.org':       { name: 'Mike',      position: 'Support',       since: '2023-08-28' },
+  'teymur.hardy@velvix.org':         { name: 'Hardy',     position: 'Support',       since: '2025-07-29' },
+  'viktor.bo@velvix.org':            { name: 'Murphy',    position: 'Support',       since: '2025-11-17' },
+  'oleh.vy@velvix.org':              { name: 'Joseph',    position: 'Support',       since: '2025-10-20' },
+  'ivan.bowen@velvix.org':           { name: 'Bowen',     position: 'Support',       since: '2024-05-27' },
+  'vadym.adam@velvix.org':           { name: 'Adam',      position: 'VIP Sup',       since: '2023-08-17' },
+  'tamila.amelia@velvix.org':        { name: 'Amelia',    position: 'VIP Sup',       since: '2023-10-23' },
+  'vladimir.lucas@velvix.org':       { name: 'Lucas',     position: 'VIP Sup',       since: '2023-07-22' },
+  'serghei.scott@velvix.org':        { name: 'Scott',     position: 'VIP',           since: '2023-04-25' },
+  'fuad.tom@velvix.org':             { name: 'Tom',       position: 'VIP',           since: '2024-04-08' },
+  'nurdaulet.simon@velvix.org':      { name: 'Simon',     position: 'VIP',           since: '2023-12-04' },
+  'ruslan.casper@velvix.org':        { name: 'Casper',    position: 'VIP',           since: '2025-07-22' },
+  'alisher.elijah@velvix.org':       { name: 'Elijah',    position: 'VIP',           since: '2024-05-27' },
+  'lolita.holly@velvix.org':         { name: 'Holly',     position: 'VIP',           since: '2024-11-11' },
+  'vladyslav.river@velvix.org':      { name: 'River',     position: 'VIP',           since: '2024-03-25' },
+  'temirlan.chadwick@velvix.org':    { name: 'Chadwick',  position: 'VIP',           since: '2024-06-24' },
+  'daniil.fabio@velvix.org':         { name: 'Fabio',     position: 'VIP',           since: '2024-11-25' },
+  'timur.plover@velvix.org':         { name: 'Plover',    position: 'VIP',           since: '2024-09-16' },
+  'vladislav.morgan@velvix.org':     { name: 'Morgan',    position: 'VIP',           since: '2024-05-13' },
+  'maksym.reggie@velvix.org':        { name: 'Reggie',    position: 'VIP',           since: '2024-03-25' },
+  'aliyar.ko@velvix.org':            { name: 'Nolan',     position: 'VIP',           since: '2025-10-20' },
+  'elnur.skylar@velvix.org':         { name: 'Skylar',    position: 'VIP',           since: '2024-11-11' },
+  'teymur.wade@velvix.org':          { name: 'Wade',      position: 'VIP',           since: '2024-03-25' },
+  'emil.denzel@velvix.org':          { name: 'Denzel',    position: 'VIP',           since: '2024-02-26' },
+  'matsvei.ashton@velvix.org':       { name: 'Ashton',    position: 'VIP',           since: '2024-11-25' },
+  'zuleykha.christine@velvix.org':   { name: 'Christine', position: 'VIP',           since: '2024-06-24' },
+  'azim.isaac@velvix.org':           { name: 'Isaac',     position: 'VIP',           since: '2024-01-15' },
+  'nigar.felicia@velvix.org':        { name: 'Felicia',   position: 'VIP',           since: '2024-11-25' },
+  'vladimir.warren@velvix.org':      { name: 'Warren',    position: 'VIP',           since: '2025-07-22' },
+  'sabina.ib@velvix.org':            { name: 'Alexia',    position: 'VIP',           since: '2024-01-29' },
+  'kateryna.kiana@velvix.org':       { name: 'Kiana',     position: 'VIP',           since: '2023-12-04' },
+  'muslmat.trinity@velvix.org':      { name: 'Trinity',   position: 'VIP',           since: '2025-07-22' },
+  'oksana.qa@velvix.org':            { name: 'Оксана',    position: 'QA Team Lead',  since: '2023-03-20' },
+  'anna.va@velvix.org':              { name: 'Аня',       position: 'QA Supervisor', since: '2023-04-04' },
+  'aigerim.qa@velvix.org':           { name: 'Айгерим',   position: 'QA Manager',    since: '2023-04-17' },
+  'anastasia.qa@velvix.org':         { name: 'Анастасия', position: 'QA Manager',    since: '2023-01-18' },
+  'natia.qa@velvix.org':             { name: 'Натия',     position: 'QA Manager',    since: '2024-05-01' },
+  'sarvar.qa@velvix.org':            { name: 'Сарвар',    position: 'QA Manager',    since: '2024-07-08' },
+  'zumrud.qa@velvix.org':            { name: 'Зумруд',    position: 'QA Manager',    since: '2024-06-19' },
+  'aliaksandr.roger@velvix.org':     { name: 'Roger',     position: 'QA AI',         since: '2023-08-28' },
+};
+
+const ROLE_LABELS = { tl: 'Team Lead', supervisor: 'Supervisor', ops: 'Ops', support: 'Support' };
+
+let me = null;          // { email, role }
+let isTL = false;
+let targetEmail = '';   // чей профиль сейчас открыт
+let view = {};          // текущие отображаемые данные
+
+const $ = id => document.getElementById(id);
+
+function seedFor(email) { return EMP_SEED[String(email || '').toLowerCase()] || {}; }
+
+function displayName(email) {
+  const s = seedFor(email);
+  return s.name || String(email || '').split('@')[0];
+}
+
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '—';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function tenureText(sinceStr) {
+  if (!sinceStr || !/^\d{4}-\d{2}-\d{2}$/.test(sinceStr)) return '';
+  const start = new Date(sinceStr + 'T00:00:00');
+  const now = new Date();
+  if (isNaN(start) || start > now) return '';
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) months--;
+  if (months < 0) months = 0;
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  const yWord = n => (n % 10 === 1 && n % 100 !== 11) ? 'год' : ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) ? 'года' : 'лет';
+  const mWord = n => (n % 10 === 1 && n % 100 !== 11) ? 'месяц' : ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) ? 'месяца' : 'месяцев';
+  const parts = [];
+  if (y > 0) parts.push(`${y} ${yWord(y)}`);
+  if (m > 0) parts.push(`${m} ${mWord(m)}`);
+  if (!parts.length) return 'меньше месяца в команде';
+  return 'в команде ' + parts.join(' ');
+}
+
+function toast(msg, kind) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (kind || '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = 'toast ' + (kind || ''); }, 3200);
+}
+
+// ── Загрузка профиля ──
+async function loadProfile(email) {
+  targetEmail = String(email).toLowerCase();
+  let stored = {};
+  try {
+    const res = await fetch(`${API}/profile?email=${encodeURIComponent(targetEmail)}`, { credentials: 'include' });
+    if (res.status === 401) { location.href = '/login/?redirect=' + encodeURIComponent('/profile/'); return; }
+    const data = await res.json();
+    if (data && data.ok && data.profile) stored = data.profile;
+  } catch {}
+
+  const seed = seedFor(targetEmail);
+  view = {
+    email:    targetEmail,
+    name:     stored.name     || seed.name     || targetEmail.split('@')[0],
+    position: stored.position || seed.position || '',
+    since:    stored.since     || seed.since    || '',
+    telegram: stored.telegram  || '',
+  };
+  renderProfile();
+}
+
+function renderProfile() {
+  $('avatar-initials').textContent = initials(view.name);
+  $('identity-name').textContent = view.name;
+
+  const roleLabel = (targetEmail === me.email) ? (ROLE_LABELS[me.role] || me.role) : null;
+  let subHtml = view.position || '—';
+  if (roleLabel) subHtml += `<span class="role-pill">${roleLabel}</span>`;
+  $('identity-sub').innerHTML = subHtml;
+
+  $('email-field').value = view.email;
+  $('tg-field').value = view.telegram || '';
+
+  const sinceEl = $('since-field');
+  sinceEl.value = view.since || '';
+  // Дату начала редактирует только TL; оператор видит её, но не меняет.
+  sinceEl.disabled = !isTL;
+  sinceEl.classList.toggle('readonly', !isTL);
+
+  const tenure = tenureText(view.since);
+  if (isTL) {
+    $('since-note').innerHTML = (view.since
+      ? `<span class="tenure">${tenure}</span>. `
+      : 'Дата не указана. ') + 'Можно задать вручную (например, для нового сотрудника).';
+  } else {
+    $('since-note').innerHTML = view.since
+      ? `<span class="tenure">${tenure}</span>. Дату начала меняет тимлид.`
+      : 'Дата начала пока не указана — её задаёт тимлид.';
+  }
+}
+
+// ── Сохранение ──
+async function save() {
+  const btn = $('save-btn');
+  const tgRaw = $('tg-field').value.trim().replace(/^@+/, '');
+  if (tgRaw && !/^[a-zA-Z0-9_]{3,32}$/.test(tgRaw)) {
+    toast('Некорректный телеграм-тег (3–32: латиница, цифры, _)', 'err');
+    $('tg-field').focus();
+    return;
+  }
+
+  const payload = { email: targetEmail, telegram: tgRaw };
+  if (isTL) {
+    const sinceVal = $('since-field').value;
+    payload.since = sinceVal;
+    // имя/позицию тянем из сида, чтобы они сохранились для новых сотрудников
+    payload.name = view.name;
+    payload.position = view.position;
+  }
+
+  btn.disabled = true;
+  const prevLabel = btn.textContent;
+  btn.innerHTML = '<span class="btn-loading"></span>';
+
+  try {
+    const res = await fetch(`${API}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.status === 401) { location.href = '/login/?redirect=' + encodeURIComponent('/profile/'); return; }
+    if (res.ok && data.ok) {
+      if (data.profile) {
+        view.telegram = data.profile.telegram || '';
+        view.since = data.profile.since || view.since;
+      }
+      renderProfile();
+      toast('Сохранено', 'ok');
+    } else {
+      toast(data.error || 'Не удалось сохранить', 'err');
+    }
+  } catch {
+    toast('Ошибка сети. Попробуйте ещё раз.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevLabel;
+  }
+}
+
+async function logout() {
+  try { await fetch(`${API}/logout`, { method: 'POST', credentials: 'include' }); } catch {}
+  location.href = '/login/';
+}
+
+// ── Инициализация ──
+(async () => {
+  try {
+    const res = await fetch(`${API}/check`, { credentials: 'include' });
+    const data = await res.json();
+    if (!data.ok) { location.href = '/login/?redirect=' + encodeURIComponent('/profile/'); return; }
+    me = { email: String(data.email).toLowerCase(), role: data.role };
+    isTL = me.role === 'tl';
+
+    await loadProfile(me.email);
+    $('auth-overlay').style.display = 'none';
+  } catch {
+    location.href = '/login/?redirect=' + encodeURIComponent('/profile/');
+  }
+})();
+</script>
+
+</body>
+</html>

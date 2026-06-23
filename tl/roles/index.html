@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Управление ролями · SupportCIS</title>
+<style>
+  :root {
+    --bg:        #0a0c10;
+    --panel:     #111318;
+    --panel-2:   #15181f;
+    --border:    #1f2937;
+    --border-2:  #2a3441;
+    --accent:    #4f8ef7;
+    --accent-dim:#1e3a6b;
+    --text:      #e5e7eb;
+    --muted:     #9ca3af;
+    --faint:     #6b7280;
+    --danger:    #ef4444;
+    --danger-dim:#3a1d1d;
+    --success:   #22c55e;
+    --success-dim:#14321f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header.top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 6px;
+  }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: -.2px; }
+  .brand span { color: var(--accent); }
+  .who { color: var(--faint); font-size: 13px; }
+  .who b { color: var(--muted); font-weight: 600; }
+
+  .backlink {
+    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;
+    color: var(--muted); font-size: 13px; text-decoration: none;
+    border: 1px solid var(--border); background: var(--panel);
+    border-radius: 9px; padding: 7px 13px; transition: color .15s, border-color .15s, background .15s;
+  }
+  .backlink:hover { color: var(--text); border-color: var(--border-2); background: var(--panel-2); text-decoration: none; }
+
+  /* профиль: индикатор и кликабельный email */
+  .chip .email { cursor: pointer; }
+  .chip .email:hover { color: var(--accent); }
+  .chip .tg-dot {
+    flex-shrink: 0; font-size: 11px; color: var(--accent);
+    background: var(--accent-dim); border-radius: 5px; padding: 1px 6px; margin-right: 2px;
+  }
+
+  /* профиль-модалка */
+  .pf-field { margin-bottom: 13px; }
+  .pf-field label {
+    display: block; font-size: 11px; color: var(--faint); text-transform: uppercase;
+    letter-spacing: .5px; margin-bottom: 5px;
+  }
+  .pf-field input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border-2); border-radius: 8px;
+    color: var(--text); padding: 9px 11px; font-size: 13.5px; outline: none; font-family: inherit;
+  }
+  .pf-field input:focus { border-color: var(--accent); }
+  .pf-field input:read-only { opacity: .6; cursor: default; }
+  .pf-field input[type="date"] { color-scheme: dark; }
+  .pf-prefix-wrap { position: relative; }
+  .pf-prefix-wrap .pfx { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: 13.5px; pointer-events: none; }
+  .pf-prefix-wrap input { padding-left: 26px; }
+  .pf-roles-line { font-size: 12px; color: var(--faint); margin: -4px 0 14px; }
+  .pf-roles-line .rb {
+    display: inline-block; background: var(--panel-2); border: 1px solid var(--border-2);
+    border-radius: 6px; padding: 1px 8px; margin-right: 5px; color: var(--muted); font-size: 11px;
+  }
+  .pf-note { font-size: 12px; color: var(--faint); margin: 4px 0 4px; min-height: 16px; }
+  .pf-note .tenure { color: var(--success); }
+  .btn-danger { background: var(--danger-dim); border-color: var(--danger); color: #fca5a5; }
+  .btn-danger:hover:not(:disabled) { background: #4a1f1f; }
+  .modal-actions.spread { justify-content: space-between; }
+
+  /* ростер команды (из графика) */
+  .roster-wrap { margin-top: 28px; }
+  .roster-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .roster-head h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  .roster-head .desc { color: var(--faint); font-size: 12.5px; margin-top: 2px; }
+  .roster-search {
+    background: var(--bg); border: 1px solid var(--border-2); border-radius: 8px; color: var(--text);
+    padding: 8px 11px; font-size: 13px; outline: none; min-width: 220px; font-family: inherit;
+  }
+  .roster-search:focus { border-color: var(--accent); }
+  .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 8px; }
+  .rchip {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 12px; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .rchip:hover { border-color: var(--accent); background: var(--panel-2); }
+  .rname { font-weight: 600; font-size: 13.5px; }
+  .rpos { font-size: 11px; color: var(--faint); background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 5px; padding: 1px 6px; }
+  .remail { font-size: 11.5px; color: var(--faint); width: 100%; word-break: break-all; }
+  .rchip .tg-dot { margin-right: 0; }
+
+  h1 { font-size: 16px; font-weight: 600; margin: 18px 0 4px; }
+  .sub { color: var(--faint); font-size: 13px; margin: 0 0 4px; max-width: 70ch; }
+
+  .note {
+    margin: 14px 0 22px; padding: 11px 14px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--muted); font-size: 12.5px;
+  }
+  .note b { color: var(--text); font-weight: 600; }
+
+  .cols {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; display: flex; flex-direction: column; min-height: 220px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .panel-head .name { font-weight: 600; font-size: 14px; }
+  .panel-head .desc { color: var(--faint); font-size: 11.5px; margin-top: 2px; }
+  .count {
+    font-size: 12px; color: var(--muted); background: var(--panel-2);
+    border: 1px solid var(--border-2); border-radius: 999px; padding: 2px 9px; font-variant-numeric: tabular-nums;
+  }
+
+  .list { padding: 8px; display: flex; flex-direction: column; gap: 5px; flex: 1; overflow: visible; }
+  .empty { color: var(--faint); font-size: 12.5px; padding: 14px 10px; text-align: center; }
+
+  .chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2); border: 1px solid var(--border-2);
+    border-radius: 9px; padding: 7px 8px 7px 11px;
+  }
+  .chip .email { flex: 1; font-size: 13px; word-break: break-all; }
+  .chip.self .email::after {
+    content: 'вы'; margin-left: 7px; font-size: 10.5px; color: var(--accent);
+    background: var(--accent-dim); border-radius: 5px; padding: 1px 6px; vertical-align: 1px;
+  }
+  .chip.pending-add  { border-color: var(--success-dim); background: #101a13; }
+  .chip.pending-del  { border-color: var(--danger-dim); background: #1a1010; opacity: .7; }
+  .chip.pending-del .email { text-decoration: line-through; color: var(--faint); }
+
+  .x {
+    border: 0; background: transparent; color: var(--faint);
+    cursor: pointer; font-size: 17px; line-height: 1; padding: 2px 5px; border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .x:hover { color: var(--danger); background: var(--danger-dim); }
+  .x:disabled { color: #374151; cursor: not-allowed; background: transparent; }
+
+  .add-row { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .add-row input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border-2);
+    border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 13px; outline: none;
+    font-family: inherit;
+  }
+  .add-row input:focus { border-color: var(--accent); }
+  .add-row button {
+    background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 0 13px; cursor: pointer; font-size: 18px; line-height: 1;
+  }
+  .add-row button:hover { background: #244a86; }
+  .add-err { color: var(--danger); font-size: 11.5px; padding: 0 12px 8px; min-height: 0; }
+
+  .bar {
+    position: sticky; bottom: 0; margin-top: 22px; padding: 14px 0 0;
+    display: flex; align-items: center; gap: 14px; justify-content: flex-end; flex-wrap: wrap;
+  }
+  .dirty-tag { color: var(--muted); font-size: 13px; margin-right: auto; }
+  .dirty-tag.none { color: var(--faint); }
+  button.btn {
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 10px 18px; border: 1px solid transparent;
+  }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-ghost { background: transparent; border-color: var(--border-2); color: var(--muted); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--faint); color: var(--text); }
+  .btn-primary { background: var(--accent); color: #07101f; }
+  .btn-primary:hover:not(:disabled) { background: #6ba3ff; }
+
+  /* modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(2px);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border-2); border-radius: 16px;
+    max-width: 460px; width: 100%; padding: 22px; max-height: 80vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 16px; margin: 0 0 4px; }
+  .modal .m-sub { color: var(--faint); font-size: 13px; margin: 0 0 16px; }
+  .diff-block { margin-bottom: 14px; }
+  .diff-block .role { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+  .diff-line { font-size: 13px; display: flex; gap: 7px; align-items: baseline; padding: 2px 0; word-break: break-all; }
+  .diff-line .mk { flex-shrink: 0; font-weight: 700; width: 14px; }
+  .diff-add .mk { color: var(--success); }
+  .diff-del .mk { color: var(--danger); }
+  .diff-del .email { color: var(--faint); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+  /* toast */
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); border: 1px solid var(--border-2); color: var(--text);
+    padding: 11px 18px; border-radius: 10px; font-size: 13.5px; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 60; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.ok  { border-color: var(--success); }
+  .toast.err { border-color: var(--danger); }
+
+  .loading, .fatal { text-align: center; color: var(--muted); padding: 80px 20px; }
+  .fatal { color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="/tl/">← Назад в раздел TL</a>
+  <header class="top">
+    <div class="brand">Support<span>CIS</span></div>
+    <div class="who" id="who"></div>
+  </header>
+
+  <h1>Управление ролями и профилями</h1>
+  <p class="sub">Добавляй и убирай доступы по ролям. Кликни по email — откроется профиль человека (имя, позиция, телеграм, дата начала).</p>
+
+  <div class="note">
+    <b>Важно:</b> роль вмораживается в сессию при входе. Новый человек получит доступ при первом логине,
+    а у изменённого старая роль живёт до релогина или истечения сессии (до 7 дней). Домены для email:
+    velvix.org, gameup.club, visiongridcore.com.
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="cols" id="cols"></div>
+
+    <div class="roster-wrap">
+      <div class="roster-head">
+        <div>
+          <h2>Команда — профили <span class="count" id="roster-count">0</span></h2>
+          <div class="desc">Все из графика. Клик по человеку — редактирование профиля (имя, позиция, телеграм, дата начала).</div>
+        </div>
+        <input type="text" class="roster-search" id="roster-search" placeholder="Поиск по имени, email, позиции…" autocapitalize="off" spellcheck="false" />
+      </div>
+      <div class="roster-grid" id="roster-list"></div>
+    </div>
+
+    <div class="bar">
+      <div class="dirty-tag none" id="dirty">Изменений нет</div>
+      <button class="btn btn-ghost" id="resetBtn" disabled>Сбросить</button>
+      <button class="btn btn-primary" id="saveBtn" disabled>Сохранить</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">Загрузка…</div>
+  <div class="fatal" id="fatal" style="display:none"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Подтвердите изменения</h2>
+    <p class="m-sub">Эти правки применятся к спискам ролей.</p>
+    <div id="diff"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelBtn">Отмена</button>
+      <button class="btn btn-primary" id="confirmBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="profile-overlay">
+  <div class="modal">
+    <h2 id="pf-title">Профиль</h2>
+    <p class="m-sub" id="pf-email" style="word-break:break-all"></p>
+    <div class="pf-roles-line" id="pf-roles"></div>
+
+    <div class="pf-field">
+      <label for="pf-name">Имя</label>
+      <input type="text" id="pf-name" maxlength="60" placeholder="Например, Oliver" />
+    </div>
+    <div class="pf-field">
+      <label for="pf-position">Позиция</label>
+      <input type="text" id="pf-position" maxlength="60" placeholder="Support, Supervisor, VIP..." />
+    </div>
+    <div class="pf-field">
+      <label for="pf-telegram">Телеграм</label>
+      <div class="pf-prefix-wrap">
+        <span class="pfx">@</span>
+        <input type="text" id="pf-telegram" maxlength="32" placeholder="username" autocapitalize="off" spellcheck="false" />
+      </div>
+    </div>
+    <div class="pf-field">
+      <label for="pf-since">Дата начала работы</label>
+      <input type="date" id="pf-since" />
+    </div>
+    <div class="pf-note" id="pf-note"></div>
+
+    <div class="modal-actions spread">
+      <button class="btn btn-danger" id="pf-delete">Удалить профиль</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" id="pf-cancel">Отмена</button>
+        <button class="btn btn-primary" id="pf-save">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ROLES = [
+  { key: 'tl',         name: 'Team Leads',  desc: 'полный доступ' },
+  { key: 'supervisor', name: 'Супервайзеры', desc: 'график, support' },
+  { key: 'ops',        name: 'Ops',          desc: 'ops, support' },
+];
+const ALLOWED_DOMAINS = ['velvix.org', 'gameup.club', 'visiongridcore.com'];
+
+let original = { tl: [], supervisor: [], ops: [] }; // как пришло с сервера
+let state    = { tl: [], supervisor: [], ops: [] }; // текущее редактируемое
+let myEmail  = null;
+let profiles = {};           // email(lc) → { name, position, since, telegram, ... }
+let pfCurrentEmail = null;   // открытый в модалке профиль
+
+const $ = id => document.getElementById(id);
+
+// ── Сид сотрудников (зеркалит EMPLOYEES из графика) — для подстановки имени/позиции/даты ──
+const EMP_SEED = {
+  'vitaliy.oliver@velvix.org':       { name: 'Oliver',    position: 'Head',          since: '2022-10-24' },
+  'ayman.jordan@velvix.org':         { name: 'Jordan',    position: 'TL',            since: '2021-08-24' },
+  'nataliia.naomi@velvix.org':       { name: 'Naomi',     position: 'TL',            since: '2023-04-27' },
+  'viktor.matthew@velvix.org':       { name: 'Matthew',   position: 'TL',            since: '2023-03-30' },
+  'adil.ab@velvix.org':              { name: 'Robert',    position: 'Support',       since: '2026-01-12' },
+  'vladyslav.reed@velvix.org':       { name: 'Reed',      position: 'Complaints',    since: '2024-03-25' },
+  'ilia.jayden@velvix.org':          { name: 'Jayden',    position: 'Coach',         since: '2023-03-30' },
+  'anna.carrot@velvix.org':          { name: 'Anna',      position: 'Coach',         since: '2023-11-24' },
+  'nikita.lanaya@velvix.org':        { name: 'Nikita',    position: 'Analyst',       since: '2025-03-01' },
+  'kirill.curtis@velvix.org':        { name: 'Curtis',    position: 'Supervisor',    since: '2024-03-25' },
+  'ruslan.manuel@velvix.org':        { name: 'Manuel',    position: 'Supervisor',    since: '2024-04-08' },
+  'janelle.irma@velvix.org':         { name: 'Irma',      position: 'Supervisor',    since: '2024-06-24' },
+  'ilia.solomon@velvix.org':         { name: 'Solomon',   position: 'Supervisor',    since: '2023-06-30' },
+  'ivan.richard@velvix.org':         { name: 'Richard',   position: 'Supervisor',    since: '2022-06-23' },
+  'osman.toby@velvix.org':           { name: 'Toby',      position: 'Supervisor',    since: '2024-04-15' },
+  'rovshan.will@velvix.org':         { name: 'Will',      position: 'Support',       since: '2025-07-29' },
+  'elvira.as@velvix.org':            { name: 'Bridget',   position: 'Support',       since: '2025-12-08' },
+  'nijat.kenzo@velvix.org':          { name: 'Kenzo',     position: 'Support',       since: '2025-07-22' },
+  'alina.ja@velvix.org':             { name: 'Nora',      position: 'Support',       since: '2025-10-20' },
+  'banovsha.florence@velvix.org':    { name: 'Florence',  position: 'Support',       since: '2024-01-29' },
+  'sherzodjon.fletcher@velvix.org':  { name: 'Fletcher',  position: 'Support',       since: '2025-07-22' },
+  'teymur.ab@velvix.org':            { name: 'Charles',   position: 'Support',       since: '2026-01-26' },
+  'rashad.go@velvix.org':            { name: 'Earl',      position: 'Support',       since: '2026-01-12' },
+  'rufat.rudy@velvix.org':           { name: 'Rudy',      position: 'Support',       since: '2024-06-10' },
+  'emin.nu@velvix.org':              { name: 'Balfour',   position: 'Support',       since: '2025-10-20' },
+  'dmitriy.be@velvix.org':           { name: 'Jonathan',  position: 'Support',       since: '2025-11-17' },
+  'artsiom.pu@velvix.org':           { name: 'Bill',      position: 'Support',       since: '2026-01-12' },
+  'ruslan.mi@velvix.org':            { name: 'Gross',     position: 'Support',       since: '2026-03-02' },
+  'assel.meadow@velvix.org':         { name: 'Meadow',    position: 'Support',       since: '2024-08-08' },
+  'elvin.norman@velvix.org':         { name: 'Norman',    position: 'Support',       since: '2024-01-29' },
+  'mikita.ma@velvix.org':            { name: 'Robin',     position: 'Support',       since: '2025-12-08' },
+  'maksym.k@velvix.org':             { name: 'Bob',       position: 'Support',       since: '2025-10-20' },
+  'vladyslav.bi@velvix.org':         { name: 'Lex',       position: 'Support',       since: '2026-01-12' },
+  'radik.mu@velvix.org':             { name: 'Calvin',    position: 'Support',       since: '2026-03-02' },
+  'stanislav.mike@velvix.org':       { name: 'Mike',      position: 'Support',       since: '2023-08-28' },
+  'teymur.hardy@velvix.org':         { name: 'Hardy',     position: 'Support',       since: '2025-07-29' },
+  'viktor.bo@velvix.org':            { name: 'Murphy',    position: 'Support',       since: '2025-11-17' },
+  'oleh.vy@velvix.org':              { name: 'Joseph',    position: 'Support',       since: '2025-10-20' },
+  'ivan.bowen@velvix.org':           { name: 'Bowen',     position: 'Support',       since: '2024-05-27' },
+  'vadym.adam@velvix.org':           { name: 'Adam',      position: 'VIP Sup',       since: '2023-08-17' },
+  'tamila.amelia@velvix.org':        { name: 'Amelia',    position: 'VIP Sup',       since: '2023-10-23' },
+  'vladimir.lucas@velvix.org':       { name: 'Lucas',     position: 'VIP Sup',       since: '2023-07-22' },
+  'serghei.scott@velvix.org':        { name: 'Scott',     position: 'VIP',           since: '2023-04-25' },
+  'fuad.tom@velvix.org':             { name: 'Tom',       position: 'VIP',           since: '2024-04-08' },
+  'nurdaulet.simon@velvix.org':      { name: 'Simon',     position: 'VIP',           since: '2023-12-04' },
+  'ruslan.casper@velvix.org':        { name: 'Casper',    position: 'VIP',           since: '2025-07-22' },
+  'alisher.elijah@velvix.org':       { name: 'Elijah',    position: 'VIP',           since: '2024-05-27' },
+  'lolita.holly@velvix.org':         { name: 'Holly',     position: 'VIP',           since: '2024-11-11' },
+  'vladyslav.river@velvix.org':      { name: 'River',     position: 'VIP',           since: '2024-03-25' },
+  'temirlan.chadwick@velvix.org':    { name: 'Chadwick',  position: 'VIP',           since: '2024-06-24' },
+  'daniil.fabio@velvix.org':         { name: 'Fabio',     position: 'VIP',           since: '2024-11-25' },
+  'timur.plover@velvix.org':         { name: 'Plover',    position: 'VIP',           since: '2024-09-16' },
+  'vladislav.morgan@velvix.org':     { name: 'Morgan',    position: 'VIP',           since: '2024-05-13' },
+  'maksym.reggie@velvix.org':        { name: 'Reggie',    position: 'VIP',           since: '2024-03-25' },
+  'aliyar.ko@velvix.org':            { name: 'Nolan',     position: 'VIP',           since: '2025-10-20' },
+  'elnur.skylar@velvix.org':         { name: 'Skylar',    position: 'VIP',           since: '2024-11-11' },
+  'teymur.wade@velvix.org':          { name: 'Wade',      position: 'VIP',           since: '2024-03-25' },
+  'emil.denzel@velvix.org':          { name: 'Denzel',    position: 'VIP',           since: '2024-02-26' },
+  'matsvei.ashton@velvix.org':       { name: 'Ashton',    position: 'VIP',           since: '2024-11-25' },
+  'zuleykha.christine@velvix.org':   { name: 'Christine', position: 'VIP',           since: '2024-06-24' },
+  'azim.isaac@velvix.org':           { name: 'Isaac',     position: 'VIP',           since: '2024-01-15' },
+  'nigar.felicia@velvix.org':        { name: 'Felicia',   position: 'VIP',           since: '2024-11-25' },
+  'vladimir.warren@velvix.org':      { name: 'Warren',    position: 'VIP',           since: '2025-07-22' },
+  'sabina.ib@velvix.org':            { name: 'Alexia',    position: 'VIP',           since: '2024-01-29' },
+  'kateryna.kiana@velvix.org':       { name: 'Kiana',     position: 'VIP',           since: '2023-12-04' },
+  'muslmat.trinity@velvix.org':      { name: 'Trinity',   position: 'VIP',           since: '2025-07-22' },
+  'oksana.qa@velvix.org':            { name: 'Оксана',    position: 'QA Team Lead',  since: '2023-03-20' },
+  'anna.va@velvix.org':              { name: 'Аня',       position: 'QA Supervisor', since: '2023-04-04' },
+  'aigerim.qa@velvix.org':           { name: 'Айгерим',   position: 'QA Manager',    since: '2023-04-17' },
+  'anastasia.qa@velvix.org':         { name: 'Анастасия', position: 'QA Manager',    since: '2023-01-18' },
+  'natia.qa@velvix.org':             { name: 'Натия',     position: 'QA Manager',    since: '2024-05-01' },
+  'sarvar.qa@velvix.org':            { name: 'Сарвар',    position: 'QA Manager',    since: '2024-07-08' },
+  'zumrud.qa@velvix.org':            { name: 'Зумруд',    position: 'QA Manager',    since: '2024-06-19' },
+  'aliaksandr.roger@velvix.org':     { name: 'Roger',     position: 'QA AI',         since: '2023-08-28' },
+};
+
+function seedFor(email) { return EMP_SEED[String(email || '').toLowerCase()] || {}; }
+function displayName(email) {
+  const p = profiles[String(email || '').toLowerCase()];
+  return (p && p.name) || seedFor(email).name || String(email || '').split('@')[0];
+}
+function tenureText(sinceStr) {
+  if (!sinceStr || !/^\d{4}-\d{2}-\d{2}$/.test(sinceStr)) return '';
+  const start = new Date(sinceStr + 'T00:00:00');
+  const now = new Date();
+  if (isNaN(start) || start > now) return '';
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) months--;
+  if (months < 0) months = 0;
+  const y = Math.floor(months / 12), m = months % 12;
+  const yW = n => (n % 10 === 1 && n % 100 !== 11) ? 'год' : ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) ? 'года' : 'лет';
+  const mW = n => (n % 10 === 1 && n % 100 !== 11) ? 'месяц' : ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) ? 'месяца' : 'месяцев';
+  const parts = [];
+  if (y > 0) parts.push(`${y} ${yW(y)}`);
+  if (m > 0) parts.push(`${m} ${mW(m)}`);
+  return parts.length ? 'в команде ' + parts.join(' ') : 'меньше месяца в команде';
+}
+
+function emailValid(raw) {
+  const e = String(raw || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return null;
+  if (!ALLOWED_DOMAINS.includes(e.split('@')[1])) return null;
+  return e;
+}
+
+function toast(msg, kind) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (kind || '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = 'toast ' + (kind || ''); }, 3200);
+}
+
+async function api(method, body) {
+  const init = { method, credentials: 'include' };
+  if (body !== undefined) {
+    init.headers = { 'Content-Type': 'application/json' };
+    init.body = JSON.stringify(body);
+  }
+  const res = await fetch('/api/roles', init);
+  let data = {};
+  try { data = await res.json(); } catch {}
+  return { status: res.status, data };
+}
+
+function diffRole(orig, cur) {
+  const added   = cur.filter(x => !orig.includes(x));
+  const removed = orig.filter(x => !cur.includes(x));
+  return { added, removed };
+}
+
+function isDirty() {
+  return ROLES.some(r => {
+    const d = diffRole(original[r.key], state[r.key]);
+    return d.added.length || d.removed.length;
+  });
+}
+
+function render() {
+  const cols = $('cols');
+  cols.innerHTML = '';
+  for (const role of ROLES) {
+    const cur  = state[role.key];
+    const orig = original[role.key];
+
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+
+    const head = document.createElement('div');
+    head.className = 'panel-head';
+    head.innerHTML =
+      `<div><div class="name">${role.name}</div><div class="desc">${role.desc}</div></div>` +
+      `<div class="count">${cur.length}</div>`;
+    panel.appendChild(head);
+
+    const list = document.createElement('div');
+    list.className = 'list';
+
+    // объединяем текущие + удалённые (чтобы показать зачёркнутыми)
+    const removed = orig.filter(x => !cur.includes(x));
+    const shown = [...cur.map(e => ({ e, del: false })), ...removed.map(e => ({ e, del: true }))];
+
+    if (!shown.length) {
+      const em = document.createElement('div');
+      em.className = 'empty';
+      em.textContent = 'Пусто';
+      list.appendChild(em);
+    }
+
+    for (const { e, del } of shown) {
+      const isSelf = (e === myEmail);
+      const isAdd  = !del && !orig.includes(e);
+      const chip = document.createElement('div');
+      chip.className = 'chip' + (isSelf ? ' self' : '') + (del ? ' pending-del' : (isAdd ? ' pending-add' : ''));
+
+      const prof = profiles[e];
+      if (prof && prof.telegram) {
+        const tg = document.createElement('span');
+        tg.className = 'tg-dot';
+        tg.textContent = '@' + prof.telegram;
+        tg.title = 'Телеграм';
+        chip.appendChild(tg);
+      }
+
+      const span = document.createElement('span');
+      span.className = 'email';
+      span.textContent = e;
+      span.title = 'Открыть профиль';
+      span.onclick = () => openProfile(e);
+      chip.appendChild(span);
+
+      const btn = document.createElement('button');
+      btn.className = 'x';
+      // блокируем удаление себя из TL
+      const lockSelf = (role.key === 'tl' && isSelf && !del);
+      if (del) {
+        btn.textContent = '↺';
+        btn.title = 'Вернуть';
+        btn.onclick = () => { state[role.key] = [...cur, e]; afterChange(); };
+      } else {
+        btn.textContent = '×';
+        if (lockSelf) {
+          btn.disabled = true;
+          btn.title = 'Нельзя удалить себя из TL';
+        } else {
+          btn.onclick = () => { state[role.key] = cur.filter(x => x !== e); afterChange(); };
+        }
+      }
+      chip.appendChild(btn);
+      list.appendChild(chip);
+    }
+    panel.appendChild(list);
+
+    // строка добавления
+    const addRow = document.createElement('div');
+    addRow.className = 'add-row';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'email@velvix.org';
+    input.autocapitalize = 'off';
+    input.spellcheck = false;
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+';
+    addBtn.title = 'Добавить';
+    const err = document.createElement('div');
+    err.className = 'add-err';
+
+    const doAdd = () => {
+      err.textContent = '';
+      const e = emailValid(input.value);
+      if (!e) { err.textContent = 'Некорректный email или домен не из списка'; return; }
+      if (state[role.key].includes(e)) { err.textContent = 'Уже в списке'; return; }
+      state[role.key] = [...state[role.key], e];
+      input.value = '';
+      afterChange();
+      // фокус обратно на это же поле после перерисовки
+      setTimeout(() => {
+        const inp = cols.querySelectorAll('.add-row input')[ROLES.indexOf(role)];
+        if (inp) inp.focus();
+      }, 0);
+    };
+    addBtn.onclick = doAdd;
+    input.onkeydown = ev => { if (ev.key === 'Enter') doAdd(); };
+
+    addRow.appendChild(input);
+    addRow.appendChild(addBtn);
+    panel.appendChild(addRow);
+    panel.appendChild(err);
+
+    cols.appendChild(panel);
+  }
+  updateBar();
+}
+
+function afterChange() { render(); }
+
+function updateBar() {
+  const dirty = isDirty();
+  const tag = $('dirty');
+  tag.textContent = dirty ? 'Есть несохранённые изменения' : 'Изменений нет';
+  tag.className = 'dirty-tag' + (dirty ? '' : ' none');
+  $('saveBtn').disabled = !dirty;
+  $('resetBtn').disabled = !dirty;
+}
+
+function buildDiffHtml() {
+  let html = '';
+  for (const role of ROLES) {
+    const d = diffRole(original[role.key], state[role.key]);
+    if (!d.added.length && !d.removed.length) continue;
+    html += `<div class="diff-block"><div class="role">${role.name}</div>`;
+    for (const e of d.added)   html += `<div class="diff-line diff-add"><span class="mk">+</span><span class="email">${e}</span></div>`;
+    for (const e of d.removed) html += `<div class="diff-line diff-del"><span class="mk">−</span><span class="email">${e}</span></div>`;
+    html += `</div>`;
+  }
+  return html || '<p class="m-sub">Нет изменений.</p>';
+}
+
+async function doSave() {
+  $('confirmBtn').disabled = true;
+  const payload = { tl: state.tl, supervisor: state.supervisor, ops: state.ops };
+  try {
+    const { status, data } = await api('POST', payload);
+    if (status === 200 && data.ok) {
+      original = JSON.parse(JSON.stringify(data.lists));
+      state    = JSON.parse(JSON.stringify(data.lists));
+      closeModal();
+      render();
+      if (data.rejected && data.rejected.length) {
+        toast('Сохранено. Отклонено: ' + data.rejected.join(', '), 'err');
+      } else {
+        toast('Сохранено', 'ok');
+      }
+    } else if (status === 400 && data.error) {
+      closeModal();
+      toast(data.error, 'err');
+    } else if (status === 403) {
+      closeModal();
+      toast('Доступ только для TL', 'err');
+    } else if (status === 401) {
+      location.href = '/login/';
+    } else {
+      closeModal();
+      toast('Ошибка сохранения', 'err');
+    }
+  } catch {
+    closeModal();
+    toast('Сеть недоступна', 'err');
+  } finally {
+    $('confirmBtn').disabled = false;
+  }
+}
+
+function openModal() { $('diff').innerHTML = buildDiffHtml(); $('overlay').classList.add('show'); }
+function closeModal() { $('overlay').classList.remove('show'); }
+
+async function init() {
+  // кто я
+  try {
+    const r = await fetch('/api/check', { credentials: 'include' });
+    if (r.ok) {
+      const c = await r.json();
+      if (c.ok) { myEmail = (c.email || '').toLowerCase(); $('who').innerHTML = `<b>${c.email}</b> · ${c.role}`; }
+    }
+  } catch {}
+
+  // списки
+  try {
+    const { status, data } = await api('GET');
+    if (status === 401) { location.href = '/login/'; return; }
+    if (status === 403) { fatal('Доступ к этой странице есть только у Team Lead.'); return; }
+    if (!data.ok || !data.lists) { fatal('Не удалось загрузить списки ролей.'); return; }
+
+    original = {
+      tl:         (data.lists.tl         || []).slice(),
+      supervisor: (data.lists.supervisor || []).slice(),
+      ops:        (data.lists.ops        || []).slice(),
+    };
+    state = JSON.parse(JSON.stringify(original));
+
+    $('loading').style.display = 'none';
+    $('content').style.display = 'block';
+    render();
+    renderRoster();
+    loadProfiles(); // подтянуть профили и перерисовать с индикаторами
+  } catch {
+    fatal('Сеть недоступна. Обнови страницу.');
+  }
+}
+
+async function loadProfiles() {
+  try {
+    const res = await fetch('/api/profiles', { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.ok && data.profiles) {
+      profiles = {};
+      for (const [email, p] of Object.entries(data.profiles)) profiles[email.toLowerCase()] = p;
+      render();
+      renderRoster();
+    }
+  } catch {}
+}
+
+// ── РОСТЕР КОМАНДЫ (из графика + все, у кого есть профиль) ──
+function allRosterEmails() {
+  const set = new Set(Object.keys(EMP_SEED));
+  Object.keys(profiles).forEach(e => set.add(e));
+  return [...set];
+}
+
+function renderRoster() {
+  const cont = $('roster-list');
+  if (!cont) return;
+  const q = ($('roster-search').value || '').trim().toLowerCase();
+
+  const people = allRosterEmails()
+    .map(e => ({
+      email: e,
+      name: displayName(e),
+      position: (profiles[e] && profiles[e].position) || seedFor(e).position || '',
+    }))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.email.includes(q) || x.position.toLowerCase().includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+
+  $('roster-count').textContent = people.length;
+  cont.innerHTML = '';
+  if (!people.length) { cont.innerHTML = '<div class="empty">Никого не найдено</div>'; return; }
+
+  for (const x of people) {
+    const chip = document.createElement('div');
+    chip.className = 'rchip';
+    chip.title = 'Открыть профиль';
+    chip.onclick = () => openProfile(x.email);
+
+    const nm = document.createElement('span');
+    nm.className = 'rname';
+    nm.textContent = x.name;
+    chip.appendChild(nm);
+
+    if (x.position) {
+      const ps = document.createElement('span');
+      ps.className = 'rpos';
+      ps.textContent = x.position;
+      chip.appendChild(ps);
+    }
+
+    const prof = profiles[x.email];
+    if (prof && prof.telegram) {
+      const tg = document.createElement('span');
+      tg.className = 'tg-dot';
+      tg.textContent = '@' + prof.telegram;
+      chip.appendChild(tg);
+    }
+
+    const em = document.createElement('span');
+    em.className = 'remail';
+    em.textContent = x.email;
+    chip.appendChild(em);
+
+    cont.appendChild(chip);
+  }
+}
+
+// ── ПРОФИЛЬ: модалка, привязанная к email ──
+function rolesOf(email) {
+  return ROLES.filter(r => (state[r.key] || []).includes(email)).map(r => r.name);
+}
+
+function openProfile(email) {
+  pfCurrentEmail = email;
+  const stored = profiles[email] || {};
+  const seed = seedFor(email);
+  $('pf-title').textContent = displayName(email);
+  $('pf-email').textContent = email;
+  const rs = rolesOf(email);
+  $('pf-roles').innerHTML = rs.length
+    ? 'Роли: ' + rs.map(r => `<span class="rb">${r}</span>`).join('')
+    : '<span style="color:var(--faint)">Без роли (только профиль)</span>';
+
+  $('pf-name').value     = stored.name     || seed.name     || '';
+  $('pf-position').value = stored.position || seed.position || '';
+  $('pf-telegram').value = stored.telegram || '';
+  $('pf-since').value    = stored.since     || seed.since    || '';
+  updatePfNote();
+
+  // удалять можно только реально сохранённый профиль
+  $('pf-delete').style.visibility = profiles[email] ? 'visible' : 'hidden';
+
+  $('profile-overlay').classList.add('show');
+  setTimeout(() => $('pf-name').focus(), 50);
+}
+
+function updatePfNote() {
+  const t = tenureText($('pf-since').value);
+  $('pf-note').innerHTML = t
+    ? `<span class="tenure">${t}</span>`
+    : 'Дата начала берётся из графика; можно задать вручную.';
+}
+
+function closeProfile() { $('profile-overlay').classList.remove('show'); pfCurrentEmail = null; }
+
+async function saveProfilePanel() {
+  if (!pfCurrentEmail) return;
+  const tg = $('pf-telegram').value.trim().replace(/^@+/, '');
+  if (tg && !/^[a-zA-Z0-9_]{3,32}$/.test(tg)) { toast('Некорректный телеграм-тег (3–32: латиница, цифры, _)', 'err'); return; }
+  const since = $('pf-since').value;
+  if (since && !/^\d{4}-\d{2}-\d{2}$/.test(since)) { toast('Некорректная дата', 'err'); return; }
+
+  const payload = {
+    email: pfCurrentEmail,
+    name: $('pf-name').value.trim(),
+    position: $('pf-position').value.trim(),
+    telegram: tg,
+    since,
+  };
+  $('pf-save').disabled = true;
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { location.href = '/login/'; return; }
+    if (res.ok && data.ok) {
+      profiles[pfCurrentEmail] = data.profile || { ...payload };
+      closeProfile();
+      render();
+      renderRoster();
+      toast('Профиль сохранён', 'ok');
+    } else {
+      toast(data.error || 'Не удалось сохранить', 'err');
+    }
+  } catch {
+    toast('Сеть недоступна', 'err');
+  } finally {
+    $('pf-save').disabled = false;
+  }
+}
+
+async function deleteProfilePanel() {
+  if (!pfCurrentEmail) return;
+  if (!confirm(`Удалить профиль ${pfCurrentEmail}? Роли при этом не меняются.`)) return;
+  $('pf-delete').disabled = true;
+  try {
+    const res = await fetch('/api/profile?email=' + encodeURIComponent(pfCurrentEmail), {
+      method: 'DELETE', credentials: 'include',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { location.href = '/login/'; return; }
+    if (res.ok && data.ok) {
+      delete profiles[pfCurrentEmail];
+      closeProfile();
+      render();
+      renderRoster();
+      toast('Профиль удалён', 'ok');
+    } else {
+      toast(data.error || 'Не удалось удалить', 'err');
+    }
+  } catch {
+    toast('Сеть недоступна', 'err');
+  } finally {
+    $('pf-delete').disabled = false;
+  }
+}
+
+function fatal(msg) {
+  $('loading').style.display = 'none';
+  const f = $('fatal');
+  f.style.display = 'block';
+  f.textContent = msg;
+}
+
+$('saveBtn').onclick   = openModal;
+$('confirmBtn').onclick = doSave;
+$('cancelBtn').onclick = closeModal;
+$('overlay').onclick = e => { if (e.target === $('overlay')) closeModal(); };
+$('resetBtn').onclick = () => { state = JSON.parse(JSON.stringify(original)); render(); };
+
+$('pf-save').onclick   = saveProfilePanel;
+$('pf-cancel').onclick = closeProfile;
+$('pf-delete').onclick = deleteProfilePanel;
+$('pf-since').onchange = updatePfNote;
+$('roster-search').oninput = renderRoster;
+$('profile-overlay').onclick = e => { if (e.target === $('profile-overlay')) closeProfile(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeProfile(); closeModal(); } });
+
+window.addEventListener('beforeunload', e => {
+  if (isDirty()) { e.preventDefault(); e.returnValue = ''; }
+});
+
+init();
+</script>
+</body>
+</html>

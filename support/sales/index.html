@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Рейтинг продаж — Support</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:       #00D68F;
+    --green-dark:  #00A86B;
+    --green-dim:   rgba(0, 214, 143, 0.15);
+    --green-glow:  rgba(0, 214, 143, 0.25);
+    --dollar:      #1AFF8C;
+    --bg-deep:     #080C10;
+    --bg-card:     #0D1318;
+    --bg-row:      #111820;
+    --bg-row-alt:  #141D26;
+    --text-primary:#E8F0EC;
+    --text-muted:  #5A7066;
+    --gold:        #FFD700;
+    --silver:      #C0C0C0;
+    --bronze:      #CD7F32;
+    --accent-red:  #EF4444;
+    --accent-orange:#F97316;
+    --accent-yellow:#EAB308;
+    --accent-lime: #84CC16;
+    --accent-green:#22C55E;
+  }
+
+  :root.light {
+    --green:        #008F5E;
+    --green-dark:   #006A45;
+    --green-dim:    rgba(0, 143, 94, 0.10);
+    --green-glow:   rgba(0, 143, 94, 0.16);
+    --dollar:       #006A45;
+    --bg-deep:      #EEF2EF;
+    --bg-card:      #FFFFFF;
+    --bg-row:       #F5F8F6;
+    --bg-row-alt:   #EBF0EC;
+    --text-primary: #0E1A14;
+    --text-muted:   #6B8478;
+    --gold:         #A07800;
+    --silver:       #5A6A70;
+    --bronze:       #7A3B10;
+    --accent-red:   #C81E1E;
+    --accent-orange:#C2510A;
+    --accent-yellow:#A07000;
+    --accent-lime:  #527A0A;
+    --accent-green: #0F8A3A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(0,214,143,0.06) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 85%, rgba(0,214,143,0.04) 0%, transparent 40%),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 39px,
+        rgba(0,214,143,0.025) 39px,
+        rgba(0,214,143,0.025) 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 79px,
+        rgba(0,214,143,0.02) 79px,
+        rgba(0,214,143,0.02) 80px
+      );
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    width: 100%;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 36px;
+    padding: 28px 36px;
+    background: var(--bg-card);
+    border: 1px solid rgba(0,214,143,0.15);
+    border-left: 4px solid var(--green);
+    border-radius: 0 12px 12px 0;
+    animation: fadeDown 0.7s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::after {
+    content: '$';
+    position: absolute;
+    right: 36px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 120px;
+    font-weight: 900;
+    color: rgba(0,214,143,0.04);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .header-icon {
+    font-size: 52px;
+    line-height: 1;
+    filter: drop-shadow(0 0 16px rgba(0,214,143,0.5));
+    animation: pulse-green 3s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(0,214,143,0.4)); }
+    50%       { filter: drop-shadow(0 0 28px rgba(0,214,143,0.8)); }
+  }
+
+  .header-text { flex: 1; }
+
+  .header-text h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 38px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    line-height: 1;
+    color: var(--green);
+    text-shadow: 0 0 30px rgba(0,214,143,0.3);
+  }
+
+  .header-text .subtitle {
+    font-family: 'Barlow', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  .header-badge {
+    background: var(--green-dim);
+    border: 1px solid rgba(0,214,143,0.3);
+    border-radius: 8px;
+    padding: 10px 18px;
+    text-align: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header-badge .badge-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .header-badge .badge-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    color: var(--green);
+    line-height: 1.2;
+  }
+
+  /* ─── Tabs ─── */
+  .tabs {
+    display: flex;
+    justify-content: flex-start;
+    gap: 4px;
+    margin-bottom: 0;
+    animation: fadeDown 0.7s ease-out 0.1s both;
+  }
+
+  .tab {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    padding: 11px 28px;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    background: rgba(255,255,255,0.02);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    user-select: none;
+  }
+
+  .tab:hover { background: rgba(0,214,143,0.05); color: var(--text-primary); }
+
+  .tab.active {
+    background: var(--bg-card);
+    color: var(--green);
+    border-color: rgba(0,214,143,0.2);
+    box-shadow: 0 -2px 10px rgba(0,214,143,0.12);
+  }
+
+  /* ─── Tab content ─── */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeUp 0.4s ease-out; }
+
+  /* ─── Section header ─── */
+  .section-header {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--green);
+    background: var(--bg-card);
+    border: 1px solid rgba(0,214,143,0.12);
+    border-top: none;
+    margin-bottom: 0;
+  }
+
+  .section-header .icon { font-size: 18px; }
+  .section-header .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,214,143,0.2), transparent); }
+  .date-label { font-family:'Barlow',sans-serif;font-size:11px;font-weight:500;color:var(--text-muted);white-space:nowrap; }
+  .upload-btn { display:none;align-items:center;gap:6px;padding:5px 12px;background:transparent;border:1px solid var(--green);color:var(--green);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s; }
+  .upload-btn:hover { background:var(--green);color:#000; }
+  .clear-btn { display:none;align-items:center;gap:6px;padding:5px 12px;background:transparent;border:1px solid var(--accent-red);color:var(--accent-red);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s; }
+  .clear-btn:hover { background:var(--accent-red);color:#fff; }
+  .tl-only { display:none; }
+
+  /* ─── Stats strip ─── */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    background: var(--bg-card);
+    border: 1px solid rgba(0,214,143,0.12);
+    border-top: none;
+    border-bottom: none;
+    animation: fadeUp 0.5s ease-out 0.15s both;
+  }
+
+  .stat-item {
+    padding: 16px 20px;
+    border-right: 1px solid rgba(0,214,143,0.08);
+  }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+
+  .stat-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+
+  .stat-value.green { color: var(--green); }
+
+  .stat-sub {
+    font-family: 'Barlow', sans-serif;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  @media (max-width: 700px) {
+    .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    .stat-item:nth-child(2) { border-right: none; }
+    .stat-item { border-bottom: 1px solid rgba(0,214,143,0.08); }
+  }
+
+  /* ─── Legend block ─── */
+  .sales-legend-block {
+    background: var(--bg-card);
+    border: 1px solid rgba(0,214,143,0.1);
+    border-top: none;
+    padding: 20px 24px;
+    margin-bottom: 0;
+  }
+
+  .legend-formula-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .legend-formula-desc {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--green);
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .legend-tables { display: flex; gap: 24px; flex-wrap: wrap; }
+
+  .legend-table-wrap { flex: 1; min-width: 200px; }
+
+  .legend-table-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .legend-table-title span { font-weight: 400; font-size: 11px; opacity: 0.7; }
+
+  .legend-table { border-collapse: collapse; width: 100%; }
+  .legend-table td { padding: 4px 10px; font-size: 12px; font-family: 'Barlow', sans-serif; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .legend-table td:last-child { text-align: right; color: var(--text-muted); font-weight: 600; }
+
+  /* ─── Table wrapper ─── */
+  .table-wrapper {
+    overflow-x: auto;
+    border: 1px solid rgba(0,214,143,0.1);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+  }
+
+  /* ─── Sales table ─── */
+  .sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  .sales-table thead th {
+    background: rgba(0,214,143,0.06);
+    color: var(--text-muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(0,214,143,0.15);
+    white-space: nowrap;
+  }
+
+  .sales-table thead th:nth-child(1) { text-align: center; width: 40px; }
+  .sales-table thead th:nth-child(2) { text-align: left; }
+  .sales-table thead th:nth-child(3),
+  .sales-table thead th:nth-child(4),
+  .sales-table thead th:nth-child(5),
+  .sales-table thead th:nth-child(6),
+  .sales-table thead th:nth-child(7),
+  .sales-table thead th:nth-child(8),
+  .sales-table thead th:nth-child(9) { text-align: right; }
+
+  .sales-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle;
+    text-align: right;
+  }
+
+  .sales-table td:nth-child(1) { text-align: center; font-size: 18px; padding: 12px 10px; }
+  .sales-table td:nth-child(2) { text-align: left; font-weight: 700; font-size: 13px; padding: 10px 10px; }
+  .sales-table td:nth-child(3) { color: var(--text-primary); }
+
+  .sales-table tbody tr:nth-child(odd)  { background: var(--bg-row); }
+  .sales-table tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+  .sales-table tbody tr:hover { background: rgba(0,214,143,0.05); }
+
+  tr.sales-row-1 { background: linear-gradient(90deg, rgba(255,215,0,0.06), transparent 70%) !important; }
+  tr.sales-row-2 { background: linear-gradient(90deg, rgba(192,192,192,0.04), transparent 70%) !important; }
+  tr.sales-row-3 { background: linear-gradient(90deg, rgba(205,127,50,0.04), transparent 70%) !important; }
+
+  .bonus-cell {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13.5px;
+    color: var(--green);
+  }
+
+  .bonus-cell.zero { color: var(--text-muted); font-weight: 500; font-size: 13px; }
+
+  .rank-icon { font-size: 20px; }
+
+  .sales-table thead th.sortable { cursor: pointer; }
+  .sales-table thead th:hover { color: var(--text-primary); }
+
+  /* ─── Animations ─── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.04); }
+  }
+
+  /* ─── Footer ─── */
+  .footer {
+    text-align: center;
+    margin-top: 36px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  /* ─── Theme toggle ─── */
+  .theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,214,143,0.3);
+    background: var(--bg-card);
+    color: var(--green);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .theme-toggle:hover {
+    border-color: var(--green);
+    box-shadow: 0 0 16px var(--green-glow);
+    transform: scale(1.08);
+  }
+
+  /* ─── Light theme overrides ─── */
+  :root.light body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+  }
+  :root.light body::before {
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(0,143,94,0.05) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 85%, rgba(0,143,94,0.03) 0%, transparent 40%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,143,94,0.02) 39px, rgba(0,143,94,0.02) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(0,143,94,0.015) 79px, rgba(0,143,94,0.015) 80px);
+  }
+  :root.light .header {
+    border: 1px solid rgba(0,143,94,0.2);
+    border-left: 4px solid var(--green);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  }
+  :root.light .header::after { color: rgba(0,143,94,0.06); }
+  :root.light .tab {
+    border-color: rgba(0,0,0,0.08);
+    background: rgba(0,0,0,0.02);
+    color: var(--text-muted);
+  }
+  :root.light .tab:hover { background: rgba(0,143,94,0.06); }
+  :root.light .tab.active {
+    border-color: rgba(0,143,94,0.2);
+    box-shadow: 0 -2px 10px rgba(0,143,94,0.10);
+  }
+  :root.light .section-header {
+    border-color: rgba(0,143,94,0.12);
+  }
+  :root.light .section-header .line {
+    background: linear-gradient(90deg, rgba(0,143,94,0.2), transparent);
+  }
+  :root.light .stats-strip {
+    border-color: rgba(0,143,94,0.12);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  :root.light .stat-item { border-right-color: rgba(0,143,94,0.08); }
+  :root.light .sales-legend-block { border-color: rgba(0,143,94,0.10); }
+  :root.light .legend-table td { border-bottom-color: rgba(0,0,0,0.05); }
+  :root.light .table-wrapper { border-color: rgba(0,143,94,0.12); }
+  :root.light .sales-table thead th {
+    background: rgba(0,143,94,0.06);
+    border-bottom-color: rgba(0,143,94,0.15);
+  }
+  :root.light .sales-table tbody tr:nth-child(odd)  { background: var(--bg-row); }
+  :root.light .sales-table tbody tr:nth-child(even) { background: var(--bg-row-alt); }
+  :root.light .sales-table tbody tr:hover { background: rgba(0,143,94,0.06); }
+  :root.light .sales-table td { border-bottom-color: rgba(0,0,0,0.04); }
+  :root.light tr.sales-row-1 { background: linear-gradient(90deg, rgba(160,120,0,0.07), transparent 70%) !important; }
+  :root.light tr.sales-row-2 { background: linear-gradient(90deg, rgba(90,106,112,0.05), transparent 70%) !important; }
+  :root.light tr.sales-row-3 { background: linear-gradient(90deg, rgba(122,59,16,0.05), transparent 70%) !important; }
+  :root.light .header-badge { border-color: rgba(0,143,94,0.25); }
+  :root.light .theme-toggle { border-color: rgba(0,143,94,0.3); box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+
+  /* Улучшение читаемости текста в светлой теме */
+  :root.light .header-text h1 {
+    color: #005C3A;
+    text-shadow: none;
+  }
+  :root.light .tab.active { color: #005C3A; }
+  :root.light .section-header { color: #005C3A; }
+  :root.light .legend-formula-desc { color: #005C3A; }
+  :root.light .bonus-cell { color: #005C3A; }
+  :root.light .stat-value.green { color: #005C3A; }
+  :root.light .stat-value { color: #0E1A14; }
+  :root.light .header-badge .badge-value { color: #005C3A; }
+  :root.light .sales-table td:nth-child(2) { color: #0E1A14; }
+  :root.light .header-icon { filter: drop-shadow(0 0 8px rgba(0,100,60,0.2)); }
+
+
+    .header::after { display: none; }
+    .header-text h1 { font-size: 28px; }
+    .tab { padding: 9px 16px; font-size: 11px; }
+    .sales-table td { font-size: 12px; padding: 10px 8px; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-toggle" title="Переключить тему" onclick="toggleTheme()">🌙</button>
+<div class="container">
+
+  <!-- ─── Header ─── -->
+  <div class="header">
+    <div class="header-icon">💰</div>
+    <div class="header-text">
+      <h1>Рейтинг продаж</h1>
+      <div class="subtitle">Bonus Activations · Support Team · 2026</div>
+    </div>
+    <div class="header-badge">
+      <div class="badge-label">Период</div>
+      <div class="badge-value" id="period-label">Май</div>
+    </div>
+  </div>
+
+  <!-- ─── Tabs ─── -->
+  <div class="tabs" id="sales-tabs">
+    <div class="tab" onclick="switchSalesTab('jan')">Январь</div>
+    <div class="tab" onclick="switchSalesTab('feb')">Февраль</div>
+    <div class="tab" onclick="switchSalesTab('mar')">Март</div>
+    <div class="tab" onclick="switchSalesTab('apr')">Апрель</div>
+    <div class="tab active" onclick="switchSalesTab('may')">Май</div>
+    <div class="tab" onclick="switchSalesTab('jun')">Июнь</div>
+    <div class="tab" onclick="switchSalesTab('jul')">Июль</div>
+    <div class="tab" onclick="switchSalesTab('aug')">Август</div>
+    <div class="tab" onclick="switchSalesTab('sep')">Сентябрь</div>
+    <div class="tab" onclick="switchSalesTab('oct')">Октябрь</div>
+    <div class="tab" onclick="switchSalesTab('nov')">Ноябрь</div>
+    <div class="tab" onclick="switchSalesTab('dec')">Декабрь</div>
+  </div>
+
+  <!-- ─── Stats strip ─── -->
+  <div class="stats-strip" id="stats-strip">
+    <div class="stat-item">
+      <div class="stat-label">Активации</div>
+      <div class="stat-value green" id="stat-sales">—</div>
+      <div class="stat-sub">активаций за месяц</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Предложения</div>
+      <div class="stat-value" id="stat-presales">—</div>
+      <div class="stat-sub">офферов за месяц</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Оффер / Тотал</div>
+      <div class="stat-value" id="stat-pt">—</div>
+      <div class="stat-sub">конверсия в оффер</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Акт / Тотал</div>
+      <div class="stat-value" id="stat-st">—</div>
+      <div class="stat-sub">конверсия в активацию</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Суммарный бонус</div>
+      <div class="stat-value green" id="stat-bonus">—</div>
+      <div class="stat-sub">к выплате</div>
+    </div>
+  </div>
+
+  <!-- Легенда / Формула -->
+  <div class="sales-legend-block">
+    <div class="legend-formula-title">Формула бонуса</div>
+    <div class="legend-formula-desc">Бонус = Активации × $5 × К₁ (оффер) × К₂ (активация)</div>
+    <div class="legend-tables">
+      <div class="legend-table-wrap">
+        <div class="legend-table-title">Конверсия в оффер (К₁)<br><span>% чатов с предложением бонуса</span></div>
+        <table class="legend-table">
+          <tr><td><span style="color:#EF4444">≤ 10%</span></td><td>× 0.0</td></tr>
+          <tr><td><span style="color:#F97316">10 – 20%</span></td><td>× 0.5</td></tr>
+          <tr><td><span style="color:#EAB308">20 – 25%</span></td><td>× 0.9</td></tr>
+          <tr><td><span style="color:#84CC16">25 – 30%</span></td><td>× 1.0</td></tr>
+          <tr><td><span style="color:#22C55E">≥ 30%</span></td><td>× 1.1</td></tr>
+        </table>
+      </div>
+      <div class="legend-table-wrap">
+        <div class="legend-table-title">Конверсия в активацию (К₂)<br><span>% активаций от всей базы чатов</span></div>
+        <table class="legend-table">
+          <tr><td><span style="color:#EF4444">≤ 1.5%</span></td><td>× 0.5</td></tr>
+          <tr><td><span style="color:#F97316">1.5 – 3%</span></td><td>× 0.8</td></tr>
+          <tr><td><span style="color:#EAB308">3 – 4%</span></td><td>× 1.0</td></tr>
+          <tr><td><span style="color:#84CC16">4% – 4.5%</span></td><td>× 1.1</td></tr>
+          <tr><td><span style="color:#84CC16">4.5 – 5%</span></td><td>× 1.2</td></tr>
+          <tr><td><span style="color:#22C55E">≥ 5%</span></td><td>× 1.3</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== АПРЕЛЬ ==================== -->
+  <div id="stab-apr" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Апрель 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-apr"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('apr')" title="Загрузить данные за апрель">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('apr')" title="Очистить данные за апрель">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Оператор</th>
+            <th>Всего чатов</th>
+            <th>Предложения</th>
+            <th>Активации</th>
+            <th title="Активации / Офферов">Акт / Оффер</th>
+            <th title="Офферов / Всего чатов">Оффер / Тотал</th>
+            <th title="Активации / Всего чатов">Акт / Тотал</th>
+            <th>Бонус</th>
+          </tr>
+        </thead>
+        <tbody id="sales-apr-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ЯНВАРЬ ==================== -->
+  <div id="stab-jan" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Январь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-jan"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('jan')" title="Загрузить данные за январь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('jan')" title="Очистить данные за январь">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Оператор</th>
+            <th>Всего чатов</th>
+            <th>Предложения</th>
+            <th>Активации</th>
+            <th title="Активации / Офферов">Акт / Оффер</th>
+            <th title="Офферов / Всего чатов">Оффер / Тотал</th>
+            <th title="Активации / Всего чатов">Акт / Тотал</th>
+            <th>Бонус ($)</th>
+          </tr>
+        </thead>
+        <tbody id="sales-jan-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ФЕВРАЛЬ ==================== -->
+  <div id="stab-feb" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Февраль 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-feb"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('feb')" title="Загрузить данные за февраль">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('feb')" title="Очистить данные за февраль">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Оператор</th>
+            <th>Всего чатов</th>
+            <th>Предложения</th>
+            <th>Активации</th>
+            <th title="Активации / Офферов">Акт / Оффер</th>
+            <th title="Офферов / Всего чатов">Оффер / Тотал</th>
+            <th title="Активации / Всего чатов">Акт / Тотал</th>
+            <th>Бонус ($)</th>
+          </tr>
+        </thead>
+        <tbody id="sales-feb-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== МАРТ ==================== -->
+  <div id="stab-mar" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Март 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-mar"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('mar')" title="Загрузить данные за март">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('mar')" title="Очистить данные за март">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Оператор</th>
+            <th>Всего чатов</th>
+            <th>Предложения</th>
+            <th>Активации</th>
+            <th title="Активации / Офферов">Акт / Оффер</th>
+            <th title="Офферов / Всего чатов">Оффер / Тотал</th>
+            <th title="Активации / Всего чатов">Акт / Тотал</th>
+            <th>Бонус ($)</th>
+          </tr>
+        </thead>
+        <tbody id="sales-mar-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== МАЙ ==================== -->
+  <div id="stab-may" class="tab-content active">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Май 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-may">🕐 Данные с <span style="color:var(--green);font-weight:700;">27.04</span> по <span style="color:var(--green);font-weight:700;">17.05.2026</span></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('may')" title="Загрузить данные за май">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('may')" title="Очистить данные за май">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Оператор</th>
+            <th>Всего чатов</th>
+            <th>Предложения</th>
+            <th>Активации</th>
+            <th title="Активации / Офферов">Акт / Оффер</th>
+            <th title="Офферов / Всего чатов">Оффер / Тотал</th>
+            <th title="Активации / Всего чатов">Акт / Тотал</th>
+            <th>Бонус ($)</th>
+          </tr>
+        </thead>
+        <tbody id="sales-may-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ИЮНЬ ==================== -->
+  <div id="stab-jun" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Июнь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-jun"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('jun')" title="Загрузить данные за июнь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('jun')" title="Очистить данные за июнь">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-jun-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ИЮЛЬ ==================== -->
+  <div id="stab-jul" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Июль 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-jul"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('jul')" title="Загрузить данные за июль">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('jul')" title="Очистить данные за июль">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-jul-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== АВГУСТ ==================== -->
+  <div id="stab-aug" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Август 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-aug"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('aug')" title="Загрузить данные за август">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('aug')" title="Очистить данные за август">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-aug-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== СЕНТЯБРЬ ==================== -->
+  <div id="stab-sep" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Сентябрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-sep"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('sep')" title="Загрузить данные за сентябрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('sep')" title="Очистить данные за сентябрь">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-sep-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ОКТЯБРЬ ==================== -->
+  <div id="stab-oct" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Октябрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-oct"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('oct')" title="Загрузить данные за октябрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('oct')" title="Очистить данные за октябрь">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-oct-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== НОЯБРЬ ==================== -->
+  <div id="stab-nov" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Ноябрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-nov"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('nov')" title="Загрузить данные за ноябрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('nov')" title="Очистить данные за ноябрь">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-nov-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== ДЕКАБРЬ ==================== -->
+  <div id="stab-dec" class="tab-content">
+    <div class="section-header">
+      <span class="icon">📈</span>
+      <span>Рейтинг продаж — Декабрь 2026</span>
+      <span class="line"></span>
+      <span class="date-label" id="date-dec"></span>
+      <button class="upload-btn tl-only" onclick="triggerUpload('dec')" title="Загрузить данные за декабрь">⬆ Обновить</button>
+      <button class="clear-btn tl-only" onclick="clearMonth('dec')" title="Очистить данные за декабрь">✕ Очистить</button>
+    </div>
+    <div class="table-wrapper">
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>Оператор</th><th>Всего чатов</th><th>Предложения</th><th>Активации</th><th title="Активации / Офферов">Акт / Оффер</th><th title="Офферов / Всего чатов">Оффер / Тотал</th><th title="Активации / Всего чатов">Акт / Тотал</th><th>Бонус ($)</th></tr></thead>
+        <tbody id="sales-dec-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Upload input (hidden) ── -->
+  <input type="file" id="xlsx-file-input" accept=".xlsx" style="display:none" onchange="handleFileUpload(event)">
+
+  <!-- ── Upload modal ── -->
+  <div id="upload-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:380px;width:90%;text-align:center;">
+      <div id="upload-icon" style="font-size:48px;margin-bottom:16px;">⏳</div>
+      <div id="upload-title" style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">Загружаем данные...</div>
+      <div id="upload-msg" style="font-size:13px;color:var(--text-muted);"></div>
+      <button id="upload-close-btn" onclick="closeUploadModal()" style="display:none;margin-top:20px;padding:10px 24px;background:var(--green);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Готово</button>
+    </div>
+  </div>
+
+  <div class="footer">✦ Support Sales Activations 2026 ✦</div>
+
+</div>
+
+<script>
+// ─── Config ───
+const API = '/api';
+const SALES_API = '/api/sales';
+const ALL_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const PERIOD_LABELS = { jan:'Январь',feb:'Февраль',mar:'Март',apr:'Апрель',may:'Май',jun:'Июнь',jul:'Июль',aug:'Август',sep:'Сентябрь',oct:'Октябрь',nov:'Ноябрь',dec:'Декабрь' };
+const MONTH_MAP = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+const EXCLUDE_NAMES = ['oliver', 'ai'];
+
+// ─── State ───
+let currentUserRole = null;
+let uploadTargetMonth = null;
+
+// ─── Auth check + init ───
+(async () => {
+  try {
+    const res = await fetch(`${API}/check`, { credentials: 'include' });
+    const data = await res.json();
+    if (data.ok) {
+      currentUserRole = data.role;
+      if (data.role === 'tl') {
+        document.querySelectorAll('.tl-only').forEach(el => el.style.display = 'inline-flex');
+      }
+    }
+  } catch {}
+  await loadAllSalesData();
+  ALL_MONTHS.forEach(m => initSortHeaders(m));
+  switchSalesTab('may');
+})();
+
+// ─── Load all sales data from Worker ───
+async function loadAllSalesData() {
+  try {
+    const res = await fetch(`${SALES_API}/data`, { credentials: 'include' });
+    const data = await res.json();
+    if (!data.ok) return;
+    for (const m of ALL_MONTHS) {
+      if (data.data[m]) {
+        const { rows, dateFrom, dateTo } = data.data[m];
+        salesData[m] = rows;
+        updateDateLabel(m, dateFrom, dateTo);
+      }
+    }
+    ALL_MONTHS.forEach(m => renderSalesTable(m));
+  } catch (e) {
+    console.error('Failed to load sales data:', e);
+    // Fallback: render with embedded data
+    ALL_MONTHS.forEach(m => renderSalesTable(m));
+  }
+}
+
+function updateDateLabel(month, dateFrom, dateTo) {
+  const el = document.getElementById('date-' + month);
+  if (!el) return;
+  if (dateFrom && dateTo) {
+    const fmt = s => { const d = new Date(s); return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`; };
+    el.innerHTML = `🕐 Данные с <span style="color:var(--green);font-weight:700;">${fmt(dateFrom)}</span> по <span style="color:var(--green);font-weight:700;">${fmt(dateTo)}</span>`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+// ─── Tab switching ───
+function switchSalesTab(month) {
+  document.querySelectorAll('#sales-tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#sales-tabs .tab')[MONTH_MAP[month]].classList.add('active');
+  document.getElementById('stab-' + month).classList.add('active');
+  document.getElementById('period-label').textContent = PERIOD_LABELS[month];
+  updateStats(month);
+}
+
+function updateStats(month) {
+  const data = (salesData[month] || []).filter(r => r.name && r.name !== '—');
+  const totalChats    = data.reduce((s, r) => s + (r.total    ?? 0), 0);
+  const totalPresales = data.reduce((s, r) => s + (r.presales ?? 0), 0);
+  const totalSales    = data.reduce((s, r) => s + (r.sales    ?? 0), 0);
+  const totalBonus    = data.reduce((s, r) => s + (r.bonus    ?? 0), 0);
+  const ppt = totalChats > 0 ? (totalPresales / totalChats * 100) : 0;
+  const pst = totalChats > 0 ? (totalSales    / totalChats * 100) : 0;
+  document.getElementById('stat-sales').textContent    = totalSales;
+  document.getElementById('stat-presales').textContent = totalPresales;
+  document.getElementById('stat-pt').textContent       = ppt.toFixed(2) + '%';
+  document.getElementById('stat-st').textContent       = pst.toFixed(2) + '%';
+  document.getElementById('stat-bonus').textContent    = '$' + totalBonus.toFixed(2);
+}
+
+// ─── XLSX Upload ───
+function triggerUpload(month) {
+  uploadTargetMonth = month;
+  document.getElementById('xlsx-file-input').value = '';
+  document.getElementById('xlsx-file-input').click();
+}
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file || !uploadTargetMonth) return;
+  showUploadModal('⏳', 'Читаем файл...', '');
+
+  try {
+    const rows = await parseXlsx(file);
+    showUploadModal('📊', 'Обрабатываем данные...', `Найдено строк: ${rows.length}`);
+
+    const { filtered, dateFrom, dateTo } = processRows(rows);
+    showUploadModal('☁️', 'Сохраняем в облако...', `Операторов после фильтрации: ${filtered.length}`);
+
+    const res = await fetch(`${SALES_API}/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month: uploadTargetMonth, rows: filtered, dateFrom, dateTo }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Ошибка сервера');
+
+    // Обновляем локально
+    salesData[uploadTargetMonth] = filtered;
+    updateDateLabel(uploadTargetMonth, dateFrom, dateTo);
+    renderSalesTable(uploadTargetMonth);
+    updateStats(uploadTargetMonth);
+
+    showUploadModal('✅', 'Данные обновлены!', `Загружено ${filtered.length} операторов за ${PERIOD_LABELS[uploadTargetMonth]}`, true);
+  } catch (e) {
+    showUploadModal('❌', 'Ошибка загрузки', e.message, true);
+  }
+}
+
+// ─── Parse XLSX (using SheetJS from CDN) ───
+async function parseXlsx(file) {
+  // Подгружаем SheetJS если ещё не загружен
+  if (!window.XLSX) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+}
+
+// ─── Process raw rows from xlsx ───
+function processRows(rawRows) {
+  // Найти строку с фильтрами для дат
+  let dateFrom = null, dateTo = null;
+  for (const row of rawRows) {
+    const cell = String(row[0] || '');
+    if (cell.includes('Примененные фильтры') || cell.includes('Date начиная с')) {
+      // Формат: "Date начиная с 27.04.2026 0:00:00 и до 04.05.2026 0:00:00"
+      const fromMatch = cell.match(/начиная с (\d{2}\.\d{2}\.\d{4})/);
+      const toMatch   = cell.match(/и до (\d{2}\.\d{2}\.\d{4})/);
+      if (fromMatch) {
+        const [d,m,y] = fromMatch[1].split('.');
+        dateFrom = `${y}-${m}-${d}T00:00:00`;
+      }
+      if (toMatch) {
+        // "до" дата — это начало следующего дня, берём -1 день
+        const [d,m,y] = toMatch[1].split('.');
+        const dt = new Date(`${y}-${m}-${d}`);
+        dt.setDate(dt.getDate() - 1);
+        dateTo = dt.toISOString().split('T')[0] + 'T23:59:59';
+      }
+      break;
+    }
+  }
+
+  // Найти заголовочную строку
+  let headerIdx = -1;
+  for (let i = 0; i < rawRows.length; i++) {
+    if (String(rawRows[i][0]).includes('Имя оператора') || String(rawRows[i][0]).toLowerCase().includes('оператор')) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) headerIdx = 0;
+
+  const headers = rawRows[headerIdx].map(h => String(h).trim());
+  const colIdx = {
+    name:     headers.findIndex(h => h.includes('оператор') || h.includes('Имя')),
+    total:    headers.findIndex(h => h.includes('Всего чатов') || h === 'Total'),
+    presales: headers.findIndex(h => h.includes('Предпродажи')),
+    sales:    headers.findIndex(h => h === 'Продажи' || h.includes('Продажи') && !h.includes('/')),
+  };
+
+  const rows = [];
+  for (let i = headerIdx + 1; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    const name = String(row[colIdx.name] || '').trim();
+    if (!name) continue;
+    if (name.toLowerCase() === 'total' || name.toLowerCase().includes('итог')) continue;
+    if (name.toLowerCase().includes('примен')) continue; // строка фильтров
+
+    // Фильтры
+    if (EXCLUDE_NAMES.includes(name.toLowerCase())) continue;
+
+    const total    = parseFloat(row[colIdx.total])    || 0;
+    const presales = parseFloat(row[colIdx.presales]) || 0;
+    const sales    = parseFloat(row[colIdx.sales])    || 0;
+
+    if (total < 10) continue;
+
+    const p_sp = presales > 0 ? Math.round(sales / presales * 10000) / 100 : null;
+    const p_pt = total > 0    ? Math.round(presales / total * 10000) / 100 : 0;
+    const p_st = total > 0    ? Math.round(sales / total * 10000) / 100 : 0;
+
+    // K1 — конверсия в оффер (p_pt = presales/total %)
+    let k1 = 0;
+    if (p_pt > 30)       k1 = 1.1;
+    else if (p_pt >= 25) k1 = 1.0;
+    else if (p_pt >= 20) k1 = 0.9;
+    else if (p_pt >= 10) k1 = 0.5;
+    else                 k1 = 0.0;
+
+    // K2 — конверсия в активацию (p_st = sales/total %)
+    let k2 = 0;
+    if (p_st >= 5)        k2 = 1.3;
+    else if (p_st >= 4.5) k2 = 1.2;
+    else if (p_st >= 4)   k2 = 1.1;
+    else if (p_st >= 3)   k2 = 1.0;
+    else if (p_st >= 1.5) k2 = 0.8;
+    else                  k2 = 0.5;
+
+    const bonus = k1 === 0 ? 0 : Math.round(sales * 5 * k1 * k2 * 10000) / 10000;
+
+    rows.push({ name, total: Math.round(total), presales: Math.round(presales), sales: Math.round(sales), p_sp, p_pt, p_st, bonus });
+  }
+
+  // Сортировка: по бонусу убыванием, потом по продажам
+  rows.sort((a, b) => b.bonus - a.bonus || b.sales - a.sales);
+
+  return { filtered: rows, dateFrom, dateTo };
+}
+
+// ─── Upload modal ───
+function showUploadModal(icon, title, msg, done = false) {
+  const overlay = document.getElementById('upload-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('upload-icon').textContent = icon;
+  document.getElementById('upload-title').textContent = title;
+  document.getElementById('upload-msg').textContent = msg;
+  document.getElementById('upload-close-btn').style.display = done ? 'inline-block' : 'none';
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-overlay').style.display = 'none';
+  uploadTargetMonth = null;
+}
+
+// ─── Clear month data ───
+async function clearMonth(month) {
+  if (!confirm(`Очистить данные за ${PERIOD_LABELS[month]}? Это действие нельзя отменить.`)) return;
+  try {
+    const res = await fetch(`${SALES_API}/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, rows: [], dateFrom: null, dateTo: null }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Ошибка сервера');
+    salesData[month] = [];
+    const el = document.getElementById('date-' + month);
+    if (el) el.textContent = '';
+    renderSalesTable(month);
+    updateStats(month);
+  } catch (e) {
+    alert('Ошибка при очистке: ' + e.message);
+  }
+}
+
+// ─── Color tiers ───
+function stColor(v) {
+  if (v <= 1.5) return '#EF4444';
+  if (v <= 3)   return '#F97316';
+  if (v <= 4)   return '#EAB308';
+  if (v <= 4.5) return '#84CC16';
+  if (v < 5)    return '#84CC16';
+  return '#22C55E';
+}
+
+function ptColor(v) {
+  if (v <= 10)  return '#EF4444';
+  if (v <= 20)  return '#F97316';
+  if (v <= 25)  return '#EAB308';
+  if (v < 30)   return '#84CC16';
+  return '#22C55E';
+}
+
+// ─── Sales data ───
+const salesData = {
+  jan: [
+    { name: 'Denzel',   total: 513,  presales: 170, sales: 8, p_sp: 4.71, p_pt: 33.14, p_st: 1.56, bonus: 35.20  },
+    { name: 'Tom',      total: 477,  presales: 90,  sales: 4, p_sp: 4.44, p_pt: 18.87, p_st: 0.84, bonus: 10.00  },
+    { name: 'Holly',    total: 485,  presales: 118, sales: 3, p_sp: 2.54, p_pt: 24.33, p_st: 0.62, bonus: 8.25   },
+    { name: 'Christine',total: 583,  presales: 100, sales: 3, p_sp: 3.00, p_pt: 17.15, p_st: 0.51, bonus: 6.75   },
+    { name: 'Casper',   total: 1165, presales: 107, sales: 5, p_sp: 4.67, p_pt: 9.18,  p_st: 0.43, bonus: 6.375  },
+    { name: 'Plover',   total: 360,  presales: 74,  sales: 2, p_sp: 2.70, p_pt: 20.56, p_st: 0.56, bonus: 5.00   },
+    { name: 'Felicia',  total: 862,  presales: 134, sales: 2, p_sp: 1.49, p_pt: 15.55, p_st: 0.23, bonus: 4.50   },
+    { name: 'Chadwick', total: 686,  presales: 35,  sales: 2, p_sp: 5.71, p_pt: 5.10,  p_st: 0.29, bonus: 2.55   },
+    { name: 'Scott',    total: 604,  presales: 53,  sales: 2, p_sp: 3.77, p_pt: 8.77,  p_st: 0.33, bonus: 2.55   },
+    { name: 'Ewan',     total: 745,  presales: 111, sales: 1, p_sp: 0.90, p_pt: 14.90, p_st: 0.13, bonus: 2.25   },
+    { name: 'River',    total: 613,  presales: 107, sales: 1, p_sp: 0.93, p_pt: 17.46, p_st: 0.16, bonus: 2.25   },
+    { name: 'Melvin',   total: 435,  presales: 38,  sales: 1, p_sp: 2.63, p_pt: 8.74,  p_st: 0.23, bonus: 1.275  },
+    { name: 'Alexia',   total: 665,  presales: 17,  sales: 1, p_sp: 5.88, p_pt: 2.56,  p_st: 0.15, bonus: 0      },
+    { name: 'Ashton',   total: 677,  presales: 31,  sales: 1, p_sp: 3.23, p_pt: 4.58,  p_st: 0.15, bonus: 0      },
+    { name: 'Bill',     total: 679,  presales: 16,  sales: 2, p_sp: 12.50,p_pt: 2.36,  p_st: 0.29, bonus: 0      },
+    { name: 'Bridget',  total: 1120, presales: 26,  sales: 1, p_sp: 3.85, p_pt: 2.32,  p_st: 0.09, bonus: 0      },
+    { name: 'Chandler', total: 968,  presales: 11,  sales: 1, p_sp: 9.09, p_pt: 1.14,  p_st: 0.10, bonus: 0      },
+    { name: 'Jay',      total: 1209, presales: 9,   sales: 1, p_sp: 11.11,p_pt: 0.74,  p_st: 0.08, bonus: 0      },
+    { name: 'Monica',   total: 1028, presales: 7,   sales: 1, p_sp: 14.29,p_pt: 0.68,  p_st: 0.10, bonus: 0      },
+    { name: 'Simon',    total: 448,  presales: 2,   sales: 1, p_sp: 50.00,p_pt: 0.45,  p_st: 0.22, bonus: 0      },
+    { name: 'Will',     total: 1229, presales: 27,  sales: 1, p_sp: 3.70, p_pt: 2.20,  p_st: 0.08, bonus: 0      },
+  ],
+  feb: [
+    { name: 'Denzel',   total: 663,  presales: 227, sales: 10, p_sp: 4.41,  p_pt: 34.24, p_st: 1.51, bonus: 44     },
+    { name: 'Holly',    total: 628,  presales: 156, sales: 5,  p_sp: 3.21,  p_pt: 24.84, p_st: 0.80, bonus: 13.75  },
+    { name: 'Plover',   total: 535,  presales: 101, sales: 5,  p_sp: 4.95,  p_pt: 18.88, p_st: 0.93, bonus: 12.5   },
+    { name: 'Tom',      total: 477,  presales: 90,  sales: 4,  p_sp: 4.44,  p_pt: 18.87, p_st: 0.84, bonus: 10     },
+    { name: 'Casper',   total: 1486, presales: 132, sales: 6,  p_sp: 4.55,  p_pt: 8.88,  p_st: 0.40, bonus: 7.65   },
+    { name: 'Christine',total: 762,  presales: 135, sales: 3,  p_sp: 2.22,  p_pt: 17.72, p_st: 0.39, bonus: 6.75   },
+    { name: 'Felicia',  total: 1066, presales: 163, sales: 2,  p_sp: 1.23,  p_pt: 15.29, p_st: 0.19, bonus: 4.5    },
+    { name: 'Warren',   total: 1284, presales: 79,  sales: 3,  p_sp: 3.80,  p_pt: 6.15,  p_st: 0.23, bonus: 3.825  },
+    { name: 'Scott',    total: 604,  presales: 53,  sales: 2,  p_sp: 3.77,  p_pt: 8.77,  p_st: 0.33, bonus: 2.55   },
+    { name: 'Ewan',     total: 976,  presales: 125, sales: 1,  p_sp: 0.80,  p_pt: 12.81, p_st: 0.10, bonus: 2.25   },
+    { name: 'River',    total: 898,  presales: 115, sales: 1,  p_sp: 0.87,  p_pt: 12.81, p_st: 0.11, bonus: 2.25   },
+    { name: 'Ashton',   total: 853,  presales: 43,  sales: 1,  p_sp: 2.33,  p_pt: 5.04,  p_st: 0.12, bonus: 1.275  },
+    { name: 'Melvin',   total: 435,  presales: 38,  sales: 1,  p_sp: 2.63,  p_pt: 8.74,  p_st: 0.23, bonus: 1.275  },
+    { name: '—',        total: null, presales: null,sales: 1,  p_sp: 0,     p_pt: null,  p_st: 0,    bonus: 0      },
+    { name: 'Alexia',   total: 762,  presales: 17,  sales: 1,  p_sp: 5.88,  p_pt: 2.23,  p_st: 0.13, bonus: 0      },
+    { name: 'Balfour',  total: 1356, presales: 42,  sales: 2,  p_sp: 4.76,  p_pt: 3.10,  p_st: 0.15, bonus: 0      },
+    { name: 'Bill',     total: 851,  presales: 24,  sales: 2,  p_sp: 8.33,  p_pt: 2.82,  p_st: 0.24, bonus: 0      },
+    { name: 'Bridget',  total: 1313, presales: 34,  sales: 1,  p_sp: 2.94,  p_pt: 2.59,  p_st: 0.08, bonus: 0      },
+    { name: 'Chadwick', total: 1020, presales: 35,  sales: 2,  p_sp: 5.71,  p_pt: 3.43,  p_st: 0.20, bonus: 0      },
+    { name: 'Chandler', total: 1071, presales: 18,  sales: 2,  p_sp: 11.11, p_pt: 1.68,  p_st: 0.19, bonus: 0      },
+    { name: 'Fletcher', total: 1173, presales: 5,   sales: 2,  p_sp: 40.00, p_pt: 0.43,  p_st: 0.17, bonus: 0      },
+    { name: 'Hardy',    total: 861,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.23,  p_st: 0.12, bonus: 0      },
+    { name: 'Jay',      total: 1407, presales: 9,   sales: 1,  p_sp: 11.11, p_pt: 0.64,  p_st: 0.07, bonus: 0      },
+    { name: 'Jonathan', total: 1513, presales: 4,   sales: 1,  p_sp: 25.00, p_pt: 0.26,  p_st: 0.07, bonus: 0      },
+    { name: 'Lex',      total: 1390, presales: 31,  sales: 1,  p_sp: 3.23,  p_pt: 2.23,  p_st: 0.07, bonus: 0      },
+    { name: 'Monica',   total: 1238, presales: 7,   sales: 1,  p_sp: 14.29, p_pt: 0.57,  p_st: 0.08, bonus: 0      },
+    { name: 'Murphy',   total: 1361, presales: 4,   sales: 1,  p_sp: 25.00, p_pt: 0.29,  p_st: 0.07, bonus: 0      },
+    { name: 'Reggie',   total: 372,  presales: 5,   sales: 1,  p_sp: 20.00, p_pt: 1.34,  p_st: 0.27, bonus: 0      },
+    { name: 'Silvia',   total: 587,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.34,  p_st: 0.17, bonus: 0      },
+    { name: 'Simon',    total: 472,  presales: 2,   sales: 1,  p_sp: 50.00, p_pt: 0.42,  p_st: 0.21, bonus: 0      },
+    { name: 'Skylar',   total: 1186, presales: 9,   sales: 1,  p_sp: 11.11, p_pt: 0.76,  p_st: 0.08, bonus: 0      },
+    { name: 'Will',     total: 1644, presales: 30,  sales: 1,  p_sp: 3.33,  p_pt: 1.82,  p_st: 0.06, bonus: 0      },
+    { name: 'Ave',       total: 939,  presales: 4,  sales: 0, p_sp: null, p_pt: 0.43, p_st: 0, bonus: 0 },
+    { name: 'Baker',     total: 199,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Bob',       total: 1687, presales: 4,  sales: 0, p_sp: null, p_pt: 0.24, p_st: 0, bonus: 0 },
+    { name: 'Boseman',   total: 80,   presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Charles',   total: 553,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Colin',     total: 662,  presales: 6,  sales: 0, p_sp: null, p_pt: 0.91, p_st: 0, bonus: 0 },
+    { name: 'Earl',      total: 1102, presales: 1,  sales: 0, p_sp: null, p_pt: 0.09, p_st: 0, bonus: 0 },
+    { name: 'Elijah',    total: 1209, presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Fabio',     total: 662,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Farrell',   total: 1914, presales: 5,  sales: 0, p_sp: null, p_pt: 0.26, p_st: 0, bonus: 0 },
+    { name: 'Florence',  total: 893,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Francesca', total: 467,  presales: 1,  sales: 0, p_sp: null, p_pt: 0.21, p_st: 0, bonus: 0 },
+    { name: 'Isaac',     total: 693,  presales: 29, sales: 0, p_sp: null, p_pt: 4.18, p_st: 0, bonus: 0 },
+    { name: 'Kai',       total: 184,  presales: 9,  sales: 0, p_sp: null, p_pt: 4.89, p_st: 0, bonus: 0 },
+    { name: 'Kenzo',     total: 1135, presales: 9,  sales: 0, p_sp: null, p_pt: 0.79, p_st: 0, bonus: 0 },
+    { name: 'Kiana',     total: 395,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Maverick',  total: 1374, presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Morgan',    total: 610,  presales: 13, sales: 0, p_sp: null, p_pt: 2.13, p_st: 0, bonus: 0 },
+    { name: 'Nancy',     total: 4,    presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Nolan',     total: 1008, presales: 12, sales: 0, p_sp: null, p_pt: 1.19, p_st: 0, bonus: 0 },
+    { name: 'Nora',      total: 1708, presales: 5,  sales: 0, p_sp: null, p_pt: 0.29, p_st: 0, bonus: 0 },
+    { name: 'Norman',    total: 2,    presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Robert',    total: 946,  presales: 31, sales: 0, p_sp: null, p_pt: 3.28, p_st: 0, bonus: 0 },
+    { name: 'Robin',     total: 1096, presales: 20, sales: 0, p_sp: null, p_pt: 1.82, p_st: 0, bonus: 0 },
+    { name: 'Rupert',    total: 1486, presales: 11, sales: 0, p_sp: null, p_pt: 0.74, p_st: 0, bonus: 0 },
+    { name: 'Shane',     total: 621,  presales: 1,  sales: 0, p_sp: null, p_pt: 0.16, p_st: 0, bonus: 0 },
+    { name: 'Trinity',   total: 536,  presales: 18, sales: 0, p_sp: null, p_pt: 3.36, p_st: 0, bonus: 0 },
+    { name: 'Wade',      total: 617,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Watson',    total: 52,   presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+  ],
+  mar: [
+    { name: 'Scott',       total: 975,   presales: 154, sales: 23, p_sp: 14.94,  p_pt: 15.79,  p_st: 2.36, bonus: 82.8   },
+    { name: 'Tom',         total: 512,   presales: 140, sales: 13, p_sp: 9.29,   p_pt: 27.34,  p_st: 2.54, bonus: 71.5   },
+    { name: 'Holly',       total: 848,   presales: 294, sales: 14, p_sp: 4.76,   p_pt: 34.67,  p_st: 1.65, bonus: 61.6   },
+    { name: 'Felicia',     total: 1283,  presales: 165, sales: 9,  p_sp: 5.45,   p_pt: 12.86,  p_st: 0.7,  bonus: 20.25  },
+    { name: 'Casper',      total: 823,   presales: 150, sales: 7,  p_sp: 4.67,   p_pt: 18.23,  p_st: 0.85, bonus: 17.5   },
+    { name: 'Denzel',      total: 639,   presales: 162, sales: 6,  p_sp: 3.7,    p_pt: 25.35,  p_st: 0.94, bonus: 16.5   },
+    { name: 'Will',        total: 1584,  presales: 156, sales: 12, p_sp: 7.69,   p_pt: 9.85,   p_st: 0.76, bonus: 15.3   },
+    { name: 'Christine',   total: 675,   presales: 158, sales: 5,  p_sp: 3.16,   p_pt: 23.41,  p_st: 0.74, bonus: 12.5   },
+    { name: 'Plover',      total: 629,   presales: 115, sales: 5,  p_sp: 4.35,   p_pt: 18.28,  p_st: 0.79, bonus: 12.5   },
+    { name: 'Bridget',     total: 1212,  presales: 73,  sales: 9,  p_sp: 12.33,  p_pt: 6.02,   p_st: 0.74, bonus: 11.475 },
+    { name: 'Ashton',      total: 1118,  presales: 59,  sales: 7,  p_sp: 11.86,  p_pt: 5.28,   p_st: 0.63, bonus: 8.925  },
+    { name: 'Nolan',       total: 1075,  presales: 57,  sales: 3,  p_sp: 5.26,   p_pt: 5.3,    p_st: 0.28, bonus: 3.825  },
+    { name: 'Warren',      total: 1093,  presales: 75,  sales: 3,  p_sp: 4.0,    p_pt: 6.86,   p_st: 0.27, bonus: 3.825  },
+    { name: 'Balfour',     total: 1161,  presales: 49,  sales: 2,  p_sp: 4.08,   p_pt: 4.22,   p_st: 0.17, bonus: 0      },
+    { name: 'Bob',         total: 1481,  presales: 14,  sales: 2,  p_sp: 14.29,  p_pt: 0.95,   p_st: 0.14, bonus: 0      },
+    { name: 'Calvin',      total: 851,   presales: 16,  sales: 3,  p_sp: 18.75,  p_pt: 1.88,   p_st: 0.35, bonus: 0      },
+    { name: 'Colin',       total: 1775,  presales: 60,  sales: 8,  p_sp: 13.33,  p_pt: 3.38,   p_st: 0.45, bonus: 0      },
+    { name: 'Earl',        total: 1114,  presales: 37,  sales: 2,  p_sp: 5.41,   p_pt: 3.32,   p_st: 0.18, bonus: 0      },
+    { name: 'Elijah',      total: 905,   presales: 3,   sales: 1,  p_sp: 33.33,  p_pt: 0.33,   p_st: 0.11, bonus: 0      },
+    { name: 'Fletcher',    total: 963,   presales: 5,   sales: 2,  p_sp: 40.0,   p_pt: 0.52,   p_st: 0.21, bonus: 0      },
+    { name: 'Gross',       total: 1487,  presales: 12,  sales: 1,  p_sp: 8.33,   p_pt: 0.81,   p_st: 0.07, bonus: 0      },
+    { name: 'Hardy',       total: 658,   presales: 20,  sales: 3,  p_sp: 15.0,   p_pt: 3.04,   p_st: 0.46, bonus: 0      },
+    { name: 'Isaac',       total: 918,   presales: 24,  sales: 1,  p_sp: 4.17,   p_pt: 2.61,   p_st: 0.11, bonus: 0      },
+    { name: 'Jay',         total: 1462,  presales: 27,  sales: 2,  p_sp: 7.41,   p_pt: 1.85,   p_st: 0.14, bonus: 0      },
+    { name: 'Jonathan',    total: 1247,  presales: 23,  sales: 6,  p_sp: 26.09,  p_pt: 1.84,   p_st: 0.48, bonus: 0      },
+    { name: 'Kenzo',       total: 1706,  presales: 30,  sales: 2,  p_sp: 6.67,   p_pt: 1.76,   p_st: 0.12, bonus: 0      },
+    { name: 'Lex',         total: 1386,  presales: 65,  sales: 6,  p_sp: 9.23,   p_pt: 4.69,   p_st: 0.43, bonus: 0      },
+    { name: 'Maverick',    total: 1635,  presales: 16,  sales: 2,  p_sp: 12.5,   p_pt: 0.98,   p_st: 0.12, bonus: 0      },
+    { name: 'Monica',      total: 1140,  presales: 14,  sales: 1,  p_sp: 7.14,   p_pt: 1.23,   p_st: 0.09, bonus: 0      },
+    { name: 'Murphy',      total: 1562,  presales: 35,  sales: 6,  p_sp: 17.14,  p_pt: 2.24,   p_st: 0.38, bonus: 0      },
+    { name: 'Robert',      total: 1330,  presales: 60,  sales: 4,  p_sp: 6.67,   p_pt: 4.51,   p_st: 0.3,  bonus: 0      },
+    { name: 'Robin',       total: 1095,  presales: 38,  sales: 3,  p_sp: 7.89,   p_pt: 3.47,   p_st: 0.27, bonus: 0      },
+    { name: 'Alexia',    total: 584,  presales: 14, sales: 0, p_sp: null, p_pt: 2.4,  p_st: 0, bonus: 0 },
+    { name: 'Atom',      total: 1,    presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Ave',       total: 17,   presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Bill',      total: 1004, presales: 17, sales: 0, p_sp: null, p_pt: 1.69, p_st: 0, bonus: 0 },
+    { name: 'Chadwick',  total: 454,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Charles',   total: 1181, presales: 3,  sales: 0, p_sp: null, p_pt: 0.25, p_st: 0, bonus: 0 },
+    { name: 'Ewan',      total: 143,  presales: 1,  sales: 0, p_sp: null, p_pt: 0.7,  p_st: 0, bonus: 0 },
+    { name: 'Fabio',     total: 583,  presales: 8,  sales: 0, p_sp: null, p_pt: 1.37, p_st: 0, bonus: 0 },
+    { name: 'Farrell',   total: 893,  presales: 1,  sales: 0, p_sp: null, p_pt: 0.11, p_st: 0, bonus: 0 },
+    { name: 'Florence',  total: 778,  presales: 1,  sales: 0, p_sp: null, p_pt: 0.13, p_st: 0, bonus: 0 },
+    { name: 'Francesca', total: 83,   presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Kiana',     total: 485,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Morgan',    total: 301,  presales: 3,  sales: 0, p_sp: null, p_pt: 1.0,  p_st: 0, bonus: 0 },
+    { name: 'Nora',      total: 1177, presales: 9,  sales: 0, p_sp: null, p_pt: 0.76, p_st: 0, bonus: 0 },
+    { name: 'Reggie',    total: 266,  presales: 3,  sales: 0, p_sp: null, p_pt: 1.13, p_st: 0, bonus: 0 },
+    { name: 'River',     total: 889,  presales: 17, sales: 0, p_sp: null, p_pt: 1.91, p_st: 0, bonus: 0 },
+    { name: 'Rupert',    total: 1277, presales: 18, sales: 0, p_sp: null, p_pt: 1.41, p_st: 0, bonus: 0 },
+    { name: 'Shane',     total: 1170, presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Simon',     total: 762,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+    { name: 'Skylar',    total: 963,  presales: 21, sales: 0, p_sp: null, p_pt: 2.18, p_st: 0, bonus: 0 },
+    { name: 'Trinity',   total: 584,  presales: 17, sales: 0, p_sp: null, p_pt: 2.91, p_st: 0, bonus: 0 },
+    { name: 'Wade',      total: 780,  presales: 0,  sales: 0, p_sp: null, p_pt: 0.0,  p_st: 0, bonus: 0 },
+  ],
+  apr: [
+    { name: 'Will', total: 1162, presales: 212, sales: 30, p_sp: 14.15, p_pt: 18.24, p_st: 2.58, bonus: 150.0 },
+    { name: 'Earl', total: 1552, presales: 195, sales: 32, p_sp: 16.41, p_pt: 12.56, p_st: 2.06, bonus: 115.2 },
+    { name: 'Christine', total: 640, presales: 231, sales: 19, p_sp: 8.23, p_pt: 36.09, p_st: 2.97, bonus: 104.5 },
+    { name: 'Tom', total: 991, presales: 267, sales: 20, p_sp: 7.49, p_pt: 26.94, p_st: 2.02, bonus: 88.0 },
+    { name: 'Mike', total: 1545, presales: 192, sales: 22, p_sp: 11.46, p_pt: 12.43, p_st: 1.42, bonus: 79.2 },
+    { name: 'Bridget', total: 1116, presales: 233, sales: 17, p_sp: 7.3, p_pt: 20.88, p_st: 1.52, bonus: 68.0 },
+    { name: 'Balfour', total: 1296, presales: 224, sales: 17, p_sp: 7.59, p_pt: 17.28, p_st: 1.31, bonus: 61.2 },
+    { name: 'Casper', total: 1080, presales: 202, sales: 15, p_sp: 7.43, p_pt: 18.7, p_st: 1.39, bonus: 60.0 },
+    { name: 'Robert', total: 1492, presales: 173, sales: 15, p_sp: 8.67, p_pt: 11.6, p_st: 1.01, bonus: 54.0 },
+    { name: 'Scott', total: 1301, presales: 141, sales: 15, p_sp: 10.64, p_pt: 10.84, p_st: 1.15, bonus: 54.0 },
+    { name: 'River', total: 1010, presales: 153, sales: 13, p_sp: 8.5, p_pt: 15.15, p_st: 1.29, bonus: 46.8 },
+    { name: 'Felicia', total: 976, presales: 218, sales: 10, p_sp: 4.59, p_pt: 22.34, p_st: 1.02, bonus: 40.0 },
+    { name: 'Plover', total: 784, presales: 163, sales: 10, p_sp: 6.13, p_pt: 20.79, p_st: 1.28, bonus: 40.0 },
+    { name: 'Jonathan', total: 1354, presales: 89, sales: 18, p_sp: 20.22, p_pt: 6.57, p_st: 1.33, bonus: 36.72 },
+    { name: 'Bowen', total: 967, presales: 98, sales: 10, p_sp: 10.2, p_pt: 10.13, p_st: 1.03, bonus: 36.0 },
+    { name: 'Denzel', total: 682, presales: 136, sales: 8, p_sp: 5.88, p_pt: 19.94, p_st: 1.17, bonus: 32.0 },
+    { name: 'Holly', total: 352, presales: 114, sales: 7, p_sp: 6.14, p_pt: 32.39, p_st: 1.99, bonus: 30.8 },
+    { name: 'Lex', total: 1372, presales: 78, sales: 15, p_sp: 19.23, p_pt: 5.69, p_st: 1.09, bonus: 30.6 },
+    { name: 'Robin', total: 1149, presales: 84, sales: 14, p_sp: 16.67, p_pt: 7.31, p_st: 1.22, bonus: 28.56 },
+    { name: 'Gross', total: 1175, presales: 102, sales: 12, p_sp: 11.76, p_pt: 8.68, p_st: 1.02, bonus: 24.48 },
+    { name: 'Kenzo', total: 2128, presales: 155, sales: 17, p_sp: 10.97, p_pt: 7.28, p_st: 0.8, bonus: 21.675 },
+    { name: 'Warren', total: 441, presales: 103, sales: 5, p_sp: 4.85, p_pt: 23.36, p_st: 1.13, bonus: 20.0 },
+    { name: 'Hardy', total: 1580, presales: 124, sales: 15, p_sp: 12.1, p_pt: 7.85, p_st: 0.95, bonus: 19.125 },
+    { name: 'Nolan', total: 983, presales: 131, sales: 8, p_sp: 6.11, p_pt: 13.33, p_st: 0.81, bonus: 18.0 },
+    { name: 'Meadow', total: 1007, presales: 55, sales: 7, p_sp: 12.73, p_pt: 5.46, p_st: 0.7, bonus: 8.925 },
+    { name: 'Norman', total: 691, presales: 79, sales: 3, p_sp: 3.8, p_pt: 11.43, p_st: 0.43, bonus: 6.75 },
+    { name: 'Alexia', total: 827, presales: 50, sales: 2, p_sp: 4.0, p_pt: 6.05, p_st: 0.24, bonus: 2.55 },
+    { name: 'Ashton', total: 916, presales: 18, sales: 2, p_sp: 11.11, p_pt: 1.97, p_st: 0.22, bonus: 0 },
+    { name: 'Bill', total: 934, presales: 26, sales: 6, p_sp: 23.08, p_pt: 2.78, p_st: 0.64, bonus: 0 },
+    { name: 'Bob', total: 1233, presales: 17, sales: 1, p_sp: 5.88, p_pt: 1.38, p_st: 0.08, bonus: 0 },
+    { name: 'Calvin', total: 1661, presales: 30, sales: 1, p_sp: 3.33, p_pt: 1.81, p_st: 0.06, bonus: 0 },
+    { name: 'Chadwick', total: 1114, presales: 5, sales: 0, p_sp: null, p_pt: 0.45, p_st: 0.0, bonus: 0 },
+    { name: 'Charles', total: 1396, presales: 15, sales: 3, p_sp: 20.0, p_pt: 1.07, p_st: 0.21, bonus: 0 },
+    { name: 'Colin', total: 1339, presales: 45, sales: 7, p_sp: 15.56, p_pt: 3.36, p_st: 0.52, bonus: 0 },
+    { name: 'Elijah', total: 934, presales: 6, sales: 0, p_sp: null, p_pt: 0.64, p_st: 0.0, bonus: 0 },
+    { name: 'Fabio', total: 947, presales: 30, sales: 3, p_sp: 10.0, p_pt: 3.17, p_st: 0.32, bonus: 0 },
+    { name: 'Fletcher', total: 736, presales: 8, sales: 4, p_sp: 50.0, p_pt: 1.09, p_st: 0.54, bonus: 0 },
+    { name: 'Florence', total: 775, presales: 0, sales: 0, p_sp: null, p_pt: 0.0, p_st: 0.0, bonus: 0 },
+    { name: 'Isaac', total: 997, presales: 18, sales: 0, p_sp: null, p_pt: 1.81, p_st: 0.0, bonus: 0 },
+    { name: 'Joseph', total: 1040, presales: 13, sales: 0, p_sp: null, p_pt: 1.25, p_st: 0.0, bonus: 0 },
+    { name: 'Kiana', total: 741, presales: 4, sales: 0, p_sp: null, p_pt: 0.54, p_st: 0.0, bonus: 0 },
+    { name: 'Morgan', total: 809, presales: 23, sales: 1, p_sp: 4.35, p_pt: 2.84, p_st: 0.12, bonus: 0 },
+    { name: 'Murphy', total: 1400, presales: 52, sales: 7, p_sp: 13.46, p_pt: 3.71, p_st: 0.5, bonus: 0 },
+    { name: 'Nora', total: 1047, presales: 34, sales: 4, p_sp: 11.76, p_pt: 3.25, p_st: 0.38, bonus: 0 },
+    { name: 'Reggie', total: 747, presales: 10, sales: 2, p_sp: 20.0, p_pt: 1.34, p_st: 0.27, bonus: 0 },
+    { name: 'Rudy', total: 1278, presales: 31, sales: 12, p_sp: 38.71, p_pt: 2.43, p_st: 0.94, bonus: 0 },
+    { name: 'Sherlock', total: 987, presales: 14, sales: 5, p_sp: 35.71, p_pt: 1.42, p_st: 0.51, bonus: 0 },
+    { name: 'Simon', total: 1212, presales: 0, sales: 0, p_sp: null, p_pt: 0.0, p_st: 0.0, bonus: 0 },
+    { name: 'Skylar', total: 1650, presales: 37, sales: 7, p_sp: 18.92, p_pt: 2.24, p_st: 0.42, bonus: 0 },
+    { name: 'Trinity', total: 701, presales: 16, sales: 2, p_sp: 12.5, p_pt: 2.28, p_st: 0.29, bonus: 0 },
+    { name: 'Wade', total: 504, presales: 0, sales: 0, p_sp: null, p_pt: 0.0, p_st: 0.0, bonus: 0 },
+  ],
+  may: [
+    { name: 'Lex', total: 1729, presales: 804, sales: 90, p_sp: 11.19, p_pt: 46.5009, p_st: 5.2053, bonus: 643.5 },
+    { name: 'Ashton', total: 2249, presales: 811, sales: 88, p_sp: 10.85, p_pt: 36.0605, p_st: 3.9129, bonus: 580.8 },
+    { name: 'Scott', total: 1177, presales: 404, sales: 62, p_sp: 15.35, p_pt: 34.3246, p_st: 5.2676, bonus: 443.3 },
+    { name: 'Earl', total: 1993, presales: 828, sales: 69, p_sp: 8.33, p_pt: 41.5454, p_st: 3.4621, bonus: 417.45 },
+    { name: 'Jonathan', total: 1654, presales: 361, sales: 48, p_sp: 13.3, p_pt: 21.8259, p_st: 2.9021, bonus: 240.0 },
+    { name: 'Rudy', total: 2724, presales: 849, sales: 60, p_sp: 7.07, p_pt: 31.1674, p_st: 2.2026, bonus: 264.0 },
+    { name: 'Kenzo', total: 2481, presales: 734, sales: 53, p_sp: 7.22, p_pt: 29.5848, p_st: 2.1362, bonus: 233.2 },
+    { name: 'Tom', total: 1541, presales: 386, sales: 39, p_sp: 10.1, p_pt: 25.0487, p_st: 2.5308, bonus: 214.5 },
+    { name: 'Robert', total: 2192, presales: 645, sales: 52, p_sp: 8.06, p_pt: 29.4252, p_st: 2.3723, bonus: 228.8 },
+    { name: 'Balfour', total: 1663, presales: 726, sales: 40, p_sp: 5.51, p_pt: 43.656, p_st: 2.4053, bonus: 176.0 },
+    { name: 'Christine', total: 1076, presales: 606, sales: 30, p_sp: 4.95, p_pt: 56.3197, p_st: 2.7881, bonus: 165.0 },
+    { name: 'Will', total: 1686, presales: 466, sales: 35, p_sp: 7.51, p_pt: 27.6394, p_st: 2.0759, bonus: 154.0 },
+    { name: 'Warren', total: 1214, presales: 323, sales: 31, p_sp: 9.6, p_pt: 26.6063, p_st: 2.5535, bonus: 170.5 },
+    { name: 'River', total: 1504, presales: 730, sales: 29, p_sp: 3.97, p_pt: 48.5372, p_st: 1.9282, bonus: 127.6 },
+    { name: 'Chadwick', total: 1395, presales: 512, sales: 28, p_sp: 5.47, p_pt: 36.7025, p_st: 2.0072, bonus: 123.2 },
+    { name: 'Hardy', total: 1623, presales: 399, sales: 28, p_sp: 7.02, p_pt: 24.5841, p_st: 1.7252, bonus: 123.2 },
+    { name: 'Fletcher', total: 1688, presales: 319, sales: 28, p_sp: 8.78, p_pt: 18.8981, p_st: 1.6588, bonus: 112.0 },
+    { name: 'Mike', total: 1410, presales: 422, sales: 24, p_sp: 5.69, p_pt: 29.9291, p_st: 1.7021, bonus: 105.6 },
+    { name: 'Holly', total: 1087, presales: 367, sales: 23, p_sp: 6.27, p_pt: 33.7626, p_st: 2.1159, bonus: 101.2 },
+    { name: 'Robin', total: 1501, presales: 173, sales: 27, p_sp: 15.61, p_pt: 11.5256, p_st: 1.7988, bonus: 97.2 },
+    { name: 'Bill', total: 1530, presales: 263, sales: 23, p_sp: 8.75, p_pt: 17.1895, p_st: 1.5033, bonus: 82.8 },
+    { name: 'Isaac', total: 1094, presales: 239, sales: 21, p_sp: 8.79, p_pt: 21.8464, p_st: 1.9196, bonus: 84.0 },
+    { name: 'Florence', total: 1228, presales: 261, sales: 21, p_sp: 8.05, p_pt: 21.2541, p_st: 1.7101, bonus: 84.0 },
+    { name: 'Bridget', total: 1493, presales: 480, sales: 27, p_sp: 5.62, p_pt: 32.15, p_st: 1.8084, bonus: 118.8 },
+    { name: 'Norman', total: 1289, presales: 550, sales: 32, p_sp: 5.82, p_pt: 42.6687, p_st: 2.4825, bonus: 140.8 },
+    { name: 'Gross', total: 2601, presales: 436, sales: 30, p_sp: 6.88, p_pt: 16.7628, p_st: 1.1534, bonus: 108.0 },
+    { name: 'Casper', total: 1542, presales: 387, sales: 30, p_sp: 7.75, p_pt: 25.0973, p_st: 1.9455, bonus: 132.0 },
+    { name: 'Felicia', total: 831, presales: 253, sales: 15, p_sp: 5.93, p_pt: 30.4452, p_st: 1.8051, bonus: 66.0 },
+    { name: 'Alexia', total: 1105, presales: 480, sales: 14, p_sp: 2.92, p_pt: 43.4389, p_st: 1.267, bonus: 61.6 },
+    { name: 'Trinity', total: 1064, presales: 158, sales: 12, p_sp: 7.59, p_pt: 14.8496, p_st: 1.1278, bonus: 43.2 },
+    { name: 'Nolan', total: 503, presales: 100, sales: 8, p_sp: 8.0, p_pt: 19.8807, p_st: 1.5905, bonus: 32.0 },
+    { name: 'Bob', total: 2066, presales: 181, sales: 19, p_sp: 10.5, p_pt: 8.7609, p_st: 0.9197, bonus: 24.225 },
+    { name: 'Charles', total: 1767, presales: 215, sales: 11, p_sp: 5.12, p_pt: 12.1675, p_st: 0.6225, bonus: 24.75 },
+    { name: 'Denzel', total: 1491, presales: 313, sales: 8, p_sp: 2.56, p_pt: 20.9926, p_st: 0.5366, bonus: 20.0 },
+    { name: 'Meadow', total: 870, presales: 73, sales: 10, p_sp: 13.7, p_pt: 8.3908, p_st: 1.1494, bonus: 20.4 },
+    { name: 'Skylar', total: 1811, presales: 150, sales: 16, p_sp: 10.67, p_pt: 8.2827, p_st: 0.8835, bonus: 20.4 },
+    { name: 'Calvin', total: 1477, presales: 253, sales: 16, p_sp: 6.32, p_pt: 17.1293, p_st: 1.0833, bonus: 57.6 },
+    { name: 'Bowen', total: 1708, presales: 334, sales: 25, p_sp: 7.49, p_pt: 19.555, p_st: 1.4637, bonus: 100.0 },
+    { name: 'Joseph', total: 609, presales: 60, sales: 7, p_sp: 11.67, p_pt: 9.8522, p_st: 1.1494, bonus: 14.28 },
+    { name: 'Simon', total: 1710, presales: 131, sales: 11, p_sp: 8.4, p_pt: 7.6608, p_st: 0.6433, bonus: 14.025 },
+    { name: 'Elijah', total: 1031, presales: 122, sales: 7, p_sp: 5.74, p_pt: 11.8332, p_st: 0.679, bonus: 15.75 },
+    { name: 'Plover', total: 931, presales: 210, sales: 6, p_sp: 2.86, p_pt: 22.5564, p_st: 0.6445, bonus: 15.0 },
+    { name: 'Murphy', total: 1601, presales: 159, sales: 9, p_sp: 5.66, p_pt: 9.9313, p_st: 0.5621, bonus: 11.475 },
+    { name: 'Nora', total: 1797, presales: 151, sales: 5, p_sp: 3.31, p_pt: 8.4029, p_st: 0.2782, bonus: 6.375 },
+    { name: 'Kiana', total: 851, presales: 51, sales: 5, p_sp: 9.8, p_pt: 5.9929, p_st: 0.5875, bonus: 6.375 },
+    { name: 'Wade', total: 626, presales: 75, sales: 2, p_sp: 2.67, p_pt: 11.9808, p_st: 0.3195, bonus: 4.5 },
+    { name: 'Reggie', total: 315, presales: 20, sales: 3, p_sp: 15.0, p_pt: 6.3492, p_st: 0.9524, bonus: 3.825 },
+    { name: 'Fabio', total: 867, presales: 43, sales: 2, p_sp: 4.65, p_pt: 4.9596, p_st: 0.2307, bonus: 0.0 },
+    { name: 'Morgan', total: 876, presales: 38, sales: 4, p_sp: 10.53, p_pt: 4.3379, p_st: 0.4566, bonus: 0.0 },
+  ]
+};
+
+// ─── Sort state ───
+const sortState = { jan:{col:'bonus',dir:-1},feb:{col:'bonus',dir:-1},mar:{col:'bonus',dir:-1},apr:{col:'bonus',dir:-1},may:{col:'bonus',dir:-1},jun:{col:'bonus',dir:-1},jul:{col:'bonus',dir:-1},aug:{col:'bonus',dir:-1},sep:{col:'bonus',dir:-1},oct:{col:'bonus',dir:-1},nov:{col:'bonus',dir:-1},dec:{col:'bonus',dir:-1} };
+const COL_KEYS = ['rank', 'name', 'total', 'presales', 'sales', 'p_sp', 'p_pt', 'p_st', 'bonus'];
+
+function sortData(data, col, dir) {
+  return [...data].sort((a, b) => {
+    let va = a[col], vb = b[col];
+    if (col === 'name') return dir * va.localeCompare(vb);
+    return dir * ((va ?? -Infinity) - (vb ?? -Infinity));
+  });
+}
+
+const TOP_ICONS = ['🥇', '🥈', '🥉'];
+
+function renderSalesTable(month) {
+  const data = salesData[month] || [];
+  const tbody = document.getElementById('sales-' + month + '-body');
+  if (!tbody) return;
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">Данные за этот месяц ещё не загружены</td></tr>';
+    return;
+  }
+
+  const { col, dir } = sortState[month];
+  const filtered = data.filter(r => r.name && r.name !== '—' && r.name.trim() !== '');
+  const byBonus = [...filtered].sort((a, b) => b.bonus - a.bonus || b.sales - a.sales);
+  const rankMap = {};
+  byBonus.forEach((r, i) => { rankMap[r.name] = i + 1; });
+
+  const displayData = (col === 'rank' && dir === -1) ? byBonus : sortData(filtered, col, dir);
+
+  let html = '';
+  displayData.forEach((row) => {
+    const rank = rankMap[row.name];
+    const rowClass = rank <= 3 ? ` class="sales-row-${rank}"` : '';
+    const rankCell = rank <= 3
+      ? `<span class="rank-icon">${TOP_ICONS[rank-1]}</span>`
+      : `<span style="color:var(--text-muted);font-family:'Barlow Condensed',sans-serif;font-size:15px;">${rank}</span>`;
+
+    const bonusStr = row.bonus > 0
+      ? `<span class="bonus-cell">$${row.bonus % 1 === 0 ? row.bonus : row.bonus.toFixed(2)}</span>`
+      : `<span class="bonus-cell zero">—</span>`;
+
+    html += `<tr${rowClass}>
+      <td>${rankCell}</td>
+      <td>${row.name}</td>
+      <td>${row.total != null ? row.total.toLocaleString('ru') : '—'}</td>
+      <td>${row.presales != null ? row.presales : '—'}</td>
+      <td>${row.sales}</td>
+      <td style="color:var(--text-muted)">${row.p_sp != null ? row.p_sp.toFixed(2) + '%' : '—'}</td>
+      <td>${row.p_pt != null ? `<span style="color:${ptColor(row.p_pt)};font-weight:700;">${row.p_pt.toFixed(2)}%</span>` : '—'}</td>
+      <td>${row.p_st != null ? `<span style="color:${stColor(row.p_st)};font-weight:700;">${row.p_st.toFixed(2)}%</span>` : '—'}</td>
+      <td>${bonusStr}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  updateSortHeaders(month);
+}
+
+function updateSortHeaders(month) {
+  const { col, dir } = sortState[month];
+  const table = document.querySelector(`#stab-${month} table`);
+  if (!table) return;
+  table.querySelectorAll('thead th').forEach((th, i) => {
+    const key = COL_KEYS[i];
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.remove();
+    const a = document.createElement('span');
+    a.className = 'sort-arrow';
+    if (key === col) {
+      a.textContent = dir === -1 ? ' ↓' : ' ↑';
+      a.style.color = 'var(--green)';
+    } else {
+      a.textContent = ' ⇅';
+      a.style.color = 'rgba(90,112,102,0.5)';
+      a.style.fontSize = '10px';
+    }
+    th.appendChild(a);
+  });
+}
+
+function initSortHeaders(month) {
+  const table = document.querySelector(`#stab-${month} table`);
+  if (!table) return;
+  table.querySelectorAll('thead th').forEach((th, i) => {
+    const key = COL_KEYS[i];
+    if (key === 'rank') { th.style.cursor = 'default'; return; }
+    th.style.cursor = 'pointer';
+    th.style.userSelect = 'none';
+    th.addEventListener('click', () => {
+      const s = sortState[month];
+      if (s.col === key) { s.dir *= -1; } else { s.col = key; s.dir = -1; }
+      renderSalesTable(month);
+    });
+  });
+  updateSortHeaders(month);
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const btn = document.getElementById('theme-toggle');
+  if (root.classList.contains('light')) {
+    root.classList.remove('light');
+    btn.textContent = '🌙';
+    localStorage.setItem('theme', 'dark');
+  } else {
+    root.classList.add('light');
+    btn.textContent = '☀️';
+    localStorage.setItem('theme', 'light');
+  }
+}
+
+// Restore saved theme
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('theme-toggle').textContent = '☀️';
+  }
+})();
+</script>
+</body>
+</html>

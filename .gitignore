@@ -1,0 +1,15 @@
+# Секреты и данные — не коммитим
+.env
+*.env
+!*.env.example
+kv-dump.json
+docker-compose.override.yml
+
+# Зависимости и сборка
+node_modules/
+dist/
+.wrangler/
+
+# Системное / редакторское
+.DS_Store
+*.log

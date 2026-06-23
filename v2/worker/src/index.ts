@@ -572,6 +572,215 @@ app.post('/api/tg-webhook', async (c) => {
   console.log('tg-webhook: cb.data=', cb?.data ?? 'no callback_query');
   if (!cb?.data) return c.json({ ok: true });
 
+  const cbData = String(cb.data);
+
+  // Offer: забрать через TG (so:t:{id})
+  if (/^so:t:.{36}$/.test(cbData)) {
+    const offerId = cbData.slice(5);
+    const from = cb.from as Record<string, unknown>;
+    const tgUsername = String(from?.username ?? '').toLowerCase();
+
+    if (!tgUsername) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'У вас не установлен username в Telegram' });
+      return c.json({ ok: true });
+    }
+
+    // Найти профиль по Telegram username
+    const profiles = await getProfiles(c.env);
+    const takerEntry = Object.entries(profiles).find(([, p]) => (p.telegram || '').toLowerCase() === tgUsername);
+    if (!takerEntry) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Telegram @${tgUsername} не привязан ни к одному профилю на сайте` });
+      return c.json({ ok: true });
+    }
+    const [takerEmail, takerProfile] = takerEntry;
+    const takerName = takerProfile.name || takerEmail;
+
+    const offerRaw = await c.env.AUTH_KV.get(`offer:${offerId}`);
+    if (!offerRaw) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Предложение не найдено или истекло' });
+      return c.json({ ok: true });
+    }
+    const offer: ShiftOffer = JSON.parse(offerRaw);
+
+    if (offer.status !== 'open') {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Предложение уже ${offer.status}` });
+      return c.json({ ok: true });
+    }
+    if (offer.giverEmail === takerEmail) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Нельзя забрать своё предложение' });
+      return c.json({ ok: true });
+    }
+
+    offer.status = 'taken';
+    offer.takerName = takerName;
+    offer.takerEmail = takerEmail;
+    offer.takenAt = new Date().toISOString();
+
+    const cbMsg = cb.message as Record<string, unknown>;
+    await tgApi(c.env, 'editMessageText', {
+      chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
+      message_id: cbMsg?.message_id ?? offer.tgMessageId,
+      text: offerTgText(offer) + `\n\n🙋 <b>Забирает:</b> ${escTg(takerName)} (@${escTg(tgUsername)}) — ожидает апрув TL`,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
+    });
+
+    // Отправляем запрос на апрув TL
+    const approvalRes = await tgApi(c.env, 'sendMessage', {
+      chat_id: c.env.TG_CHAT_ID,
+      text: offerApprovalTgText(offer),
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [[
+        { text: '✅ Апрув', callback_data: `oa:a:${offerId}` },
+        { text: '❌ Отказ', callback_data: `oa:d:${offerId}` },
+      ]] },
+    });
+
+    offer.tgMessageId = approvalRes.ok
+      ? (approvalRes.result as Record<string, unknown>)?.message_id as number ?? null
+      : null;
+    await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Заявка отправлена TL на апрув' });
+    return c.json({ ok: true });
+  }
+
+  // Offer: отозвать через TG (so:c:{id})
+  if (/^so:c:.{36}$/.test(cbData)) {
+    const offerId = cbData.slice(5);
+    const from = cb.from as Record<string, unknown>;
+    const tgUsername = String(from?.username ?? '').toLowerCase();
+
+    const offerRaw = await c.env.AUTH_KV.get(`offer:${offerId}`);
+    if (!offerRaw) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Предложение не найдено' });
+      return c.json({ ok: true });
+    }
+    const offer: ShiftOffer = JSON.parse(offerRaw);
+
+    // Только автор может отозвать — проверяем по TG username через профили
+    const profiles = await getProfiles(c.env);
+    const giverProfile = profiles[offer.giverEmail];
+    const giverTg = (giverProfile?.telegram || '').toLowerCase();
+    const isOwner = giverTg && giverTg === tgUsername;
+    // TL тоже могут отозвать (определяем по роли из сессии — здесь через список ролей)
+    const roles = await c.env.AUTH_KV.get('roles');
+    const roleLists: RoleLists = roles ? JSON.parse(roles) : { tl: [], supervisor: [], ops: [] };
+    const isTl = roleLists.tl.some(e => {
+      const p = profiles[e];
+      return p?.telegram && p.telegram.toLowerCase() === tgUsername;
+    });
+
+    if (!isOwner && !isTl) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Отозвать может только автор предложения или TL' });
+      return c.json({ ok: true });
+    }
+    if (offer.status !== 'open') {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Нельзя отозвать — статус: ${offer.status}` });
+      return c.json({ ok: true });
+    }
+
+    offer.status = 'cancelled';
+    await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+    const cbMsg = cb.message as Record<string, unknown>;
+    await tgApi(c.env, 'editMessageText', {
+      chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
+      message_id: cbMsg?.message_id ?? offer.tgMessageId,
+      text: offerTgText(offer) + `\n\n🚫 <b>Отозвано</b>`,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
+    });
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Предложение отозвано' });
+    return c.json({ ok: true });
+  }
+
+  // Offer approval: TL апрув/отказ (oa:a:{id} / oa:d:{id})
+  const oaMatch = cbData.match(/^oa:(a|d):(.{36})$/);
+  if (oaMatch) {
+    const oaAction = oaMatch[1];
+    const offerId = oaMatch[2];
+    const from = cb.from as Record<string, unknown>;
+    const approver = from?.username ? `@${from.username}` : String(from?.first_name ?? 'неизвестно');
+    const cbMsg = cb.message as Record<string, unknown>;
+
+    const offerRaw = await c.env.AUTH_KV.get(`offer:${offerId}`);
+    if (!offerRaw) {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Предложение не найдено или истекло' });
+      return c.json({ ok: true });
+    }
+    const offer: ShiftOffer = JSON.parse(offerRaw);
+
+    if (offer.status !== 'taken') {
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Уже: ${offer.status}` });
+      return c.json({ ok: true });
+    }
+
+    if (oaAction === 'd') {
+      offer.status = 'denied';
+      await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+      await tgApi(c.env, 'editMessageText', {
+        chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
+        message_id: cbMsg?.message_id ?? offer.tgMessageId,
+        text: offerApprovalTgText(offer) + `\n\n❌ <b>Отказано</b> · ${escTg(approver)}`,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [] },
+      });
+      await sendSwapEmail(c.env, offer.giverEmail, 'Передача смены отклонена', [
+        `Ваше предложение смены было отклонено TL.`,
+        `<b>Дата:</b> ${escTg(offer.date)}`,
+        `<b>Смена:</b> ${escTg(offer.shiftLabel)}, ${escTg(offer.range)} (${offer.hours}ч)`,
+        `<b>Хотел забрать:</b> ${escTg(offer.takerName)}`,
+        `<b>Решение:</b> ${escTg(approver)}`,
+      ]);
+      if (offer.takerEmail) {
+        await sendSwapEmail(c.env, offer.takerEmail, 'Передача смены отклонена', [
+          `TL отклонил передачу смены от ${escTg(offer.giver)}.`,
+          `<b>Дата:</b> ${escTg(offer.date)}`,
+          `<b>Смена:</b> ${escTg(offer.shiftLabel)}, ${escTg(offer.range)} (${offer.hours}ч)`,
+          `<b>Решение:</b> ${escTg(approver)}`,
+        ]);
+      }
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Отказано' });
+      return c.json({ ok: true });
+    }
+
+    // Апрув — применяем к графику
+    try { await applyOfferToSchedule(c.env, offer, approver); } catch (e) {
+      console.error('applyOfferToSchedule error:', e);
+      await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Ошибка применения к графику!' });
+      return c.json({ ok: true });
+    }
+
+    offer.status = 'approved';
+    await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+    await tgApi(c.env, 'editMessageText', {
+      chat_id: (cbMsg?.chat as Record<string,unknown>)?.id ?? c.env.TG_CHAT_ID,
+      message_id: cbMsg?.message_id ?? offer.tgMessageId,
+      text: offerApprovalTgText(offer) + `\n\n✅ <b>Апрув</b> · ${escTg(approver)} · применено к графику`,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
+    });
+    await sendSwapEmail(c.env, offer.giverEmail, 'Передача смены одобрена', [
+      `Ваше предложение смены принято и применено к графику.`,
+      `<b>Дата:</b> ${escTg(offer.date)}`,
+      `<b>Смена:</b> ${escTg(offer.shiftLabel)}, ${escTg(offer.range)} (${offer.hours}ч)`,
+      `<b>Забрал:</b> ${escTg(offer.takerName)}`,
+      `<b>Решение:</b> ${escTg(approver)}`,
+    ]);
+    if (offer.takerEmail) {
+      await sendSwapEmail(c.env, offer.takerEmail, 'Смена получена', [
+        `${escTg(offer.giver)} передал(а) вам смену, обмен одобрен и применён к графику.`,
+        `<b>Дата:</b> ${escTg(offer.date)}`,
+        `<b>Смена:</b> ${escTg(offer.shiftLabel)}, ${escTg(offer.range)} (${offer.hours}ч)`,
+        `<b>Решение:</b> ${escTg(approver)}`,
+      ]);
+    }
+    await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Апрув, график обновлён' });
+    return c.json({ ok: true });
+  }
+
   const m = String(cb.data).match(/^sw:(a|d):(.{36})$/);
   console.log('tg-webhook: regex match=', m ? `yes action=${m[1]} id=${m[2]}` : 'NO MATCH');
   if (!m) { await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id }); return c.json({ ok: true }); }
@@ -650,6 +859,264 @@ app.post('/api/tg-webhook', async (c) => {
     reply_markup: { inline_keyboard: [] },
   });
   await tgApi(c.env, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Апрув, график обновлён' });
+  return c.json({ ok: true });
+});
+
+// ── Shift Offer (публичное предложение смены) ──────────────────────────────
+
+const OFFER_TTL = 60 * 60 * 24 * 30; // 30 дней
+
+type ShiftOffer = {
+  id: string;
+  status: 'open' | 'taken' | 'approved' | 'denied' | 'cancelled';
+  project: string;
+  month: string;
+  date: string;
+  giver: string;
+  giverEmail: string;
+  shiftKey: string;
+  shiftLabel: string;
+  range: string;
+  win: [number, number];
+  hours: number;
+  withLunch: boolean;
+  comment: string;
+  tgMessageId: number | null;
+  takerName: string | null;
+  takerEmail: string | null;
+  createdAt: string;
+  takenAt: string | null;
+};
+
+function offerTgText(o: ShiftOffer) {
+  let t = `📢 <b>Открытое предложение смены</b>\n\n`;
+  t += `Отдаёт: <b>${escTg(o.giver)}</b>\n`;
+  t += `Дата: <b>${escTg(o.date)}</b>\n`;
+  t += `Смена: ${escTg(o.shiftLabel)}\n`;
+  t += `Часы: <b>${escTg(o.range)}</b> · ${o.hours}ч\n`;
+  t += `Обед: <b>${o.withLunch ? 'передаётся' : 'остаётся у отдающего'}</b>\n`;
+  if (o.comment) t += `Комментарий: ${escTg(o.comment)}\n`;
+  t += `\nНажмите кнопку ниже, чтобы забрать смену.`;
+  return t;
+}
+
+function offerApprovalTgText(o: ShiftOffer) {
+  let t = `🔄 <b>Заявка на передачу смены</b> (через предложение)\n\n`;
+  t += `Отдаёт: <b>${escTg(o.giver)}</b>\n`;
+  t += `Забирает: <b>${escTg(o.takerName)}</b>\n`;
+  t += `Дата: <b>${escTg(o.date)}</b>\n`;
+  t += `Смена: ${escTg(o.shiftLabel)}\n`;
+  t += `Часы: <b>${escTg(o.range)}</b> · ${o.hours}ч\n`;
+  t += `Обед: <b>${o.withLunch ? 'передаётся' : 'остаётся у отдающего'}</b>\n`;
+  if (o.comment) t += `Комментарий: ${escTg(o.comment)}\n`;
+  t += `\nОт: ${escTg(o.giverEmail)} → ${escTg(o.takerEmail)}`;
+  return t;
+}
+
+async function applyOfferToSchedule(env: Env, o: ShiftOffer, approver: string) {
+  const key = scheduleKey(o.project, o.month);
+  const raw = await env.AUTH_KV.get(key);
+  const blob: ScheduleBlob = raw ? JSON.parse(raw) : emptyBlob();
+  const ov = { ...blob.overrides } as Record<string, any>;
+  const nowIso = new Date().toISOString();
+
+  const gKey = `${o.giver}:${o.date}`;
+  const g: any = ov[gKey] ? { ...ov[gKey] } : {};
+  if (!g.type) g.type = o.shiftKey;
+  g.extraEvents = [...(g.extraEvents ?? []),
+    { type: 'loss_swap_give', hours: o.hours, range: o.range, swapWith: o.takerName, win: o.win, withLunch: o.withLunch }];
+  const gNote = `Отдал смену → ${o.takerName} (${o.range}, ${o.hours}ч)`;
+  g.note = g.note ? `${g.note}; ${gNote}` : gNote;
+  g.editedBy = `offer-bot (${approver})`; g.editedAt = nowIso;
+  ov[gKey] = g;
+
+  const rKey = `${o.takerName}:${o.date}`;
+  const r: any = ov[rKey] ? { ...ov[rKey] } : {};
+  const hasWorkType = r.type && r.type !== 'off' && r.type !== 'birthday';
+  if (!hasWorkType) r.type = SWAP_EXTRA_TYPE[o.shiftKey] ?? o.shiftKey;
+  r.extraEvents = [...(r.extraEvents ?? []),
+    { type: 'extra_swap_take', hours: o.hours, range: o.range, swapWith: o.giver, win: o.win, withLunch: o.withLunch }];
+  const rNote = `Получил смену ← ${o.giver} (${o.range}, ${o.hours}ч)`;
+  r.note = r.note ? `${r.note}; ${rNote}` : rNote;
+  r.editedBy = `offer-bot (${approver})`; r.editedAt = nowIso;
+  ov[rKey] = r;
+
+  const newLog = [...(blob.log ?? []), {
+    at: nowIso, by: `tg:${approver}`,
+    action: `оффер-свап (бот): ${o.giver} → ${o.takerName} · ${o.date} · ${o.range} (${o.hours}ч)`,
+    target: String(o.takerName),
+  }].slice(-200);
+
+  await env.AUTH_KV.put(key, JSON.stringify({ ...blob, overrides: ov, version: Date.now(), log: newLog }));
+}
+
+// POST /api/shift-offer — создать предложение
+app.post('/api/shift-offer', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+
+  const body = await c.req.json<Record<string, unknown>>();
+  const id = crypto.randomUUID();
+
+  const offer: ShiftOffer = {
+    id,
+    status: 'open',
+    project: String(body.project || 'sg'),
+    month: String(body.month || ''),
+    date: String(body.date || ''),
+    giver: String(body.giver || ''),
+    giverEmail: session.email,
+    shiftKey: String(body.shiftKey || ''),
+    shiftLabel: String(body.shiftLabel || ''),
+    range: String(body.range || ''),
+    win: (body.win as [number, number]) || [0, 0],
+    hours: Number(body.hours) || 0,
+    withLunch: body.withLunch === true,
+    comment: String(body.comment || '').trim(),
+    tgMessageId: null,
+    takerName: null,
+    takerEmail: null,
+    createdAt: new Date().toISOString(),
+    takenAt: null,
+  };
+
+  if (!offer.giver || !offer.date || !offer.shiftKey || offer.hours <= 0) {
+    return c.json({ ok: false, error: 'Неверные данные' }, 400);
+  }
+
+  const tgRes = await tgApi(c.env, 'sendMessage', {
+    chat_id: c.env.TG_CHAT_ID,
+    text: offerTgText(offer),
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: [[
+      { text: '🙋 Забрать смену', callback_data: `so:t:${id}` },
+      { text: '❌ Отозвать', callback_data: `so:c:${id}` },
+    ]] },
+  });
+
+  if (tgRes.ok) {
+    offer.tgMessageId = (tgRes.result as Record<string, unknown>)?.message_id as number ?? null;
+  }
+
+  await c.env.AUTH_KV.put(`offer:${id}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+  // Сохраняем id в индекс месяца
+  const idxKey = `offers:${offer.project}:${offer.month}`;
+  const idxRaw = await c.env.AUTH_KV.get(idxKey);
+  const idx: string[] = idxRaw ? JSON.parse(idxRaw) : [];
+  if (!idx.includes(id)) idx.push(id);
+  await c.env.AUTH_KV.put(idxKey, JSON.stringify(idx), { expirationTtl: OFFER_TTL });
+
+  return c.json({ ok: true, id });
+});
+
+// GET /api/shift-offers?project=sg&month=2026-06 — список предложений
+app.get('/api/shift-offers', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+
+  const project = c.req.query('project') || 'sg';
+  const month = c.req.query('month') || '';
+  if (!month) return c.json({ ok: false, error: 'month обязателен' }, 400);
+
+  const idxKey = `offers:${project}:${month}`;
+  const idxRaw = await c.env.AUTH_KV.get(idxKey);
+  const idx: string[] = idxRaw ? JSON.parse(idxRaw) : [];
+
+  const offers: ShiftOffer[] = [];
+  for (const id of idx) {
+    const raw = await c.env.AUTH_KV.get(`offer:${id}`);
+    if (raw) offers.push(JSON.parse(raw));
+  }
+
+  return c.json({ ok: true, offers });
+});
+
+// POST /api/shift-offer/take — забрать предложение (сессия определяет тейкера)
+app.post('/api/shift-offer/take', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+
+  const { offerId, takerName } = await c.req.json<{ offerId: string; takerName: string }>();
+  if (!offerId || !takerName) return c.json({ ok: false, error: 'offerId и takerName обязательны' }, 400);
+
+  const raw = await c.env.AUTH_KV.get(`offer:${offerId}`);
+  if (!raw) return c.json({ ok: false, error: 'Предложение не найдено или истекло' }, 404);
+  const offer: ShiftOffer = JSON.parse(raw);
+
+  if (offer.status !== 'open') return c.json({ ok: false, error: `Предложение уже ${offer.status}` }, 409);
+  if (offer.giverEmail === session.email) return c.json({ ok: false, error: 'Нельзя забрать своё предложение' }, 400);
+
+  offer.status = 'taken';
+  offer.takerName = takerName;
+  offer.takerEmail = session.email;
+  offer.takenAt = new Date().toISOString();
+  await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+  // Обновляем TG-сообщение об оффере
+  if (offer.tgMessageId) {
+    await tgApi(c.env, 'editMessageText', {
+      chat_id: c.env.TG_CHAT_ID,
+      message_id: offer.tgMessageId,
+      text: offerTgText(offer) + `\n\n🙋 <b>Забирает:</b> ${escTg(takerName)} — ожидает апрув TL`,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
+    });
+  }
+
+  // Отправляем запрос на апрув TL (как обычный swap)
+  const approvalRes = await tgApi(c.env, 'sendMessage', {
+    chat_id: c.env.TG_CHAT_ID,
+    text: offerApprovalTgText(offer),
+    parse_mode: 'HTML',
+    reply_markup: { inline_keyboard: [[
+      { text: '✅ Апрув', callback_data: `oa:a:${offerId}` },
+      { text: '❌ Отказ', callback_data: `oa:d:${offerId}` },
+    ]] },
+  });
+
+  const approvalMsgId = approvalRes.ok
+    ? (approvalRes.result as Record<string, unknown>)?.message_id as number ?? null
+    : null;
+
+  offer.tgMessageId = approvalMsgId; // теперь это апрув-сообщение
+  await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+  return c.json({ ok: true });
+});
+
+// POST /api/shift-offer/cancel — отозвать предложение (только свой оффер или TL)
+app.post('/api/shift-offer/cancel', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+
+  const { offerId } = await c.req.json<{ offerId: string }>();
+  if (!offerId) return c.json({ ok: false, error: 'offerId обязателен' }, 400);
+
+  const raw = await c.env.AUTH_KV.get(`offer:${offerId}`);
+  if (!raw) return c.json({ ok: false, error: 'Предложение не найдено' }, 404);
+  const offer: ShiftOffer = JSON.parse(raw);
+
+  if (offer.giverEmail !== session.email && session.role !== 'tl') {
+    return c.json({ ok: false, error: 'Можно отозвать только своё предложение' }, 403);
+  }
+  if (offer.status !== 'open') {
+    return c.json({ ok: false, error: `Нельзя отозвать — статус: ${offer.status}` }, 409);
+  }
+
+  offer.status = 'cancelled';
+  await c.env.AUTH_KV.put(`offer:${offerId}`, JSON.stringify(offer), { expirationTtl: OFFER_TTL });
+
+  if (offer.tgMessageId) {
+    await tgApi(c.env, 'editMessageText', {
+      chat_id: c.env.TG_CHAT_ID,
+      message_id: offer.tgMessageId,
+      text: offerTgText(offer) + `\n\n🚫 <b>Отозвано</b>`,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
+    });
+  }
+
   return c.json({ ok: true });
 });
 

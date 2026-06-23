@@ -819,6 +819,7 @@
       <button class="filter-btn" id="export-btn" onclick="exportToExcel()" style="display:none;font-size:11px;padding:5px 12px;color:var(--support);border-color:var(--support-glow)">↓ Excel</button>
       <button class="admin-btn" id="history-btn" onclick="openHistoryPanel()" style="display:none;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:#a78bfa">🕐 История</button>
       <button class="admin-btn" id="swap-btn" onclick="openSwapPanel()" style="display:none;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#34d399">🔄 Отдать смену</button>
+      <button class="admin-btn" id="offer-btn" onclick="openOfferPanel()" style="display:none;background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.3);color:#fbbf24">📢 Предложить смену</button>
       <button class="admin-btn" id="migrate-patterns-btn" onclick="migrateHardcodedPatterns()" style="display:none;background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60a5fa" title="Перенести захардкоженные паттерны в настройки">📌 Паттерны</button>
       <button class="admin-btn" id="admin-btn" onclick="openAdmin()">✏ Редактировать</button>
       <button class="admin-btn" id="positions-btn" onclick="togglePositionsMode()" style="display:none;background:rgba(245,158,66,0.1);border-color:rgba(245,158,66,0.3);color:var(--ops)">⇅ Позиции</button>
@@ -895,6 +896,15 @@
       <span class="legend-item"><span class="legend-dot" style="background:#f87171"></span>✈ Отпуск</span>
       <span class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span>🤒 Больничный</span>
       <span class="legend-item"><span style="font-size:13px;font-weight:700;color:var(--muted)">—</span> Выходной</span>
+    </div>
+
+    <!-- ОТКРЫТЫЕ ПРЕДЛОЖЕНИЯ СМЕН -->
+    <div id="offers-panel" style="display:none;margin-bottom:16px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px;color:#fbbf24">📢 Открытые предложения смен</div>
+        <button onclick="loadOffers()" style="background:transparent;border:1px solid rgba(251,191,36,0.3);color:#fbbf24;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">↻ Обновить</button>
+      </div>
+      <div id="offers-list"><div style="color:var(--muted);font-size:13px">Загрузка...</div></div>
     </div>
 
     <!-- FILTERS -->
@@ -1094,6 +1104,52 @@
     <div class="admin-panel-footer">
       <button class="btn-cancel" onclick="closeSwapPanel()">Отмена</button>
       <button class="btn-save" id="swap-submit" onclick="submitSwapRequest()">Отправить заявку</button>
+    </div>
+  </div>
+</div>
+
+<!-- ПРЕДЛОЖЕНИЕ СМЕНЫ -->
+<div class="admin-overlay" id="offer-overlay" onclick="if(event.target===this)closeOfferPanel()">
+  <div class="admin-panel" style="width:420px">
+    <div class="admin-panel-header">
+      <div class="admin-panel-title">📢 Предложить смену</div>
+      <button class="close-btn" onclick="closeOfferPanel()">✕</button>
+    </div>
+    <div class="admin-panel-body">
+      <div class="admin-field">
+        <div class="admin-label">Кто отдаёт</div>
+        <select class="admin-select" id="offer-giver" onchange="offerOnGiverChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Дата и смена</div>
+        <select class="admin-select" id="offer-date" onchange="offerOnDateChange()"></select>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Часы (с / по)</div>
+        <div style="display:flex;gap:8px">
+          <select class="admin-select" id="offer-from" onchange="offerOnFromChange()" style="flex:1"></select>
+          <select class="admin-select" id="offer-to" onchange="offerOnRangeChange()" style="flex:1"></select>
+        </div>
+        <div class="admin-label" id="offer-hours-label" style="margin-top:6px;text-transform:none"></div>
+      </div>
+      <div class="admin-field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="offer-lunch" style="width:18px;height:18px;accent-color:#fbbf24;cursor:pointer;flex-shrink:0" />
+          <span class="admin-label" style="margin:0;text-transform:none">Отдать смену вместе с обедом</span>
+        </label>
+      </div>
+      <div class="admin-field">
+        <div class="admin-label">Комментарий (необязательно)</div>
+        <input type="text" class="admin-input" id="offer-comment" maxlength="300" placeholder="Причина, пожелания..." />
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5">
+        Предложение появится в списке для всех операторов. Кто-то сможет забрать вашу смену — заявка уйдёт ТЛ на апрув.
+      </div>
+      <div class="save-msg" id="offer-msg"></div>
+    </div>
+    <div class="admin-panel-footer">
+      <button class="btn-cancel" onclick="closeOfferPanel()">Отмена</button>
+      <button class="btn-save" id="offer-submit" onclick="submitOfferRequest()" style="background:rgba(251,191,36,0.2);border-color:rgba(251,191,36,0.4);color:#fbbf24">Разместить предложение</button>
     </div>
   </div>
 </div>
@@ -1600,6 +1656,7 @@ const collapsedSections = new Set();
   updateColumnHighlight();
   setTimeout(initStickyDatesBar, 0);
   initSwapUi();
+  initOfferUi();
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -1643,6 +1700,7 @@ async function switchMonth(year, month) {
   updateColumnHighlight();
   setTimeout(initStickyDatesBar, 0);
   initSwapUi();
+  initOfferUi();
 }
 
 function updateMonthNav() {
@@ -3925,6 +3983,258 @@ function showToast(msg, type) {
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ────────────────────────────────────────────
+// ── ПРЕДЛОЖЕНИЕ СМЕНЫ (shift offer) ──
+// ────────────────────────────────────────────
+
+function initOfferUi() {
+  const btn = document.getElementById('offer-btn');
+  if (!btn) return;
+  const myName = swapFindMyName();
+  btn.style.display = (myName && swapGroupOf(myName)) ? 'flex' : 'none';
+  if (myName) loadOffers();
+}
+
+function openOfferPanel() {
+  const myName = swapFindMyName();
+  const giverSel = document.getElementById('offer-giver');
+  if (!myName || !swapGroupOf(myName)) { showToast('Ваш email не привязан к оператору в графике', 'err'); return; }
+  giverSel.innerHTML = `<option value="${myName}">${myName}</option>`;
+  giverSel.disabled = true;
+  document.getElementById('offer-comment').value = '';
+  document.getElementById('offer-lunch').checked = false;
+  document.getElementById('offer-msg').className = 'save-msg';
+  offerOnGiverChange();
+  document.getElementById('offer-overlay').classList.add('open');
+}
+
+function closeOfferPanel() {
+  document.getElementById('offer-overlay').classList.remove('open');
+}
+
+function offerOnGiverChange() {
+  const giver = document.getElementById('offer-giver').value;
+  const dateSel = document.getElementById('offer-date');
+  const isCurrent = TODAY_REAL_DATE.getFullYear() === YEAR && TODAY_REAL_DATE.getMonth() + 1 === MONTH;
+  const isPast = new Date(YEAR, MONTH - 1, 1) < new Date(TODAY_REAL_DATE.getFullYear(), TODAY_REAL_DATE.getMonth(), 1);
+  let minDay = 1;
+  if (isCurrent) minDay = TODAY_REAL_DATE.getDate();
+  const opts = [];
+  if (!isPast) {
+    for (let d = minDay; d <= DAYS.length; d++) {
+      const type = getShift(giver, d - 1);
+      if (!SWAP_GIVABLE[type]) continue;
+      if (swapRemainingHours(giver, d, type) <= 0) continue;
+      opts.push(`<option value="${d}|${type}">${String(d).padStart(2,'0')}.${String(MONTH).padStart(2,'0')} · ${swapShiftLabelOf(type)}</option>`);
+    }
+  }
+  dateSel.innerHTML = opts.length ? opts.join('') : '<option value="">Нет смен для предложения</option>';
+  offerOnDateChange();
+}
+
+function offerSelectedDateInfo() {
+  const v = document.getElementById('offer-date').value;
+  if (!v) return null;
+  const [dStr, type] = v.split('|');
+  const d = parseInt(dStr, 10);
+  return { d, type, dateObj: new Date(YEAR, MONTH - 1, d), win: SWAP_GIVABLE[type] };
+}
+
+function offerOnDateChange() {
+  const info = offerSelectedDateInfo();
+  const fromSel = document.getElementById('offer-from');
+  const toSel = document.getElementById('offer-to');
+  if (!info) { fromSel.innerHTML = ''; toSel.innerHTML = ''; offerOnRangeChange(); return; }
+  const [w0, w1] = info.win;
+  let f = '';
+  for (let h = w0; h < w1; h++) f += `<option value="${h}">${swapFmtH(h)}</option>`;
+  fromSel.innerHTML = f;
+  fromSel.value = String(w0);
+  offerOnFromChange(true);
+}
+
+function offerOnFromChange(keepFull) {
+  const info = offerSelectedDateInfo();
+  const toSel = document.getElementById('offer-to');
+  if (!info) { toSel.innerHTML = ''; offerOnRangeChange(); return; }
+  const [, w1] = info.win;
+  const from = parseInt(document.getElementById('offer-from').value, 10);
+  let t = '';
+  for (let h = from + 1; h <= w1; h++) t += `<option value="${h}">${swapFmtH(h)}${h > 24 ? ' (+1д)' : ''}</option>`;
+  toSel.innerHTML = t;
+  toSel.value = String(w1);
+  offerOnRangeChange();
+}
+
+function offerComputedHours() {
+  const info = offerSelectedDateInfo();
+  if (!info) return { hours: 0, remaining: 0, from: 0, to: 0 };
+  const from = parseInt(document.getElementById('offer-from').value, 10);
+  const to = parseInt(document.getElementById('offer-to').value, 10);
+  const remaining = swapRemainingHours(document.getElementById('offer-giver').value, info.d, info.type);
+  if (isNaN(from) || isNaN(to) || to <= from) return { hours: 0, remaining, from: 0, to: 0 };
+  return { hours: Math.min(to - from, remaining), remaining, from, to };
+}
+
+function offerOnRangeChange() {
+  const { hours, remaining } = offerComputedHours();
+  const lbl = document.getElementById('offer-hours-label');
+  lbl.textContent = hours > 0 ? `Будет предложено: ${hours}ч (доступно ${remaining}ч)` : 'Выберите корректный диапазон';
+}
+
+async function submitOfferRequest() {
+  const info = offerSelectedDateInfo();
+  const { hours, from, to } = offerComputedHours();
+  const giver = document.getElementById('offer-giver').value;
+  const msg = document.getElementById('offer-msg');
+  const btn = document.getElementById('offer-submit');
+
+  if (!info || hours <= 0) { msg.textContent = 'Выберите смену и корректный диапазон часов'; msg.className = 'save-msg err show'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Публикация...';
+  msg.className = 'save-msg';
+
+  try {
+    const res = await fetch(`${API}/shift-offer`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: SWAP_PROJECT,
+        month: `${YEAR}-${String(MONTH).padStart(2,'0')}`,
+        date: dateStr(info.d),
+        giver,
+        shiftKey: info.type,
+        shiftLabel: swapShiftLabelOf(info.type),
+        range: swapFmtRange(from, to),
+        win: [from, to],
+        hours,
+        withLunch: document.getElementById('offer-lunch').checked,
+        comment: document.getElementById('offer-comment').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      closeOfferPanel();
+      showToast('Предложение размещено', 'ok');
+      loadOffers();
+    } else {
+      msg.textContent = data.error || 'Ошибка публикации';
+      msg.className = 'save-msg err show';
+    }
+  } catch {
+    msg.textContent = 'Ошибка сети';
+    msg.className = 'save-msg err show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Разместить предложение';
+  }
+}
+
+let offersCache = [];
+
+async function loadOffers() {
+  const month = `${YEAR}-${String(MONTH).padStart(2,'0')}`;
+  try {
+    const res = await fetch(`${API}/shift-offers?project=${SWAP_PROJECT}&month=${month}`, { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    offersCache = data.offers || [];
+    renderOffers();
+  } catch {}
+}
+
+function renderOffers() {
+  const panel = document.getElementById('offers-panel');
+  const list = document.getElementById('offers-list');
+  const myName = swapFindMyName();
+  const open = offersCache.filter(o => o.status === 'open');
+
+  if (open.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  list.innerHTML = open.map(o => {
+    const isOwn = o.giverEmail === currentUser?.email;
+    const d = new Date(o.date);
+    const dFmt = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lunch = o.withLunch ? ' · с обедом' : '';
+    const comment = o.comment ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">💬 ${o.comment}</div>` : '';
+    const takeBtn = !isOwn && myName
+      ? `<button onclick="takeOffer('${o.id}', '${myName.replace(/'/g,"\\'")}', this)" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;border-radius:6px;padding:5px 14px;font-size:13px;cursor:pointer;font-weight:600;white-space:nowrap">🙋 Забрать</button>`
+      : '';
+    const cancelBtn = isOwn
+      ? `<button onclick="cancelOffer('${o.id}', this)" style="background:transparent;border:1px solid rgba(248,113,113,0.3);color:#f87171;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap">Отозвать</button>`
+      : '';
+    return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:var(--text)">
+          <span style="color:#fbbf24">${o.giver}</span>
+          <span style="color:var(--muted);font-weight:400"> · ${dFmt} · ${o.shiftLabel}</span>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px">${o.range} · ${o.hours}ч${lunch}</div>
+        ${comment}
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;align-items:center">${takeBtn}${cancelBtn}</div>
+    </div>`;
+  }).join('');
+}
+
+async function takeOffer(offerId, takerName, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Отправка...';
+  try {
+    const res = await fetch(`${API}/shift-offer/take`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ offerId, takerName }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Заявка отправлена ТЛ на рассмотрение', 'ok');
+      loadOffers();
+    } else {
+      showToast(data.error || 'Ошибка', 'err');
+      btn.disabled = false;
+      btn.textContent = '🙋 Забрать';
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
+    btn.disabled = false;
+    btn.textContent = '🙋 Забрать';
+  }
+}
+
+async function cancelOffer(offerId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Отзываю...';
+  try {
+    const res = await fetch(`${API}/shift-offer/cancel`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ offerId }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      showToast('Предложение отозвано', 'ok');
+      loadOffers();
+    } else {
+      showToast(data.error || 'Ошибка', 'err');
+      btn.disabled = false;
+      btn.textContent = 'Отозвать';
+    }
+  } catch {
+    showToast('Ошибка сети', 'err');
+    btn.disabled = false;
+    btn.textContent = 'Отозвать';
+  }
 }
 
 // ── Pattern Modal ──

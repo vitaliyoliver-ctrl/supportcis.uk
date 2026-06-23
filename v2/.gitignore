@@ -1,0 +1,4 @@
+# Локальные/секретные файлы — не коммитим (в репозитории только .env.example).
+.env
+docker-compose.override.yml
+kv-dump.json

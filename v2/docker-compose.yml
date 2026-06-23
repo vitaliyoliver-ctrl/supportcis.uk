@@ -6,6 +6,10 @@
 #
 # TLS/домен вешается вашим реверс-прокси (nginx/Traefik/Caddy) перед app:8787.
 
+# Фиксируем имя проекта — том БД (supportcis_pgdata) не зависит от имени каталога,
+# поэтому каталог можно переносить/переименовывать без потери данных.
+name: supportcis
+
 services:
   db:
     image: postgres:16-alpine

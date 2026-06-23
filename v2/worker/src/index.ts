@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
+import type { Store } from './store';
 
 // ── Типы окружения ────────────────────────────────────────────────────────────
 
-type Env = {
-  AUTH_KV: KVNamespace;
-  ASSETS: Fetcher;
+export type Env = {
+  AUTH_KV: Store;                 // хранилище ключ→JSON (Postgres/иное), см. store.ts
   RESEND_API_KEY: string;
   RESEND_FROM: string;            // напр. "SupportCIS <noreply@plevantis.net>"
   TG_BOT_TOKEN: string;
@@ -695,6 +695,10 @@ app.post('/api/ops/structure', async (c) => {
   await c.env.AUTH_KV.put('ops-structure', JSON.stringify(body));
   return c.json({ ok: true });
 });
+
+// ── Health (liveness для Docker/реверс-прокси) ──────────────────────────────────
+
+app.get('/api/health', (c) => c.json({ ok: true }));
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 

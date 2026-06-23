@@ -1,286 +1,161 @@
 # SupportCIS v2 — Архитектура
 
-## Проблемы v1, которые решаем
+Внутренний портал поддержки. Цель v2 — убрать боль v1 (21 000 строк в 20 HTML без
+сборки, 4 разрозненных воркера, хардкод сотрудников) и сделать переносимую версию
+для самохостинга на своём сервере.
 
-| Боль | Причина | Решение |
-|---|---|---|
-| График — хардкод, который перетирается API | Люди/паттерны в JS, overrides в KV | Всё в Postgres |
-| 21 000 строк в 20 HTML-файлах | Нет сборки, нет компонентов | React + Vite |
-| 4 разрозненных воркера | Органический рост | Один CF Worker как API |
-| Добавить сотрудника = редактировать исходник | EMPLOYEES захардкожен | Таблица employees |
-| Нет типов | Ванильный JS | TypeScript |
+## Что решили относительно v1
+
+| Боль v1 | Решение v2 |
+|---|---|
+| Нет сборки, нет компонентов | React 18 + TypeScript + Vite |
+| 4 разрозненных воркера на разных `*.workers.dev` | Один Node-процесс (Hono) — фронт + API |
+| Привязка к Cloudflare (Workers + KV) | Docker + PostgreSQL, разворачивается где угодно |
+| Нет типов | TypeScript на фронте и сервере |
 
 ---
 
-## Технологический стек
+## Стек
 
 ```
-Фронт: React 18 + TypeScript + Vite
-UI:    Tailwind CSS + shadcn/ui (или ручные компоненты — решить при старте UI)
-Таблицы/грид: TanStack Table v8
-Деплой фронта: Cloudflare Pages
-
-API:   Один Cloudflare Worker (Hono или raw fetch)
-Сессии: Cloudflare KV (auth_token → {email, role}) — не трогаем
-Данные: Supabase Postgres
-
-Почта:    Resend (без изменений)
-Telegram: бот апрува свапов (без изменений)
-Teams:    Webhook (без изменений)
+Фронт:   React 18 + TypeScript + Vite   → собирается в app/dist
+API:     Hono (рантайм-независимый роутер) на @hono/node-server
+Рантайм: Node 20, один контейнер отдаёт и статику SPA, и /api/*
+Данные:  PostgreSQL (одна таблица kv: ключ → JSON + TTL)
+Перерывы: Supabase Realtime (общий проект компании)
+Почта:    Resend (коды входа)
+Telegram: бот апрува свапов (вебхук на /api/tg-webhook)
+Отчёты:   Power Automate (потоки компании)
+Упаковка: Docker + docker-compose (app + postgres)
 ```
+
+Cloudflare больше не используется. API писался на Hono, который одинаково
+работает и на Workers, и на Node — поэтому переезд не потребовал переписывания
+маршрутов (см. ниже).
 
 ---
 
 ## Структура репозитория
 
 ```
-supportcis-v2/           ← новый репо (рабочий GitHub аккаунт)
-├── app/                 ← React SPA (Vite)
+v2/
+├── app/                      ← React SPA (Vite)
 │   ├── src/
-│   │   ├── pages/       ← маршруты: schedule, breaks, sales, report, tl/*, ops/*
-│   │   ├── components/  ← переиспользуемые: ShiftCell, ScheduleGrid, SwapModal...
-│   │   ├── lib/         ← api.ts, schedule.ts (логика вычисления смен), types.ts
+│   │   ├── pages/            ← schedule, breaks, sales, report, champions, tl/*, ops/*
+│   │   ├── pages/schedule/   ← ScheduleSection, StatsBar, PatternModal, SwapModal, ...
+│   │   ├── lib/              ← scheduleLogic.ts (расчёт смен), shiftDefs.ts,
+│   │   │                       seed.ts / seedNk.ts (сотрудники+паттерны), api.ts
 │   │   └── main.tsx
-│   ├── index.html
 │   └── vite.config.ts
-├── worker/              ← Cloudflare Worker (API)
+├── worker/                   ← сервер (бывший Cloudflare Worker)
 │   ├── src/
-│   │   ├── index.ts     ← роутер (Hono)
-│   │   ├── auth.ts      ← send-code, verify-code, check, logout, roles
-│   │   ├── schedule.ts  ← GET/POST /api/schedule
-│   │   ├── swap.ts      ← swap-request, tg-webhook
-│   │   ├── profile.ts
-│   │   └── sales.ts
-│   └── wrangler.toml
-├── supabase/
-│   └── migrations/      ← SQL-миграции
-└── ARCHITECTURE.md
+│   │   ├── index.ts          ← все маршруты /api/* (Hono), рантайм-независимы
+│   │   ├── server.ts         ← Node-входная точка: статика SPA + API + Postgres
+│   │   └── store.ts          ← адаптер Store (get/put/delete + TTL) на Postgres
+│   └── tools/                ← перенос данных (kv-export, kv-import-pg)
+├── Dockerfile                ← multi-stage сборка → slim-рантайм
+├── docker-compose.yml        ← app + postgres + volume
+├── DEPLOY.md                 ← как развернуть
+└── HANDOFF.md                ← памятка DevOps
 ```
 
 ---
 
-## Схема базы данных (Supabase Postgres)
+## Модель хранения
 
-### employees
+Cloudflare KV использовался как «ключ → JSON-строка». При переезде этот же
+интерфейс реализован на Postgres — одна таблица:
+
 ```sql
-CREATE TABLE employees (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name         TEXT NOT NULL UNIQUE,          -- "Oliver", "Jordan"  (display name)
-  email        TEXT NOT NULL,
-  position     TEXT NOT NULL DEFAULT '',
-  hired_at     DATE,
-  dismissed_at DATE,                           -- NULL = работает
-  hours        SMALLINT,                       -- персональные часы (NULL = из типа смены)
-  section_id   UUID REFERENCES sections(id),
-  sort_order   INT NOT NULL DEFAULT 0,
-  created_at   TIMESTAMPTZ DEFAULT now()
+CREATE TABLE kv (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,          -- JSON-строка
+  expires_at TIMESTAMPTZ             -- NULL = вечный ключ; не-NULL = TTL
 );
 ```
 
-### sections
-```sql
-CREATE TABLE sections (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key        TEXT NOT NULL UNIQUE,   -- 'regular_support', 'vip_support', 'management', 'qa'
-  label      TEXT NOT NULL,
-  color      TEXT NOT NULL DEFAULT 'blue',
-  sort_order INT NOT NULL DEFAULT 0
-);
-```
+Адаптер `worker/src/store.ts` (`Store`: `get` / `put` / `delete` + чистка
+протухших) инкапсулирует БД — маршруты в `index.ts` про Postgres не знают и не
+менялись при переезде. Сменить БД (Redis/SQLite) = новая реализация `Store`.
 
-### shift_types
-```sql
--- Таблица-реестр типов смен (заменяет SHIFT_DEFS в JS)
-CREATE TABLE shift_types (
-  key        TEXT PRIMARY KEY,  -- 'morning', 'evening', 'off', 'super_day', ...
-  label      TEXT NOT NULL,
-  category   TEXT NOT NULL,     -- 'Regular', 'VIP', 'Sup', 'Mgmt', 'Other'
-  hours      SMALLINT NOT NULL DEFAULT 0,
-  win_start  SMALLINT,          -- начало окна в часах (может быть NULL для 'off')
-  win_end    SMALLINT,          -- конец (>24 = переходит на след. день)
-  is_night   BOOLEAN NOT NULL DEFAULT false,
-  is_extra   BOOLEAN NOT NULL DEFAULT false,
-  base_key   TEXT REFERENCES shift_types(key),  -- для isExtra: ссылка на базовый тип
-  givable    BOOLEAN NOT NULL DEFAULT false,
-  legacy     BOOLEAN NOT NULL DEFAULT false
-);
-```
+### Ключи
 
-### shift_patterns
-```sql
--- Версионируемые циклические паттерны (заменяет BASE_PATTERNS + operatorPatterns v2)
-CREATE TABLE shift_patterns (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  employee_id  UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-  cycle_start  DATE NOT NULL,
-  pattern      TEXT[] NOT NULL,   -- ['morning','off','off','evening','evening','off','off','morning']
-  priority     INT NOT NULL DEFAULT 0,  -- выше = важнее при перекрытии
-  created_at   TIMESTAMPTZ DEFAULT now(),
-  created_by   TEXT,
-  UNIQUE(employee_id, cycle_start)
-);
-```
+| Ключ | Содержимое | TTL |
+|---|---|---|
+| `roles` | `{ tl[], supervisor[], ops[] }` | — |
+| `profiles` | карта `email → профиль` | — |
+| `schedule:{project}:{month}` | `{ overrides, settings, version, log }` (project = `sg`/`nk`) | — |
+| `sales` | данные продаж по месяцам | — |
+| `ops-structure` | оргструктура и оплаты | — |
+| `session:{token}` | `{ email, role }` | 7 дней |
+| `otp:{email}` | код входа + попытки | 10 минут |
+| `swap:{id}` | заявка на обмен смен | TTL |
 
-### schedule_overrides
-```sql
--- Ручные правки и автоматические (свапы, больничные, отпуска)
--- Заменяет scheduleOverrides в KV
-CREATE TABLE schedule_overrides (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  employee_id  UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-  date         DATE NOT NULL,
-  shift_key    TEXT NOT NULL REFERENCES shift_types(key),
-  extra_events JSONB NOT NULL DEFAULT '[]',  -- [{type, hours, range, swapWith, ...}]
-  custom_hours SMALLINT,
-  note         TEXT,
-  edited_by    TEXT,
-  edited_at    TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(employee_id, date)
-);
-
--- Быстрый запрос «все overrides за месяц»
-CREATE INDEX ON schedule_overrides (date);
-```
-
-### swaps
-```sql
-CREATE TABLE swaps (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  status           TEXT NOT NULL DEFAULT 'pending', -- pending | approved | denied
-  giver_id         UUID NOT NULL REFERENCES employees(id),
-  recipient_id     UUID NOT NULL REFERENCES employees(id),
-  date             DATE NOT NULL,
-  shift_key        TEXT NOT NULL REFERENCES shift_types(key),
-  shift_label      TEXT,
-  range            TEXT,    -- '09:00–21:00'
-  hours            SMALLINT NOT NULL,
-  with_lunch       BOOLEAN NOT NULL DEFAULT false,
-  win              SMALLINT[],  -- [start_h, end_h] или NULL
-  comment          TEXT,
-  tg_message_id    BIGINT,
-  decided_by       TEXT,
-  decided_at       TIMESTAMPTZ,
-  created_at       TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### schedule_log
-```sql
--- Аудит-лог изменений (заменяет log[] в KV)
-CREATE TABLE schedule_log (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  at          TIMESTAMPTZ DEFAULT now(),
-  by          TEXT NOT NULL,
-  action      TEXT NOT NULL,
-  target_name TEXT,
-  month       TEXT         -- '2026-07' для быстрой фильтрации
-);
-```
+Сотрудники, секции и базовые паттерны — **сид в коде** (`app/src/lib/seed.ts`,
+`seedNk.ts`), а не в БД: это статичные справочные данные, редактируются в
+исходнике и попадают в сборку. Изменяемое состояние графика (overrides, кастомные
+паттерны, лог) хранится в `schedule:*` в Postgres.
 
 ---
 
-## Логика вычисления смены (schedule.ts)
+## Логика вычисления смены (`app/src/lib/scheduleLogic.ts`)
 
-```typescript
-// Вместо getShift() в 4000-строчном файле:
-function resolveShift(employeeId: string, date: Date, overrides: Map<string, Override>, patterns: ShiftPattern[]): string {
-  // 1. Override
-  const ov = overrides.get(`${employeeId}:${dateStr(date)}`);
-  if (ov) return ov.shift_key;
+Приоритет: **override → увольнение → кастомный паттерн → базовый паттерн (сид)**.
 
-  // 2. Уволен
-  const emp = getEmployee(employeeId);
-  if (emp.dismissed_at && date > emp.dismissed_at) return 'dismissed';
-
-  // 3. Паттерн (сортированы по cycle_start desc — берём первый <= date)
-  const pattern = patterns
-    .filter(p => p.employee_id === employeeId && p.cycle_start <= date)
-    .sort((a, b) => b.cycle_start.getTime() - a.cycle_start.getTime())[0];
-  if (pattern) {
-    const diff = daysBetween(pattern.cycle_start, date);
-    return pattern.pattern[diff % pattern.pattern.length];
-  }
-
-  return 'off';
+```ts
+function getShift(name, date, overrides, dismissed, operatorPatterns, baseShifts) {
+  if (overrides[`${name}:${ds(date)}`]) return overrides[...].type;   // 1. ручная правка
+  if (dismissed[name] && ds(date) > dismissed[name]) return 'dismissed'; // 2. уволен
+  const p = getPatternShift(name, date, operatorPatterns);            // 3. кастомный паттерн
+  if (p !== null) return p;
+  return baseShifts[name]?.(date) ?? 'off';                           // 4. базовый цикл
 }
 ```
 
-Весь хардкод (`BASE_PATTERNS`, `getSuperTeamShift`, `EMPLOYEES`) становится **seed-данными** в SQL-миграции — заполняется один раз при деплое, потом редактируется через админку.
+Паттерны **версионируемые**: смена ротации добавляет запись `{ pattern, cycleStart, v }`
+с новой датой начала, старые не удаляются (на прошедшие дни действует прежняя
+запись). Активная запись — последняя с `cycleStart <= date`. Пресеты в
+`shiftDefs.ts` выровнены так, чтобы `pattern[0]` приходился на начало рабочего
+блока (иначе старт цикла с произвольной даты схлопывал первый блок).
 
 ---
 
-## Маршруты API (один Worker)
+## Маршруты API (`worker/src/index.ts`)
 
 ```
-POST  /api/auth/send-code
-POST  /api/auth/verify-code
+GET   /api/health                       ← liveness для Docker/реверс-прокси
+POST  /api/auth/request-code            ← отправка кода (Resend)
+POST  /api/auth/verify-code             ← проверка кода → сессия (cookie)
 GET   /api/auth/check
 POST  /api/auth/logout
-
-GET   /api/schedule?month=&project=
-POST  /api/schedule?month=&project=
-GET   /api/schedule/employees        ← новый: список сотрудников из Postgres
-POST  /api/schedule/employees        ← добавить/обновить сотрудника
-GET   /api/schedule/patterns/:id
-POST  /api/schedule/patterns
-
+GET   /api/schedule?project=&month=     ← блоб графика из Postgres
+POST  /api/schedule?project=&month=     ← сохранение (оптимистичная блокировка по version)
 POST  /api/swap-request
-POST  /api/tg-webhook
-
-GET   /api/profile
-POST  /api/profile
-GET   /api/profiles
-POST  /api/roles
-
-GET   /api/sales/data
-POST  /api/sales/upload
+POST  /api/tg-webhook                   ← апрув/отказ свапа из Telegram
+GET   /api/profile      POST /api/profile
+GET   /api/profiles     POST /api/roles
+GET   /api/sales/data   POST /api/sales/upload
+GET   /api/ops/structure POST /api/ops/structure
 ```
+
+Вход: код на корпоративную почту (домены из `ALLOWED_DOMAINS`) через Resend.
+Первый вход с `OWNER_EMAIL` выдаёт роль TL, дальше роли раздаются в интерфейсе.
 
 ---
 
-## План миграции (поэтапно)
+## Развёртывание
 
-### Этап 0 — Подготовка (этот документ + скелет)
-- [x] ARCHITECTURE.md
-- [ ] Создать репо `supportcis-v2` в рабочем GitHub
-- [ ] Инициализировать Vite + React + TS + Tailwind
-- [ ] Настроить `wrangler.toml` для Worker
-- [ ] Создать Supabase-проект (рабочий аккаунт)
-- [ ] Написать первую SQL-миграцию (схема + seed из EMPLOYEES/BASE_PATTERNS)
-
-### Этап 1 — График
-- [ ] API: GET/POST /api/schedule читает из Postgres
-- [ ] Перенести resolveShift() в `app/src/lib/schedule.ts`
-- [ ] Компонент ScheduleGrid (замена 4000-строчного файла)
-- [ ] Компонент ShiftEditor (редактор клетки)
-- [ ] SwapModal
-- [ ] Тесты resolveShift() (Jest/Vitest)
-
-### Этап 2 — Auth + роли
-- [ ] Перенести auth-worker в worker/src/auth.ts
-- [ ] Управление ролями из Postgres (или остаётся KV — решить)
-
-### Этап 3 — Остальные страницы
-- [ ] Breaks (Supabase Realtime — уже есть)
-- [ ] Sales
-- [ ] Reports (TL daily, FCR, Champions)
-- [ ] Ops pages
-
-### Этап 4 — Переезд инфры
-- [ ] Worker + CF Pages задеплоить в рабочий CF аккаунт
-- [ ] DNS supportcis.uk → новый аккаунт
-- [ ] Перенести Supabase-проект
-- [ ] Обновить TG webhook URL
-- [ ] Перенести секреты (RESEND, TG, TG_WEBHOOK_SECRET)
-- [ ] Отключить старые воркеры / GitHub Pages
+Один образ (multi-stage Dockerfile): собирается фронт (`app/dist`), собирается
+сервер (esbuild → `dist/server.js`), затем slim-рантайм отдаёт и то, и другое.
+`docker compose up -d --build` поднимает `app` + `postgres`. Схема `kv` создаётся
+автоматически при старте. TLS/домен — внешним reverse-proxy. Подробно — `DEPLOY.md`.
 
 ---
 
 ## Правила разработки
 
-1. **Данные — в Postgres, кэш — в KV, UI-состояние — в React state/query**
-2. **Один Worker — один репо** — нет разрозненных `*.workers.dev`
-3. **Seed ≠ хардкод** — данные о сотрудниках живут в БД, в исходниках только логика
-4. **Паттерны версионируемые** — при смене ротации создаём новый паттерн с новым cycle_start, старые не удаляем (история)
-5. **Типы смен в БД** — shift_types — единый реестр, JS-код не знает конкретных типов
-6. **Свапы атомарны** — applySwap() начинает транзакцию в Postgres, либо всё либо ничего
+1. **Маршруты рантайм-независимы** — вся специфика среды в `server.ts` и `store.ts`.
+2. **Изменяемое состояние — в Postgres, справочники (сотрудники/паттерны) — сид в коде.**
+3. **Паттерны версионируемые** — новая ротация = новая запись, история не теряется.
+4. **Типы смен — единый реестр** (`shiftDefs.ts`), UI не хардкодит конкретику.
+5. **Сохранение графика оптимистично** — по полю `version`, конфликт → 409.

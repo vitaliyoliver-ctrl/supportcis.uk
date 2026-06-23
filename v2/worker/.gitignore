@@ -1,6 +1,3 @@
 node_modules/
-.wrangler/
-.dev.vars
-# Локальный конфиг деплоя с реальными id/доменами аккаунта (не коммитим — в
-# репозитории wrangler.toml остаётся с плейсхолдерами для передачи девопсу).
-wrangler.local.toml
+dist/
+.env

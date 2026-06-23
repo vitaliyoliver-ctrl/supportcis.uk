@@ -1,50 +1,39 @@
-# Инструменты переноса данных (KV)
+# Инструменты переноса данных
 
-Все скрипты аккаунт-агностичны: id namespace передаётся аргументом, в коде ничего
-не зашито. Нужен установленный и залогиненный `wrangler` (`npx wrangler login`).
+Текущие данные лежат в Cloudflare KV исходного аккаунта. Для self-hosting на
+Postgres перенос в два шага: **выгрузить дамп из KV** → **залить в Postgres**.
 
-## Перенос v2 → v2 (передача проекта девопсу)
-
-Сценарий: данные уже лежат в KV вашего тестового воркера, нужно поднять копию
-на другом аккаунте Cloudflare.
+## Перенос KV → Postgres (основной путь)
 
 ```bash
-# 1. (исходный аккаунт) выгрузить весь KV в файл
-node kv-export.mjs <SOURCE_NAMESPACE_ID> kv-dump.json
+# 1. (где есть доступ к KV) выгрузить весь namespace в JSON
+#    нужен залогиненный wrangler: npx wrangler login
+node kv-export.mjs <CF_NAMESPACE_ID> kv-dump.json
 
-# 2. (целевой аккаунт) создать свой namespace
-npx wrangler kv namespace create AUTH_KV     # вернёт id → в wrangler.toml
-
-# 3. (целевой аккаунт) залить дамп
-node kv-import.mjs <TARGET_NAMESPACE_ID> kv-dump.json
+# 2. (из каталога worker/, там установлен пакет pg) залить дамп в Postgres
+cd ..
+node tools/kv-import-pg.mjs tools/kv-dump.json "postgres://USER:PASS@HOST:5432/DB"
+#    (строку подключения можно не передавать — возьмётся из $DATABASE_URL)
 ```
 
-Переносятся все ключи разом: сессии, коды, роли, профили, график, продажи,
-оргструктура.
+- Переносятся все «вечные» ключи: роли, профили, график (SG/НК), продажи,
+  оргструктура.
+- Эфемерные ключи (`session:`, `otp:`, `swap:`) **пропускаются** — они одноразовые
+  и пересоздаются сами; перенос оставил бы протухшие сессии.
+- Импорт идемпотентен (upsert) — можно повторять, обновляя данные свежим дампом.
 
-## Первичный перенос из v1 (одноразово, только исходный владелец)
+## Файлы
 
-`migrate-v1-to-v2.ps1` конвертирует схему старых воркеров v1 в формат v2
-(график, профили, роли). Id namespace'ов v1 передаются параметрами:
+| Скрипт | Назначение |
+|---|---|
+| `kv-export.mjs` | выгрузка KV namespace → JSON (`[{key,value}]`). Нужен `wrangler`. |
+| `kv-import-pg.mjs` | импорт этого JSON в Postgres-таблицу `kv` (см. `src/store.ts`). Нужен `pg`. |
 
-```powershell
-.\migrate-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -OpsKv <v1_OPS_KV> -TargetKv <v2_KV> -Apply
-```
+## Легаси (история, для self-hosting не нужны)
 
-> Продажи и оргструктура из v1 переносятся отдельно (ключи `sales` и
-> `ops-structure` в KV v2) — см. форматы в `src/index.ts`.
+Скрипты ниже относятся к старой Cloudflare-инфраструктуре (перенос между KV) и
+оставлены в истории. Для Postgres-деплоя не используются:
 
-## Обновить график свежими данными из v1 (SG + НК)
-
-`migrate-schedule-v1-to-v2.ps1` переносит **только график** (overrides + settings +
-version + log) из v1 `SCHEDULE_KV` в v2 `AUTH_KV`, для обоих проектов (SG и НК).
-Профили/роли не трогает. Можно запускать повторно — обновляет соответствующие
-месяцы свежими данными со старого сайта. По умолчанию сухой прогон, запись — `-Apply`:
-
-```powershell
-# показать, что будет перенесено
-.\migrate-schedule-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -TargetKv <v2_AUTH_KV>
-# выполнить
-.\migrate-schedule-v1-to-v2.ps1 -SchedKv <v1_SCHEDULE_KV> -TargetKv <v2_AUTH_KV> -Apply
-```
-
+- `kv-import.mjs` — заливка дампа обратно в **CF KV** (а не в Postgres).
+- `migrate-v1-to-v2.ps1`, `migrate-schedule-v1-to-v2.ps1` — конвертация схемы
+  старых воркеров v1 в формат v2 **внутри Cloudflare KV**.

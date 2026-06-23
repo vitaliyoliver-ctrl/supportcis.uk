@@ -72,7 +72,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            'cd /opt/supportcis && docker compose up -d --build'
+            "cd /opt/supportcis && docker compose up -d --build && echo '${{ github.sha }}' > .deployed_sha"
 
       - name: Health check
         run: |

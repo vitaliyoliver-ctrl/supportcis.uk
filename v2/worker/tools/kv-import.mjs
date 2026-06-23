@@ -19,9 +19,10 @@ if (!existsSync(file)) {
   process.exit(1);
 }
 
-const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+// shell:true — иначе на Windows + Node 24 .cmd падает с EINVAL (CVE-2024-27980).
 console.error(`Importing ${file} → namespace ${nsId} …`);
-execFileSync(NPX, ['wrangler', 'kv', 'bulk', 'put', file, '--namespace-id', nsId, '--remote'], {
+execFileSync('npx', ['wrangler', 'kv', 'bulk', 'put', `"${file}"`, '--namespace-id', nsId, '--remote'], {
   stdio: 'inherit',
+  shell: true,
 });
 console.error('Done.');

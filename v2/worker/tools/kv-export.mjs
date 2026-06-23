@@ -15,9 +15,14 @@ if (!nsId) {
   process.exit(1);
 }
 
-const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+// На Windows + Node 20.12+/22/24 прямой запуск .cmd падает с EINVAL (после фикса
+// CVE-2024-27980). Идём через shell — он сам разрешит npx(.cmd) кросс-платформенно.
 const wrangler = (args) =>
-  execFileSync(NPX, ['wrangler', ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+  execFileSync('npx', ['wrangler', ...args], {
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+    shell: true,
+  });
 
 console.error(`Listing keys in ${nsId} …`);
 const keys = JSON.parse(wrangler(['kv', 'key', 'list', '--namespace-id', nsId, '--remote']))

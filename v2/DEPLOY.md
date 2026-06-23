@@ -74,22 +74,27 @@ curl "https://api.telegram.org/bot<TG_BOT_TOKEN>/setWebhook" \
 > ⚠️ Пока параллельно жив старый сайт на том же боте — для теста заведите
 > **отдельного** бота, иначе `setWebhook` перетянет боевые аппрувы свапов.
 
-## 5. Перенос данных (с текущего Cloudflare KV → Postgres)
+## 5. Перенос данных (актуальные данные → Postgres)
 
-Данные сейчас лежат в KV исходного аккаунта. Перенос — два шага (см.
-`worker/tools/README.md`):
+**Владелец отдаёт готовый файл `kv-dump.json`** (выгрузка текущих данных). Поэтому
+девопсу доступ к Cloudflare НЕ нужен — только этот файл. Заливаем его в Postgres
+контейнера (скрипт уже лежит в репозитории; `pg` есть в образе `app`):
 
 ```bash
-# 1) (владелец, где есть доступ к KV) выгрузить дамп
-cd worker/tools
-node kv-export.mjs <CF_NAMESPACE_ID> kv-dump.json
-
-# 2) залить дамп в Postgres (из каталога worker/, там установлен пакет pg)
-cd ..
-node tools/kv-import-pg.mjs tools/kv-dump.json "postgres://USER:PASS@HOST:5432/DB"
+# из каталога v2/ (контейнеры уже подняты через docker compose up)
+docker compose cp worker/tools/kv-import-pg.mjs app:/srv/kv-import-pg.mjs
+docker compose cp kv-dump.json app:/srv/kv-dump.json
+docker compose exec app node /srv/kv-import-pg.mjs /srv/kv-dump.json \
+  "postgres://${POSTGRES_USER:-supportcis}:<POSTGRES_PASSWORD>@db:5432/${POSTGRES_DB:-supportcis}"
 ```
 
-Эфемерные ключи (сессии, коды, заявки свапов) не переносятся — пересоздаются сами.
+Выведет список ключей и `Готово. Импортировано: N, пропущено эфемерных: M`. После —
+обновить страницу в браузере. Эфемерные ключи (сессии, коды, заявки свапов) не
+переносятся — пересоздаются сами. Импорт идемпотентен: можно повторять свежим дампом.
+
+> Если владелец вместо файла даёт доступ к Cloudflare — дамп делается так:
+> `cd worker && node tools/kv-export.mjs <CF_NAMESPACE_ID> kv-dump.json`
+> (нужен залогиненный `npx wrangler login`). См. `worker/tools/README.md`.
 
 ## 6. Supabase (страница «Перерывы»)
 

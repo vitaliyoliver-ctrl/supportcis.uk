@@ -1,0 +1,63 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            v2/app/package-lock.json
+            v2/worker/package-lock.json
+
+      - name: Build frontend (tsc + vite)
+        working-directory: v2/app
+        run: npm ci && npm run build
+
+      - name: Build worker (tsc + esbuild)
+        working-directory: v2/worker
+        run: npm ci && npx tsc --noEmit && npm run build
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync files to server
+        run: |
+          rsync -avz --delete \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='*.local' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT || 22 }}" \
+            v2/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/supportcis/
+
+      - name: Deploy on server
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -p ${{ secrets.SSH_PORT || 22 }} \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd /opt/supportcis && docker compose up -d --build && sleep 10 && curl -sf http://localhost:\${APP_PORT:-8787}/api/health | grep -q '\"ok\":true' && echo 'Health check passed'"

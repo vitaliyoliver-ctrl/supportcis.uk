@@ -83,6 +83,13 @@ async function getSession(c: { req: { raw: Request }; env: Env }): Promise<Sessi
 }
 
 async function sendOtpEmail(env: Env, email: string, code: string): Promise<boolean> {
+  // Dev-режим: если Resend не настроен, печатаем код входа в консоль сервера —
+  // чтобы логиниться локально без почтовой инфраструктуры. В проде RESEND_API_KEY
+  // задан, поэтому ветка не срабатывает.
+  if (!env.RESEND_API_KEY) {
+    console.log(`\n[DEV] Код входа для ${email}: ${code}\n`);
+    return true;
+  }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -107,6 +114,13 @@ async function sendOtpEmail(env: Env, email: string, code: string): Promise<bool
     console.log('Resend error', res.status, body);
   }
   return res.ok;
+}
+
+// Cookie сессии. Secure добавляем только когда сайт на https (за TLS-прокси в
+// проде). Локально по http://localhost браузер отверг бы Secure-cookie.
+function sessionCookie(env: Env, value: string, maxAge: number): string {
+  const secure = (env.SITE || '').startsWith('https://') ? ' Secure;' : '';
+  return `auth_token=${value}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${maxAge}`;
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -194,7 +208,7 @@ app.post('/api/verify-code', async (c) => {
   const token = randomToken();
   await c.env.AUTH_KV.put(`session:${token}`, JSON.stringify({ email, role }), { expirationTtl: SESSION_TTL });
 
-  c.header('Set-Cookie', `auth_token=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL}`);
+  c.header('Set-Cookie', sessionCookie(c.env, token, SESSION_TTL));
   return c.json({ ok: true, email, role });
 });
 
@@ -208,7 +222,7 @@ app.post('/api/logout', async (c) => {
   const cookie = c.req.raw.headers.get('Cookie') || '';
   const match = cookie.match(/auth_token=([a-f0-9]{64})/);
   if (match) await c.env.AUTH_KV.delete(`session:${match[1]}`);
-  c.header('Set-Cookie', 'auth_token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+  c.header('Set-Cookie', sessionCookie(c.env, '', 0));
   return c.json({ ok: true });
 });
 

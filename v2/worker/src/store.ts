@@ -27,8 +27,14 @@ export class PgStore implements Store {
   private constructor(private pool: Pool) {}
 
   // Создаёт пул, проверяет соединение и накатывает схему (идемпотентно).
-  static async create(connectionString: string): Promise<PgStore> {
-    const pool = new Pool({ connectionString });
+  // ssl=true — для управляемого Postgres (Supabase/RDS и т.п.), который требует
+  // TLS. rejectUnauthorized:false — не проверяем CA провайдера (трафик всё равно
+  // шифруется); достаточно для подключения без подкладывания сертификата.
+  static async create(connectionString: string, opts?: { ssl?: boolean }): Promise<PgStore> {
+    const pool = new Pool({
+      connectionString,
+      ...(opts?.ssl ? { ssl: { rejectUnauthorized: false } } : {}),
+    });
     await pool.query(SCHEMA);
     return new PgStore(pool);
   }

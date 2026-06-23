@@ -23,7 +23,11 @@ function requireEnv(name: string): string {
   return v;
 }
 
-const store = await PgStore.create(requireEnv('DATABASE_URL'));
+const dbUrl = requireEnv('DATABASE_URL');
+// SSL включаем для управляемого Postgres: по sslmode=require в строке подключения
+// или явным DATABASE_SSL=1. Для локального Postgres SSL не нужен.
+const dbSsl = /sslmode=require|ssl=true/i.test(dbUrl) || process.env.DATABASE_SSL === '1';
+const store = await PgStore.create(dbUrl, { ssl: dbSsl });
 
 // Окружение приложения: то, что на Cloudflare приходило через биндинги воркера.
 const appEnv: Env = {

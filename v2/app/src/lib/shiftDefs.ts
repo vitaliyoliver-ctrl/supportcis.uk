@@ -126,14 +126,20 @@ export const ALL_EXTRA_LABELS: Record<string, string> = {
 // Минимальный штат
 export const MIN_STAFF = { day: 4, night: 3, d12: 2 };
 
-// Паттерн-пресеты (для редактора паттернов)
+// Паттерн-пресеты (для редактора паттернов).
+// ВАЖНО: каждый пресет начинается с НАЧАЛА рабочего блока (день 0 = первый рабочий
+// день, а не середина блока). Паттерн применяется так, что pattern[0] приходится на
+// выбранную дату начала цикла (cycleStart), поэтому «зеркальная» запись вида
+// ['morning','off','off',...,'morning'] дала бы на старте всего 1 рабочий день
+// (2 день/2 вых разрывается на границе массива). Выровнено по блоку → старт цикла с
+// любой даты даёт чистый «2 рабочих / 2 вых / 2 рабочих / 2 вых».
 export const PATTERN_PRESETS: Record<string, string[]> = {
-  morning_evening: ['morning','off','off','evening','evening','off','off','morning'],
-  evening_morning: ['evening','off','off','morning','morning','off','off','evening'],
-  shift1200:       ['shift1200','off','off','shift1200'],
-  vip_day_night:   ['vip_evening','off','off','vip_morning','vip_morning','off','off','vip_evening'],
-  vip_night_day:   ['vip_morning','off','off','vip_evening','vip_evening','off','off','vip_morning'],
-  vip_1200:        ['vip_1200','off','off','vip_1200'],
+  morning_evening: ['morning','morning','off','off','evening','evening','off','off'],
+  evening_morning: ['evening','evening','off','off','morning','morning','off','off'],
+  shift1200:       ['shift1200','shift1200','off','off'],
+  vip_day_night:   ['vip_evening','vip_evening','off','off','vip_morning','vip_morning','off','off'],
+  vip_night_day:   ['vip_morning','vip_morning','off','off','vip_evening','vip_evening','off','off'],
+  vip_1200:        ['vip_1200','vip_1200','off','off'],
   super_2_2:       ['super_day','super_day','off','off'],
   super_night_2_2: ['super_night','super_night','off','off'],
   super_2_2_mix:   ['super_day','super_day','off','off','super_night','super_night','off','off'],

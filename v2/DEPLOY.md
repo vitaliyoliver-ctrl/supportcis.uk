@@ -1,130 +1,151 @@
-# Деплой SupportCIS v2 (с нуля, на свой аккаунт)
+# Деплой SupportCIS v2 (Docker, на своём сервере)
 
-Версия самодостаточна и **не привязана к старому проекту**: в репозитории нет
-ни id чужих KV, ни URL чужих воркеров, ни ключей чужого Supabase. Всё, что
-специфично для аккаунта, задаётся переменными/секретами.
-
-Разворачивается **одним воркером**: он отдаёт и фронт (React SPA), и API
-(`/api/*`). Нужен Node 18+ и аккаунт Cloudflare.
+Версия **самодостаточна и не привязана к Cloudflare**: запускается одним Node-
+процессом в Docker, данные — в **PostgreSQL**. Один контейнер отдаёт и фронт
+(собранный React SPA), и API (`/api/*`).
 
 ```
 v2/
-├── app/      — фронт (Vite + React). Сборка → app/dist
-└── worker/   — Cloudflare Worker (API + раздача app/dist)
+├── app/                — фронт (Vite + React). Сборка → app/dist
+├── worker/             — сервер (Hono на @hono/node-server) + хранилище (Postgres)
+│   └── src/
+│       ├── index.ts    — все маршруты /api/* (рантайм-независимы)
+│       ├── server.ts   — Node-входная точка: статика + API + Postgres
+│       └── store.ts    — адаптер «ключ→JSON» с TTL (реализация на Postgres)
+├── Dockerfile          — multi-stage: фронт + сервер → slim-образ
+└── docker-compose.yml  — app + postgres + volume
 ```
+
+> Раньше версия работала на Cloudflare Workers + KV. Теперь Cloudflare не нужен:
+> Workers → Node, KV → Postgres (через тонкий адаптер `store.ts`, маршруты не
+> менялись). Всё внешнее (Supabase, Resend, Telegram, Power Automate) — обычные
+> HTTP-вызовы и работает как есть.
 
 ---
 
-## 1. KV-namespace (сессии, коды, роли, профили, график, продажи, оргструктура)
+## 1. Быстрый старт
+
+Нужен Docker + Docker Compose.
 
 ```bash
-cd v2/worker
-npx wrangler login
-npx wrangler kv namespace create AUTH_KV
+cd v2
+cp .env.example .env        # заполнить значения (см. таблицу ниже)
+docker compose up -d --build
 ```
-Команда вернёт `id = "..."`. Вставь его в `wrangler.toml` вместо
-`REPLACE_WITH_YOUR_AUTH_KV_ID`.
 
-## 2. Переменные воркера (`wrangler.toml` → `[vars]`)
+Поднимется два контейнера: `db` (Postgres, схема создаётся автоматически при
+старте приложения) и `app` (фронт + API на порту `APP_PORT`, по умолчанию 8787).
+Проверка: `curl http://localhost:8787/api/health` → `{"ok":true}`.
+
+## 2. Переменные окружения (`.env`)
 
 | Переменная | Что это |
 |---|---|
-| `SITE` | origin сайта (для CORS). При раздаче одним воркером — его собственный адрес, напр. `https://supportcis-worker.<субдомен>.workers.dev` |
-| `OWNER_EMAIL` | кто получает роль TL при первом входе (bootstrap управления ролями) |
-| `ALLOWED_DOMAINS` | разрешённые корпоративные домены входа через запятую (по умолчанию `velvix.org,gameup.club`) |
-| `TG_CHAT_ID` | чат Telegram для заявок на обмен смен (пусто — уведомления не шлются) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | доступ к Postgres (пароль задать обязательно) |
+| `APP_PORT` | порт на хосте (за ним вешается reverse-proxy/TLS) |
+| `SITE` | публичный origin портала (CORS + ссылки), напр. `https://portal.company.com` |
+| `OWNER_EMAIL` | первый вход с этого адреса → роль TL (bootstrap раздачи ролей) |
+| `ALLOWED_DOMAINS` | домены корпоративной почты для входа, через запятую |
+| `RESEND_API_KEY` | ключ Resend (письма с кодами входа) |
+| `RESEND_FROM` | отправитель, напр. `SupportCIS <noreply@verified-domain>` (домен верифицирован в Resend) |
+| `TG_BOT_TOKEN` / `TG_WEBHOOK_SECRET` / `TG_CHAT_ID` | Telegram-бот свапов (опционально) |
 
-## 3. Секреты воркера (НЕ в репозитории)
+`DATABASE_URL` для приложения собирается в `docker-compose.yml` из `POSTGRES_*`
+автоматически — отдельно задавать не нужно.
 
-```bash
-npx wrangler secret put RESEND_API_KEY      # ключ Resend (письма с кодами входа)
-npx wrangler secret put RESEND_FROM          # "SupportCIS <noreply@ВАШ_ВЕРИФИЦ_ДОМЕН>"
-npx wrangler secret put TG_BOT_TOKEN          # токен Telegram-бота свапов (опционально)
-npx wrangler secret put TG_WEBHOOK_SECRET     # секрет вебхука Telegram (опционально)
-```
+## 3. TLS / домен
 
-## 4. Фронт (env + сборка)
+Контейнер слушает обычный HTTP на `APP_PORT`. TLS и домен вешаются **вашим
+reverse-proxy** (nginx / Traefik / Caddy) перед `app:8787`. Прокси должен
+пробрасывать заголовки и `Host`. `SITE` должен совпадать с публичным адресом.
 
-Страница «Перерывы» работает через Supabase Realtime. По умолчанию используется
-**общий** Supabase-проект компании (тот же, что и на старом сайте, — он спокойно
-работает на оба) — поэтому перерывы заводятся «из коробки», ничего настраивать не
-обязательно.
+## 4. Telegram webhook (если используются свапы)
 
-Если хочешь свой отдельный проект Supabase — переопредели при сборке
-(`v2/app/.env`, см. `.env.example`), создав таблицу `bookings` + Realtime:
-
-```
-VITE_SUPABASE_URL=https://<твой-проект>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon/publishable ключ>
-```
-Затем:
-
-```bash
-cd ../app
-npm install
-npm run build        # → v2/app/dist (воркер раздаёт это как статику)
-```
-
-## 5. Деплой
-
-```bash
-cd ../worker
-npm install
-npx wrangler deploy
-```
-Получишь URL вида `https://supportcis-worker.<субдомен>.workers.dev`.
-Если `SITE` ещё не совпадал с этим адресом — поправь и передеплой.
-
-## 6. Telegram webhook (если используешь свапы)
-
-У бота **один** вебхук. Направь его на свой задеплоенный воркер:
+У бота один вебхук — направьте его на публичный адрес портала:
 
 ```bash
 curl "https://api.telegram.org/bot<TG_BOT_TOKEN>/setWebhook" \
-  --data-urlencode "url=https://<твой-воркер>/api/tg-webhook" \
+  --data-urlencode "url=https://<ваш-домен>/api/tg-webhook" \
   --data-urlencode "secret_token=<TG_WEBHOOK_SECRET>"
 ```
-`secret_token` обязан совпадать с секретом `TG_WEBHOOK_SECRET` воркера.
 
-> ⚠️ Пока параллельно работает старая версия на том же боте — заведи для теста
-> **отдельного бота** (свой `TG_BOT_TOKEN`). Иначе `setWebhook` на тестовый
-> воркер перетянет на себя боевые аппрувы свапов (заявки начнут выдавать
-> «Заявка не найдена или истекла»).
+`secret_token` обязан совпадать с `TG_WEBHOOK_SECRET`.
 
-## 7. Перенос данных (опционально)
+> ⚠️ Пока параллельно жив старый сайт на том же боте — для теста заведите
+> **отдельного** бота, иначе `setWebhook` перетянет боевые аппрувы свапов.
 
-Скрипты в `worker/tools/` (аккаунт-агностичны, см. `tools/README.md`):
+## 5. Перенос данных (с текущего Cloudflare KV → Postgres)
+
+Данные сейчас лежат в KV исходного аккаунта. Перенос — два шага (см.
+`worker/tools/README.md`):
 
 ```bash
-# из исходного аккаунта — выгрузить весь KV
-node tools/kv-export.mjs <SOURCE_NAMESPACE_ID> kv-dump.json
-# в целевой — залить
-node tools/kv-import.mjs <TARGET_NAMESPACE_ID> kv-dump.json
+# 1) (владелец, где есть доступ к KV) выгрузить дамп
+cd worker/tools
+node kv-export.mjs <CF_NAMESPACE_ID> kv-dump.json
+
+# 2) залить дамп в Postgres (из каталога worker/, там установлен пакет pg)
+cd ..
+node tools/kv-import-pg.mjs tools/kv-dump.json "postgres://USER:PASS@HOST:5432/DB"
 ```
-Первичный перенос из старых воркеров v1 (график/профили/роли) —
-`tools/migrate-v1-to-v2.ps1` (одноразово, id передаются параметрами).
+
+Эфемерные ключи (сессии, коды, заявки свапов) не переносятся — пересоздаются сами.
+
+## 6. Supabase (страница «Перерывы»)
+
+Перерывы работают через Supabase Realtime. Это переменные **фронта** (`VITE_*`),
+вшиваются **при сборке**, а не в рантайме. По умолчанию зашит общий проект
+компании (fallback) — перерывы работают из коробки, ничего настраивать не нужно.
+
+Свой проект Supabase (нужны таблица `bookings` + Realtime) — только пересборкой
+образа с build-args:
+
+```bash
+docker build -t supportcis \
+  --build-arg VITE_SUPABASE_URL=https://<проект>.supabase.co \
+  --build-arg VITE_SUPABASE_ANON_KEY=<ключ> .
+```
+> (для этого в Dockerfile во фронт-стейдже нужно пробросить ARG → ENV перед
+> `npm run build`; по умолчанию не требуется — работает fallback.)
+
+## 7. Локальная разработка (без Docker)
+
+```bash
+# Postgres где-то поднят; задаём строку подключения
+export DATABASE_URL="postgres://localhost:5432/supportcis"
+
+# фронт (Vite, отдельный порт с проксированием /api — см. vite.config)
+cd app && npm install && npm run dev
+
+# сервер
+cd ../worker && npm install && npm run dev   # tsx watch src/server.ts
+```
+
+Для запуска как в проде: `cd worker && npm run build && STATIC_DIR=../app/dist npm start`.
 
 ---
 
 ## Проверка после деплоя
 
-1. Открыть URL воркера → страница входа.
-2. Войти корпоративным email (домен из `ALLOWED_DOMAINS`) → придёт код (Resend).
+1. Открыть адрес портала → страница входа.
+2. Войти корпоративным email (домен из `ALLOWED_DOMAINS`) → код придёт через Resend.
 3. Первый вход с `OWNER_EMAIL` даёт роль TL.
-4. Пройтись по разделам: график SG, график НК, перерывы, продажи, отчёты,
-   чемпионы, TL-инструменты (Data, FCR, Daily, Main, КСАТ, Роли), Ops.
+4. Разделы: график SG, график НК, перерывы, продажи, отчёты, чемпионы,
+   TL-инструменты (Data, FCR, Daily, Main, КСАТ, Роли), Ops.
 
 ## Что где хранится
 
 | Данные | Где |
 |---|---|
-| Сессии, коды, роли, профили, график (SG/НК), продажи, оргструктура, свапы | Cloudflare **KV** (`AUTH_KV`) |
-| Перерывы (Realtime) | **Supabase** (env `VITE_SUPABASE_*`) |
+| Сессии, коды входа, роли, профили, график (SG/НК), продажи, оргструктура, свапы | **PostgreSQL** (таблица `kv`) |
+| Перерывы (Realtime) | **Supabase** (общий проект компании) |
 | Письма с кодами | **Resend** |
-| Сотрудники/паттерны графика | сид в коде (`app/src/lib/seed.ts`, `seedNk.ts`) — редактируется и переносится в БД отдельным этапом |
+| Сотрудники/паттерны графика | сид в коде (`app/src/lib/seed.ts`, `seedNk.ts`) |
 
 ## Полезное
 
-- Логи воркера: `npx wrangler tail`
-- Список ключей KV: `npx wrangler kv key list --namespace-id <id> --remote`
-- Повторный деплой: `cd v2/app && npm run build && cd ../worker && npx wrangler deploy`
+- Логи: `docker compose logs -f app`
+- Состояние: `docker compose ps`
+- Бэкап БД: `docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup.sql`
+- Пересборка после обновления кода: `docker compose up -d --build`
+- Подключиться к БД: `docker compose exec db psql -U $POSTGRES_USER -d $POSTGRES_DB`

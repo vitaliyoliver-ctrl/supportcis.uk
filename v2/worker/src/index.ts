@@ -348,6 +348,41 @@ function scheduleKey(project: string, month: string): string {
   return `schedule:${project}:${month}`;
 }
 
+// Структурные настройки (паттерны, порядок операторов, позиции, увольнения,
+// переопределения сотрудников) хранятся ГЛОБАЛЬНО на проект, а не по месяцам —
+// чтобы правки переносились на все месяцы. overrides/log остаются помесячно.
+function settingsKey(project: string): string {
+  return `schedule-settings:${project}`;
+}
+
+// Чтение глобальных настроек. При первом обращении (ключа ещё нет) выполняем
+// одноразовую миграцию: берём настройки из самого свежего месяца, где они есть.
+async function getGlobalSettings(env: Env, project: string): Promise<Record<string, unknown>> {
+  const gKey = settingsKey(project);
+  const raw = await env.AUTH_KV.get(gKey);
+  if (raw) {
+    try { return JSON.parse(raw) as Record<string, unknown>; } catch { return {}; }
+  }
+
+  const prefix = `schedule:${project}:`;
+  const entries = await env.AUTH_KV.list(prefix);
+  let bestMonth = '';
+  let bestSettings: Record<string, unknown> = {};
+  for (const { key, value } of entries) {
+    const m = key.slice(prefix.length);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)) continue;
+    try {
+      const blob = JSON.parse(value) as ScheduleBlob;
+      if (blob.settings && Object.keys(blob.settings).length && m > bestMonth) {
+        bestMonth = m;
+        bestSettings = blob.settings;
+      }
+    } catch { /* пропускаем битый блоб */ }
+  }
+  await env.AUTH_KV.put(gKey, JSON.stringify(bestSettings));
+  return bestSettings;
+}
+
 app.get('/api/schedule', async (c) => {
   const session = await getSession(c);
   if (!session) return c.json({ ok: false }, 401);
@@ -359,7 +394,9 @@ app.get('/api/schedule', async (c) => {
   const project = c.req.query('project') || 'sg';
   const raw = await c.env.AUTH_KV.get(scheduleKey(project, month));
   const blob = raw ? (JSON.parse(raw) as ScheduleBlob) : emptyBlob();
-  return c.json({ ok: true, ...blob });
+  // Настройки — глобальные на проект, не из месячного блоба.
+  const settings = await getGlobalSettings(c.env, project);
+  return c.json({ ok: true, ...blob, settings });
 });
 
 app.post('/api/schedule', async (c) => {
@@ -397,9 +434,15 @@ app.post('/api/schedule', async (c) => {
     ...prev.log,
   ].slice(0, 200);
 
+  // Структурные настройки сохраняем глобально (если пришли в запросе), а в
+  // месячный блоб их больше не пишем.
+  if (body.settings !== undefined) {
+    await c.env.AUTH_KV.put(settingsKey(project), JSON.stringify(body.settings));
+  }
+
   const next: ScheduleBlob = {
     overrides: body.overrides ?? prev.overrides,
-    settings: body.settings ?? prev.settings,
+    settings: prev.settings,  // legacy-поле блоба не трогаем; настройки читаются глобально
     version: prev.version + 1,
     log: newLog,
   };

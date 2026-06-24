@@ -119,8 +119,10 @@ export function useScheduleState(
     logEntries?: Array<{ action: string; target?: string | null }>
   ) => {
     await saveMutation.mutateAsync({
+      // settings отправляем только когда их реально меняем — они глобальные,
+      // и пустая пересылка с обычной правки ячейки могла бы затереть чужие правки.
       overrides: newOverrides,
-      settings: newSettings ?? settings,
+      settings: newSettings,
       version,
       logEntries,
     });
@@ -130,7 +132,12 @@ export function useScheduleState(
       overrides: newOverrides,
       settings: newSettings ?? old!.settings,
     }));
-  }, [saveMutation, settings, version, monthStr, project, queryClient]);
+    // Настройки глобальные → у других месяцев в кэше они устарели, обновим при
+    // следующем заходе.
+    if (newSettings !== undefined) {
+      queryClient.invalidateQueries({ queryKey: ['schedule', project] });
+    }
+  }, [saveMutation, version, monthStr, project, queryClient]);
 
   // UI-состояние
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');

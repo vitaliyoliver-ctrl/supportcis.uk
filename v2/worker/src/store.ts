@@ -9,6 +9,8 @@ export interface Store {
   get(key: string): Promise<string | null>;
   put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Все непротухшие пары ключ/значение, чей ключ начинается с prefix. */
+  list(prefix: string): Promise<Array<{ key: string; value: string }>>;
 }
 
 // Одна таблица «ключ-значение» с необязательным сроком жизни. expires_at = NULL
@@ -59,6 +61,17 @@ export class PgStore implements Store {
 
   async delete(key: string): Promise<void> {
     await this.pool.query('DELETE FROM kv WHERE key = $1', [key]);
+  }
+
+  async list(prefix: string): Promise<Array<{ key: string; value: string }>> {
+    // Экранируем спецсимволы LIKE, чтобы prefix трактовался буквально.
+    const escaped = prefix.replace(/[\\%_]/g, '\\$&');
+    const { rows } = await this.pool.query<{ key: string; value: string }>(
+      `SELECT key, value FROM kv
+       WHERE key LIKE $1 ESCAPE '\\' AND (expires_at IS NULL OR expires_at > now())`,
+      [escaped + '%'],
+    );
+    return rows;
   }
 
   // Чистка протухших ключей (в KV это делалось автоматически). Возвращает кол-во.

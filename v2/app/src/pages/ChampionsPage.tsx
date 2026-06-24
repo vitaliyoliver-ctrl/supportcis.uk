@@ -220,6 +220,24 @@ const TAB_APR = matHdr + mat(H4, [
   { name: 'Nora', prize: M, prizeCls: 'prize-money', reason: 'Топ показатель КСАТ в Chatwoot' },
 ]);
 
+// ── May 2026 ──
+const TAB_MAY = matHdr + mat(H4, [
+  { rank: '🥇', rankCls: 'medal', name: 'Trinity', nameCls: 'name-gold', cols: ['1 371 839 827'], prize: M3, prizeCls: 'prize-money', rowCls: 'row-1' },
+  { rank: '🥈', rankCls: 'medal', name: 'Christine', nameCls: 'name-silver', cols: ['1 340 259 740'], prize: M2, prizeCls: 'prize-money', rowCls: 'row-2' },
+  { rank: '🥉', rankCls: 'medal', name: 'Kenzo', nameCls: 'name-bronze', cols: ['1 301 075 758'], prize: M1, prizeCls: 'prize-money', rowCls: 'row-3' },
+  { rank: '4', rankCls: 'place-other', name: 'Joseph', cols: ['1 249 794 372'], prize: M1, prizeCls: 'prize-money' },
+]) + nonHdr + mat(H4, [
+  { rank: '5', rankCls: 'place-other', name: 'Nolan', cols: ['1 227 586 580'], prize: PRIZE_FOOD2, prizeCls: 'prize-food' },
+  { rank: '6', rankCls: 'place-other', name: 'Earl', cols: ['1 227 393 939'], prize: PRIZE_TIME2, prizeCls: 'prize-time' },
+  { rank: '7', rankCls: 'place-other', name: 'Balfour', cols: ['1 208 766 234'], prize: PRIZE_FOOD1, prizeCls: 'prize-food' },
+  { rank: '8', rankCls: 'place-other', name: 'Ashton', cols: ['1 204 329 004'], prize: PRIZE_TIME1, prizeCls: 'prize-time' },
+  { rank: '9', rankCls: 'place-other', name: 'Will', cols: ['1 193 305 195'], prize: PRIZE_TIME1, prizeCls: 'prize-time' },
+]) + spcHdr + special([
+  { name: 'Debra / Кира', prize: M, prizeCls: 'prize-money', reason: 'Лучшие показатели на НК' },
+  { name: 'Jayden', prize: M, prizeCls: 'prize-money', reason: 'Обучение продажам сапорта' },
+  { name: 'Anna', prize: M, prizeCls: 'prize-money', reason: 'Обучение продажам сапорта' },
+]);
+
 const BODY_HTML = `
 <div class="container">
   <div class="header">
@@ -250,13 +268,15 @@ const BODY_HTML = `
       <div class="tab" data-tab="jan">Январь 2026</div>
       <div class="tab" data-tab="feb">Февраль 2026</div>
       <div class="tab" data-tab="mar">Март 2026</div>
-      <div class="tab active" data-tab="apr">Апрель 2026</div>
+      <div class="tab" data-tab="apr">Апрель 2026</div>
+      <div class="tab active" data-tab="may">Май 2026</div>
     </div>
     <div id="tab-dec" class="tab-content">${TAB_DEC}</div>
     <div id="tab-jan" class="tab-content">${TAB_JAN}</div>
     <div id="tab-feb" class="tab-content">${TAB_FEB}</div>
     <div id="tab-mar" class="tab-content">${TAB_MAR}</div>
-    <div id="tab-apr" class="tab-content active">${TAB_APR}</div>
+    <div id="tab-apr" class="tab-content">${TAB_APR}</div>
+    <div id="tab-may" class="tab-content active">${TAB_MAY}</div>
   </div>
   <div class="footer">✦ Поздравляем всех победителей ✦</div>
 </div>
@@ -290,7 +310,7 @@ export default function ChampionsPage() {
       root!.querySelectorAll('#mode-championship .tab').forEach((t) => t.classList.remove('active'));
       root!.querySelectorAll('#mode-championship .tab-content').forEach((c) => c.classList.remove('active'));
       const tabs = root!.querySelectorAll('#mode-championship .tab');
-      const map: Record<string, number> = { dec: 0, jan: 1, feb: 2, mar: 3, apr: 4 };
+      const map: Record<string, number> = { dec: 0, jan: 1, feb: 2, mar: 3, apr: 4, may: 5 };
       tabs[map[month]]?.classList.add('active');
       $('tab-' + month)?.classList.add('active');
     }

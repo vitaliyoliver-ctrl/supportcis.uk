@@ -242,14 +242,13 @@ export default function SchedulePage({ project = 'sg' }: { project?: ProjectKey 
     }
   }, [st, showToast]);
 
-  const handleRemoveMember = useCallback((name: string, sectionKey: string) => {
-    const customOrder: Record<string, string[]> = {};
-    st.sections.forEach(s => {
-      customOrder[s.key] = [...(st.settings.customOrder?.[s.key] ?? s.members)];
-    });
-    customOrder[sectionKey] = customOrder[sectionKey].filter(n => n !== name);
-    handleSaveSettings({ ...st.settings, customOrder }, [{ action: `убран из секции: ${name}`, target: name }]);
-  }, [st.sections, st.settings, handleSaveSettings]);
+  const handleRemoveMember = useCallback((name: string, _sectionKey: string) => {
+    // Не вычёркиваем из customOrder (он глобальный — иначе оператор исчез бы и из
+    // прошлых месяцев). Помечаем месяцем: с текущего месяца и далее оператор скрыт,
+    // более ранние месяцы его сохраняют.
+    const removedFrom = { ...(st.settings.removedFrom ?? {}), [name]: st.monthStr };
+    handleSaveSettings({ ...st.settings, removedFrom }, [{ action: `убран из графика с ${st.monthStr}: ${name}`, target: name }]);
+  }, [st.settings, st.monthStr, handleSaveSettings]);
 
   const handleMoveOperator = useCallback((
     srcName: string, fromKey: string, toKey: string,

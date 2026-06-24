@@ -63,18 +63,26 @@ export function useScheduleState(
 
   // Секции и порядок строк — из settings.customOrder (канонический формат v1:
   // массив имён на каждую секцию, задаёт и состав, и порядок).
+  // removedFrom — оператор убран из секции с указанного месяца: в этот месяц и
+  // позже он скрыт, в более ранних месяцах остаётся.
   const sections: SectionDef[] = useMemo(() => {
     const customOrder = settings.customOrder ?? {};
+    const removedFrom = settings.removedFrom ?? {};
+    const isHidden = (name: string) => {
+      const from = removedFrom[name];
+      return !!from && monthStr >= from;
+    };
     return seed.sections.map(s => {
       const order = customOrder[s.key];
+      const base = Array.isArray(order) && order.length ? [...order] : [...s.members];
       return {
         ...s,
-        members: Array.isArray(order) && order.length ? [...order] : [...s.members],
+        members: base.filter(name => !isHidden(name)),
         count: seed.countSections[s.key],
         isTemp: seed.tempSectionKeys.includes(s.key),
       };
     });
-  }, [settings.customOrder, seed]);
+  }, [settings.customOrder, settings.removedFrom, monthStr, seed]);
 
   // getEmp — единый доступ к данным сотрудника
   const getEmp = useCallback((name: string): EmployeeData => {

@@ -71,7 +71,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
   const [fromHour, setFromHour] = useState<number>(0);
   const [toHour, setToHour] = useState<number>(0);
   const [recipient, setRecipient] = useState<string>('');
-  const [withLunch, setWithLunch] = useState(false);
+  const [withLunch, setWithLunch] = useState(true);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,7 +83,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
     setFromHour(0);
     setToHour(0);
     setRecipient('');
-    setWithLunch(false);
+    setWithLunch(true);
     setComment('');
   }, [open, isAdmin, currentUserName, supportMembers]);
 
@@ -120,6 +120,18 @@ const SwapModal: React.FC<SwapModalProps> = ({
 
   const win: [number, number] = [fromHour, toHour];
 
+  // Обед не входит в рабочие часы: окно смены шире, чем её часы (напр. 09–21 = 12ч
+  // диапазона, но 11 рабочих). Этот час и есть обед.
+  const spanHours = toHour - fromHour;
+  const windowSpan = shiftWindow ? shiftWindow[1] - shiftWindow[0] : 0;
+  const lunchHours = shiftDef && shiftWindow ? Math.max(0, windowSpan - shiftDef.hours) : 0;
+  // Полная смена = выбран весь диапазон окна. Тогда обед всегда передаётся вместе
+  // со сменой (чекбокс не имеет смысла — фиксируем «с обедом»).
+  const isFullShift = !!shiftWindow && fromHour === shiftWindow[0] && toHour === shiftWindow[1];
+  const effectiveWithLunch = isFullShift ? true : withLunch;
+  // Передаваемые рабочие часы: из диапазона вычитаем обед, если он передаётся.
+  const workHours = Math.max(0, spanHours - (effectiveWithLunch ? lunchHours : 0));
+
   // Eligible recipients
   const recipients = useMemo(() => {
     if (!giver || !selectedDay || !shiftType || fromHour >= toHour) return [];
@@ -138,7 +150,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
     const dateDsStr = dateStr(year, month, selectedDay.d);
     const range = swapFmtRange(fromHour, toHour);
-    const hours = toHour - fromHour;
+    const hours = workHours;
     const label = SHIFT_DEFS[shiftType]?.label ?? shiftType;
 
     setSubmitting(true);
@@ -155,7 +167,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
         range,
         hours,
         win,
-        withLunch,
+        withLunch: effectiveWithLunch,
         comment,
       });
       onSuccess(`Запрос отправлен: ${giver} → ${recipient} ${range}`);
@@ -165,7 +177,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
     } finally {
       setSubmitting(false);
     }
-  }, [giver, selectedDay, recipient, shiftType, fromHour, toHour, win, withLunch, comment, year, month, getEmp, onSuccess, onError, onClose]);
+  }, [giver, selectedDay, recipient, shiftType, fromHour, toHour, win, workHours, effectiveWithLunch, comment, year, month, getEmp, onSuccess, onError, onClose]);
 
   if (!open) return null;
 
@@ -221,8 +233,12 @@ const SwapModal: React.FC<SwapModalProps> = ({
                 </select>
               </div>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--c-muted)', marginBottom: 8 }}>
-              Диапазон: {swapFmtRange(fromHour, toHour)} — {toHour - fromHour} ч
+            <div className="swap-range-info">
+              <span>{swapFmtRange(fromHour, toHour)}</span>
+              <strong>{workHours} ч</strong>
+              {effectiveWithLunch && lunchHours > 0 && (
+                <span className="swap-range-note">вкл. обед {lunchHours} ч</span>
+              )}
             </div>
           </>
         )}
@@ -243,12 +259,24 @@ const SwapModal: React.FC<SwapModalProps> = ({
           )}
         </div>
 
-        <div className="form-field">
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={withLunch} onChange={e => setWithLunch(e.target.checked)} />
-            С обедом
-          </label>
-        </div>
+        {selectedDay && shiftWindow && (
+          <div className="form-field">
+            <label className={`swap-lunch${isFullShift ? ' is-disabled' : ''}`}>
+              <input
+                type="checkbox"
+                checked={effectiveWithLunch}
+                disabled={isFullShift}
+                onChange={e => setWithLunch(e.target.checked)}
+              />
+              <span>С обедом</span>
+            </label>
+            <div className="swap-lunch-hint">
+              {isFullShift
+                ? 'Полная смена передаётся с обедом'
+                : 'Обед вычитается из передаваемых часов'}
+            </div>
+          </div>
+        )}
 
         <div className="form-field">
           <label className="form-label">Комментарий</label>
@@ -260,7 +288,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={submitting || !giver || !selectedDay || !recipient || fromHour >= toHour}
+            disabled={submitting || !giver || !selectedDay || !recipient || fromHour >= toHour || workHours <= 0}
           >
             {submitting ? 'Отправка...' : 'Отправить запрос'}
           </button>

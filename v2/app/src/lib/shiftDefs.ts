@@ -158,7 +158,7 @@ export const PATTERN_PRESET_LABELS: Record<string, string> = {
   vip_1200:        'VIP 12-00 / выходной 2/2',
   super_2_2:       'Sup День 2/2',
   super_night_2_2: 'Sup Ночь 2/2',
-  super_2_2_mix:   'Sup День+Ночь 4+4+4',
+  super_2_2_mix:   'Sup 2 день / 2 вых / 2 ночь / 2 вых',
   super_12_cycle:  'Sup 12-дн. цикл',
   super_day8_5_2:  'Sup 8ч пн–пт (10–19)',
   work8_5_2:       '8ч пн–пт (TL/QA)',

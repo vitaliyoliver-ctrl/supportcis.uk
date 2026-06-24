@@ -22,12 +22,31 @@ node tools/kv-import-pg.mjs tools/kv-dump.json "postgres://USER:PASS@HOST:5432/D
   и пересоздаются сами; перенос оставил бы протухшие сессии.
 - Импорт идемпотентен (upsert) — можно повторять, обновляя данные свежим дампом.
 
+## Telegram-бот свапов (вебхук обмена смен)
+
+Кнопка «Отдать смену» шлёт заявку в Telegram, а апрув/отказ возвращается на
+`/api/tg-webhook`. Если кнопка даёт «Ошибку при отправке» или заявка не приходит
+в чат — почти всегда дело в конфиге Telegram (токен/`chat_id`/бот не в чате) и/или
+в том, что вебхук не зарегистрирован. Скрипт ниже проверяет и настраивает всё:
+
+```bash
+# на сервере, где заполнен .env и есть доступ к api.telegram.org
+bash worker/tools/tg-setup.sh          # getMe + тест sendMessage + setWebhook + getWebhookInfo
+bash worker/tools/tg-setup.sh check    # только диагностика, без изменения вебхука
+bash worker/tools/tg-setup.sh hook     # только (пере)регистрация вебхука
+```
+
+Берёт `TG_BOT_TOKEN`, `TG_WEBHOOK_SECRET`, `TG_CHAT_ID`, `SITE` из окружения или
+`.env`. `secret_token` в `setWebhook` обязан совпадать с `TG_WEBHOOK_SECRET`
+сервера, иначе обработчик вернёт 403.
+
 ## Файлы
 
 | Скрипт | Назначение |
 |---|---|
 | `kv-export.mjs` | выгрузка KV namespace → JSON (`[{key,value}]`). Нужен `wrangler`. |
 | `kv-import-pg.mjs` | импорт этого JSON в Postgres-таблицу `kv` (см. `src/store.ts`). Нужен `pg`. |
+| `tg-setup.sh` | диагностика и регистрация Telegram-вебхука свапов. Запуск на сервере. |
 
 ## Легаси (история, для self-hosting не нужны)
 

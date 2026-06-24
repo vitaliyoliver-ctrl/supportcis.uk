@@ -144,6 +144,7 @@ export const PATTERN_PRESETS: Record<string, string[]> = {
   super_night_2_2: ['super_night','super_night','off','off'],
   super_2_2_mix:   ['super_day','super_day','off','off','super_night','super_night','off','off'],
   super_12_cycle:  ['super_day','super_day','off','off','super_day','super_day','off','off','super_night','super_night','off','off'],
+  super_day8_5_2:  ['super_day8','super_day8','super_day8','super_day8','super_day8','off','off'],
   work8_5_2:       ['work8','work8','work8','work8','work8','off','off'],
   off:             ['off'],
 };
@@ -159,6 +160,7 @@ export const PATTERN_PRESET_LABELS: Record<string, string> = {
   super_night_2_2: 'Sup Ночь 2/2',
   super_2_2_mix:   'Sup День+Ночь 4+4+4',
   super_12_cycle:  'Sup 12-дн. цикл',
+  super_day8_5_2:  'Sup 8ч пн–пт (10–19)',
   work8_5_2:       '8ч пн–пт (TL/QA)',
   off:             'Выходной (нет смен)',
   custom:          'Кастомный',

@@ -21,6 +21,8 @@ export interface ScheduleSettings {
   people?: Record<string, { section: string; order: number }>;
   positions?: Record<string, number>;
   dismissed?: Record<string, string>;
+  /** Месяц (YYYY-MM), с которого оператор убран из секции. Прошлые месяцы его сохраняют. */
+  removedFrom?: Record<string, string>;
 }
 
 export interface LogEntry {

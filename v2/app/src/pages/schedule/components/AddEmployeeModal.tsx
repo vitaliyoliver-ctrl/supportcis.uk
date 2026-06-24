@@ -58,15 +58,23 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     // Добавляем имя в customOrder выбранной секции — именно его читает useScheduleState
     // (как в v1). Раньше писали в settings.people, который нигде не читается → сотрудник
     // сохранялся, но не появлялся ни в одной секции.
+    // Берём «сырой» (глобальный, нефильтрованный) порядок, чтобы не потерять
+    // других убранных операторов секции; дубликат не создаём.
     const sec = sections.find(s => s.key === section);
+    const rawOrder: string[] = settings.customOrder?.[section] ?? (sec ? sec.members : []);
+    const nextOrder = rawOrder.includes(trimmedName) ? rawOrder : [...rawOrder, trimmedName];
     const newCustomOrder = {
       ...(settings.customOrder ?? {}),
-      [section]: [...(sec ? sec.members : []), trimmedName],
+      [section]: nextOrder,
     };
+    // Если оператора ранее убирали из графика — снимаем метку, он снова виден.
+    const newRemovedFrom = { ...(settings.removedFrom ?? {}) };
+    delete newRemovedFrom[trimmedName];
     const newSettings = {
       ...settings,
       employeeOverrides: newEmployeeOverrides,
       customOrder: newCustomOrder,
+      removedFrom: newRemovedFrom,
     };
 
     setSaving(true);

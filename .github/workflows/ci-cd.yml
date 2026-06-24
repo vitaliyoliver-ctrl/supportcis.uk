@@ -69,10 +69,22 @@ jobs:
             v2/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/supportcis/"
 
       - name: Build & restart on server
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_WEBHOOK_SECRET: ${{ secrets.TG_WEBHOOK_SECRET }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
+          # Переменные бота свапов лежат в GitHub Secrets (серверный .env исключён
+          # из деплоя). Прокидываем их в docker compose, который пишет их в env
+          # контейнера app. Если секреты не заданы — деплой не падает, просто бот
+          # свапов останется выключенным.
           ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            "cd /opt/supportcis && docker compose up -d --build && echo '${{ github.sha }}' > .deployed_sha"
+            "cd /opt/supportcis && \
+             TG_BOT_TOKEN='$TG_BOT_TOKEN' \
+             TG_WEBHOOK_SECRET='$TG_WEBHOOK_SECRET' \
+             TG_CHAT_ID='$TG_CHAT_ID' \
+             docker compose up -d --build && echo '${{ github.sha }}' > .deployed_sha"
 
       - name: Health check
         run: |

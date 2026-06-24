@@ -62,6 +62,32 @@ const server = serve({ fetch: fetchHandler, port: PORT }, (info) => {
   console.log(`SupportCIS на http://localhost:${info.port}  (статика: ${staticDir})`);
 });
 
+// Регистрируем Telegram-вебхук свапов при старте. Делаем это здесь (а не вручную
+// на сервере), чтобы деплой из GitHub сам поднимал рабочий вебхук. Только для
+// публичного https-SITE — на localhost не трогаем, чтобы дев не перетянул вебхук
+// боевого бота на себя (см. DEPLOY.md).
+async function registerTelegramWebhook() {
+  const { TG_BOT_TOKEN, TG_WEBHOOK_SECRET, SITE } = appEnv;
+  if (!TG_BOT_TOKEN) { console.log('[tg-webhook] TG_BOT_TOKEN не задан — пропускаю регистрацию'); return; }
+  if (!TG_WEBHOOK_SECRET) { console.log('[tg-webhook] TG_WEBHOOK_SECRET не задан — пропускаю регистрацию'); return; }
+  if (!/^https:\/\//i.test(SITE)) { console.log(`[tg-webhook] SITE не публичный https (${SITE}) — пропускаю регистрацию`); return; }
+
+  const hookUrl = `${SITE.replace(/\/$/, '')}/api/tg-webhook`;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: hookUrl, secret_token: TG_WEBHOOK_SECRET, allowed_updates: ['callback_query'] }),
+    });
+    const json = await res.json() as { ok?: boolean; description?: string };
+    if (json.ok) console.log(`[tg-webhook] зарегистрирован → ${hookUrl}`);
+    else console.error(`[tg-webhook] setWebhook ошибка: ${json.description ?? JSON.stringify(json)}`);
+  } catch (e) {
+    console.error('[tg-webhook] setWebhook исключение:', e);
+  }
+}
+void registerTelegramWebhook();
+
 // KV сам протухал ключи; здесь чистим их периодически.
 const sweep = setInterval(() => {
   store.sweepExpired().catch((e) => console.error('sweepExpired', e));

@@ -653,6 +653,52 @@ app.post('/api/tg-webhook', async (c) => {
   return c.json({ ok: true });
 });
 
+// ── Swap/Telegram diagnose (TL only) ────────────────────────────────────────
+// Диагностика бота свапов без доступа к серверу: показывает, заданы ли переменные
+// (без раскрытия значений), пингует getMe/getWebhookInfo, по флагам регистрирует
+// вебхук и шлёт тестовое сообщение в чат.
+//   GET /api/tg-diagnose            — только проверка (getMe + getWebhookInfo)
+//   GET /api/tg-diagnose?fix=1      — + setWebhook на $SITE/api/tg-webhook
+//   GET /api/tg-diagnose?test=1     — + тестовый sendMessage в TG_CHAT_ID
+app.get('/api/tg-diagnose', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (session.role !== 'tl') return c.json({ ok: false, error: 'Доступ только для TL' }, 403);
+
+  const env = c.env;
+  const result: Record<string, unknown> = {
+    env: {
+      TG_BOT_TOKEN: env.TG_BOT_TOKEN ? `set (…${env.TG_BOT_TOKEN.slice(-4)})` : 'MISSING',
+      TG_WEBHOOK_SECRET: env.TG_WEBHOOK_SECRET ? 'set' : 'MISSING',
+      TG_CHAT_ID: env.TG_CHAT_ID || 'MISSING',
+      SITE: env.SITE || 'MISSING',
+    },
+  };
+
+  if (!env.TG_BOT_TOKEN) return c.json({ ok: false, ...result, hint: 'TG_BOT_TOKEN не задан в .env сервера' }, 200);
+
+  result.getMe = await tgApi(env, 'getMe', {});
+
+  if (c.req.query('test')) {
+    result.sendMessage = env.TG_CHAT_ID
+      ? await tgApi(env, 'sendMessage', { chat_id: env.TG_CHAT_ID, text: '✅ Проверка бота свапов: связь с чатом работает.' })
+      : { ok: false, description: 'TG_CHAT_ID не задан' };
+  }
+
+  if (c.req.query('fix')) {
+    if (!env.TG_WEBHOOK_SECRET) {
+      result.setWebhook = { ok: false, description: 'TG_WEBHOOK_SECRET не задан' };
+    } else {
+      const hookUrl = `${(env.SITE || '').replace(/\/$/, '')}/api/tg-webhook`;
+      result.setWebhook = await tgApi(env, 'setWebhook', { url: hookUrl, secret_token: env.TG_WEBHOOK_SECRET, allowed_updates: ['callback_query'] });
+      result.hookUrl = hookUrl;
+    }
+  }
+
+  result.getWebhookInfo = await tgApi(env, 'getWebhookInfo', {});
+  return c.json({ ok: true, ...result });
+});
+
 // ── Sales ──────────────────────────────────────────────────────────────────
 
 type SalesMonthData = { rows: unknown[]; dateFrom: string | null; dateTo: string | null };

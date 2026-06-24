@@ -18,8 +18,8 @@ interface StatsBarProps {
   getEmp: (name: string) => { position: string; hours?: number };
 }
 
-function isSupervisorPosition(position: string): boolean {
-  return position.includes('Supervisor') || position.includes('VIP Sup');
+function isOperatorPosition(position: string): boolean {
+  return position === 'Support' || position === 'VIP';
 }
 
 const StatsBar: React.FC<StatsBarProps> = ({
@@ -48,7 +48,7 @@ const StatsBar: React.FC<StatsBarProps> = ({
     const cardCounts = statCards.map(card => {
       const members = sections.filter(s => card.sectionKeys.includes(s.key)).flatMap(s => s.members);
       const count = card.operatorsOnly
-        ? members.filter(n => !isSupervisorPosition(getEmp(n).position)).length
+        ? members.filter(n => isOperatorPosition(getEmp(n).position)).length
         : members.length;
       return { label: card.label, count, sub: card.operatorsOnly ? 'операторов в отделе' : 'человек в отделе' };
     });
@@ -59,7 +59,7 @@ const StatsBar: React.FC<StatsBarProps> = ({
       const todayIndex = now.getDate() - 1;
       const yesterdayIndex = todayIndex - 1;
       for (const name of allMembers) {
-        if (onlineOperatorsOnly && isSupervisorPosition(getEmp(name).position)) continue;
+        if (onlineOperatorsOnly && !isOperatorPosition(getEmp(name).position)) continue;
         const type = getShiftForCell(name, todayIndex);
         const def = SHIFT_DEFS[type];
         if (!def?.window) continue;

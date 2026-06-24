@@ -87,10 +87,14 @@ const SwapModal: React.FC<SwapModalProps> = ({
     setComment('');
   }, [open, isAdmin, currentUserName, supportMembers]);
 
-  // Days where giver has a givable shift and remaining hours > 0
+  // Days where giver has a givable shift and remaining hours > 0.
+  // Прошлые дни исключаем — отдавать уже прошедшую смену нельзя.
   const givableDays = useMemo(() => {
     if (!giver) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return days.filter((day, di) => {
+      if (day.date < today) return false;
       const type = getShiftForCell(giver, di);
       if (!SHIFT_DEFS[type]?.givable) return false;
       const rem = swapRemainingHours(giver, day.d, type, year, month, overrides, employeeHoursSeed);

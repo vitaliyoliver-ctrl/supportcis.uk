@@ -541,6 +541,43 @@ option { background: #1a1e28; }
 .form-row .form-field { flex: 1; }
 .form-field { display: flex; flex-direction: column; }
 
+/* ── Swap modal: диапазон и обед ─────────────────────────────────── */
+.swap-range-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.swap-range-info strong { color: var(--text); font-size: 13px; font-weight: 700; }
+.swap-range-note {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.swap-lunch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  user-select: none;
+}
+.swap-lunch input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+.swap-lunch.is-disabled { cursor: default; color: var(--muted); }
+.swap-lunch.is-disabled input { cursor: default; }
+.swap-lunch-hint { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
 /* ── Shift type grid ─────────────────────────────────────────────── */
 .shift-type-grid { display: flex; flex-direction: column; gap: 8px; }
 .shift-type-group-label {

@@ -223,10 +223,13 @@ function computeNK(nkMain: WB, nkDep: WB, XLSX: typeof import('xlsx')): NKResult
 
   const spamSet = buildSpamSet(rows, iCSAT, iEmail, iDate);
   const emailDepAtom: Record<string, number> = {}, emailDepMotor: Record<string, number> = {};
-  nkDep.SheetNames.filter((s) => s.toLowerCase().includes('atom') || s.toLowerCase().includes('motor')).forEach((shName) => {
+  // Sheet names may be Latin (atom/motor) or Cyrillic (Атом/Мотор)
+  const isAtomSheet = (s: string) => s.toLowerCase().includes('atom') || s.toLowerCase().includes('атом');
+  const isMotorSheet = (s: string) => s.toLowerCase().includes('motor') || s.toLowerCase().includes('мотор');
+  nkDep.SheetNames.filter((s) => isAtomSheet(s) || isMotorSheet(s)).forEach((shName) => {
     const ws2 = nkDep.Sheets[shName];
     const rows2 = (XLSX.utils.sheet_to_json(ws2 as never, { header: 1, defval: null }) as Row[]).slice(1);
-    const target = shName.toLowerCase().includes('atom') ? emailDepAtom : emailDepMotor;
+    const target = isAtomSheet(shName) ? emailDepAtom : emailDepMotor;
     rows2.forEach((r) => {
       if (r[1] && r[4] != null) {
         const dep = parseInt(String(r[4]));

@@ -313,64 +313,71 @@ export default function TicketsPage() {
       </div>
 
       <div style={{ padding: '20px 28px' }}>
-        <form onSubmit={search} style={{ display: 'flex', gap: 10, marginBottom: 16, maxWidth: 720 }}>
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Поиск по тикетам (тема, текст, № тикета)…" style={{ ...input, flex: 1 }} />
-          <button type="submit" disabled={loading} style={{ ...input, cursor: 'pointer', background: '#4f8ef7', borderColor: '#4f8ef7', color: '#fff', fontWeight: 600 }}>{loading ? '…' : 'Найти'}</button>
-        </form>
+        {/* Панель поиска и фильтров */}
+        <div style={{ ...box, padding: 16, marginBottom: 18 }}>
+          <form onSubmit={search} style={{ display: 'flex', gap: 10 }}>
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Поиск по тикетам — тема, текст письма, № тикета, почта…" style={{ ...input, flex: 1 }} />
+            <button type="submit" disabled={loading} style={{ ...input, cursor: 'pointer', background: '#4f8ef7', borderColor: '#4f8ef7', color: '#fff', fontWeight: 600, padding: '10px 22px' }}>{loading ? '…' : 'Найти'}</button>
+          </form>
 
-        {searched && (
-          <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* Статусы — мультивыбор */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              {STATUSES.map(([v, l]) => {
-                const on = fStatuses.includes(v); const c = statusColor(v);
-                return (
-                  <button key={v} onClick={() => toggleStatus(v)} style={{ ...input, cursor: 'pointer', padding: '6px 12px', fontSize: 12,
-                    background: on ? `${c}22` : 'transparent', borderColor: on ? c : t.border, color: on ? c : t.dim, fontWeight: on ? 600 : 400 }}>
-                    {on ? '✓ ' : ''}{l}
-                  </button>
-                );
-              })}
-            </div>
+          {searched && (
+            <>
+              <div style={{ height: 1, background: t.border, margin: '16px 0' }} />
 
-            {/* Группы — мультивыбор с автоподстановкой + чипы */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <TeamCombo key={teamComboKey} teams={sortedTeams.filter(x => !fTeams.includes(x.ID))} valueID=""
-                placeholder={`+ группа${allTeams.length ? ` (${allTeams.length})` : ''}`}
-                onPick={addTeam} style={{ ...input, cursor: 'text', minWidth: 200 }} />
-              {fTeams.map(id => {
-                const nm = allTeams.find(x => x.ID === id)?.name || id;
-                return (
-                  <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontFamily: mono, background: 'rgba(79,142,247,0.15)', color: '#4f8ef7', border: '1px solid #4f8ef755', borderRadius: 16, padding: '4px 10px' }}>
-                    {nm}<span onClick={() => removeTeam(id)} style={{ cursor: 'pointer', fontWeight: 700 }}>×</span>
-                  </span>
-                );
-              })}
-            </div>
+              <FRow t={t} label="Статус">
+                {STATUSES.map(([v, l]) => {
+                  const on = fStatuses.includes(v); const c = statusColor(v);
+                  return (
+                    <button key={v} onClick={() => toggleStatus(v)} style={{ cursor: 'pointer', padding: '5px 13px', fontSize: 12, borderRadius: 20, fontFamily: mono,
+                      border: `1px solid ${on ? c : t.border}`, background: on ? `${c}22` : 'transparent', color: on ? c : t.dim, fontWeight: on ? 600 : 400, transition: 'all .15s' }}>
+                      {on ? '✓ ' : ''}{l}
+                    </button>
+                  );
+                })}
+              </FRow>
 
-            {/* Даты + сохранённые фильтры */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>создан:</span>
-              <input type="date" value={fCreatedFrom} onChange={e => { setFCreatedFrom(e.target.value); setAppliedName(''); load({ cf: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-              <input type="date" value={fCreatedTo} onChange={e => { setFCreatedTo(e.target.value); setAppliedName(''); load({ ct: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-              <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>активность:</span>
-              <input type="date" value={fActiveFrom} onChange={e => { setFActiveFrom(e.target.value); setAppliedName(''); load({ af: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-              <input type="date" value={fActiveTo} onChange={e => { setFActiveTo(e.target.value); setAppliedName(''); load({ at: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+              <FRow t={t} label="Группы">
+                <TeamCombo key={teamComboKey} teams={sortedTeams.filter(x => !fTeams.includes(x.ID))} valueID=""
+                  placeholder={`+ добавить группу${allTeams.length ? ` (${allTeams.length})` : ''}`}
+                  onPick={addTeam} style={{ ...input, cursor: 'text', minWidth: 220 }} />
+                {fTeams.map(id => {
+                  const nm = allTeams.find(x => x.ID === id)?.name || id;
+                  return (
+                    <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontFamily: mono, background: 'rgba(79,142,247,0.15)', color: '#4f8ef7', border: '1px solid #4f8ef755', borderRadius: 16, padding: '4px 10px' }}>
+                      {nm}<span onClick={() => removeTeam(id)} style={{ cursor: 'pointer', fontWeight: 700, opacity: 0.8 }}>×</span>
+                    </span>
+                  );
+                })}
+              </FRow>
 
-              <span style={{ width: 1, height: 22, background: t.border, margin: '0 4px' }} />
-              <select value={appliedName} onChange={e => applySaved(e.target.value)} style={{ ...input, cursor: 'pointer', maxWidth: 200 }}>
-                <option value="">Мои фильтры…</option>
-                {saved.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
-              </select>
-              <button onClick={saveCurrent} style={{ ...input, cursor: 'pointer' }}>💾 Сохранить</button>
-              {appliedName && <button onClick={() => deleteSaved(appliedName)} title="Удалить выбранный фильтр" style={{ ...input, cursor: 'pointer' }}>🗑</button>}
-              {(fStatuses.length || fTeams.length || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) ? (
-                <button onClick={resetFilters} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
-              ) : null}
-              <span style={{ fontSize: 12, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{rows.length} тикетов</span>
-            </div>
-          </div>
-        )}
+              <FRow t={t} label="Создан">
+                <input type="date" value={fCreatedFrom} onChange={e => { setFCreatedFrom(e.target.value); setAppliedName(''); load({ cf: e.target.value }); }} style={{ ...input, colorScheme: t.scheme, width: 150 }} />
+                <span style={{ color: t.faint }}>—</span>
+                <input type="date" value={fCreatedTo} onChange={e => { setFCreatedTo(e.target.value); setAppliedName(''); load({ ct: e.target.value }); }} style={{ ...input, colorScheme: t.scheme, width: 150 }} />
+              </FRow>
+              <FRow t={t} label="Активность">
+                <input type="date" value={fActiveFrom} onChange={e => { setFActiveFrom(e.target.value); setAppliedName(''); load({ af: e.target.value }); }} style={{ ...input, colorScheme: t.scheme, width: 150 }} />
+                <span style={{ color: t.faint }}>—</span>
+                <input type="date" value={fActiveTo} onChange={e => { setFActiveTo(e.target.value); setAppliedName(''); load({ at: e.target.value }); }} style={{ ...input, colorScheme: t.scheme, width: 150 }} />
+              </FRow>
+
+              <div style={{ height: 1, background: t.border, margin: '14px 0' }} />
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <select value={appliedName} onChange={e => applySaved(e.target.value)} style={{ ...input, cursor: 'pointer', maxWidth: 220 }}>
+                  <option value="">⭐ Мои фильтры…</option>
+                  {saved.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
+                </select>
+                <button onClick={saveCurrent} style={{ ...input, cursor: 'pointer' }}>💾 Сохранить</button>
+                {appliedName && <button onClick={() => deleteSaved(appliedName)} title="Удалить выбранный фильтр" style={{ ...input, cursor: 'pointer' }}>🗑</button>}
+                {(fStatuses.length || fTeams.length || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) ? (
+                  <button onClick={resetFilters} style={{ ...input, cursor: 'pointer', color: '#e17055', borderColor: '#e1705555' }}>✕ Сбросить</button>
+                ) : null}
+                <span style={{ fontSize: 13, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{loading ? 'загрузка…' : `${rows.length} тикетов`}</span>
+              </div>
+            </>
+          )}
+        </div>
 
         {err && <div style={{ ...box, padding: 12, marginBottom: 14, borderColor: '#e17055', color: '#e17055', fontSize: 13, fontFamily: mono }}>{err}</div>}
         {notice && <div style={{ ...box, padding: 12, marginBottom: 14, borderColor: '#00a884', color: '#00a884', fontSize: 13, fontFamily: mono }}>{notice}</div>}
@@ -549,6 +556,16 @@ export default function TicketsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Строка фильтра: подпись слева, контролы справа.
+function FRow({ t, label, children }: { t: Theme; label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+      <span style={{ width: 96, flexShrink: 0, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: t.dim, fontFamily: mono }}>{label}</span>
+      {children}
     </div>
   );
 }

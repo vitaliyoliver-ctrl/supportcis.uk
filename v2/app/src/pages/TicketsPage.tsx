@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
-import { listTickets, listTeams, listTags, addTags, removeTag, replyTicket, createTicket, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type Tag, type SavedFilter } from '@/lib/helpdeskApi';
+import { listTickets, listTeams, listTags, addTags, removeTag, replyTicket, createTicket, changeTeam, relatedTickets, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type Tag, type SavedFilter } from '@/lib/helpdeskApi';
 
 // Все 5 статусов HelpDesk (значения API; on hold = onhold).
 const STATUSES: [string, string][] = [
@@ -155,10 +155,22 @@ export default function TicketsPage() {
   const filtered = rows;
 
   const selected = useMemo(() => rows.find(r => r.ID === selId) || null, [rows, selId]);
-  const requesterTickets = useMemo(() => {
-    if (!selected?.requester?.email) return [];
-    return rows.filter(r => r.requester?.email === selected.requester?.email && r.ID !== selected.ID);
-  }, [rows, selected]);
+  // Тикеты клиента — отдельный серверный запрос по реальной почте выбранного тикета.
+  const [requesterTickets, setRequesterTickets] = useState<Ticket[]>([]);
+  useEffect(() => {
+    if (!selId) { setRequesterTickets([]); return; }
+    let alive = true;
+    relatedTickets(selId).then(list => { if (alive) setRequesterTickets(list.filter(r => r.ID !== selId)); }).catch(() => { if (alive) setRequesterTickets([]); });
+    return () => { alive = false; };
+  }, [selId]);
+
+  // Сменить группу выбранного тикета.
+  const [teamChangeKey, setTeamChangeKey] = useState(0);
+  async function changeTicketTeam(teamID: string) {
+    if (!teamID || !selId) return;
+    setTeamChangeKey(k => k + 1);
+    try { await changeTeam(selId, teamID); await load(); setNotice('Группа изменена'); } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
+  }
 
   // Все фильтры применяются на сервере (по всей базе). Любая смена фильтра = запрос.
   // ov позволяет передать новые значения, не дожидаясь обновления state.
@@ -267,7 +279,7 @@ export default function TicketsPage() {
         subject: nf.subject.trim(),
         message: { text: nf.text.trim() },
         requester: { email: nf.email.trim(), name: nf.name.trim() || undefined },
-        teamIDs: nf.teamID ? [nf.teamID] : undefined,
+        ...(nf.teamID ? { assignment: { team: { ID: nf.teamID } } } : {}),
         priority: Number(nf.priority),
         status: nf.status,
       });
@@ -458,6 +470,11 @@ export default function TicketsPage() {
                       <div style={sectionTitle}>Назначение</div>
                       <Field t={t} label="Команда" value={selected.assignment?.team?.name || '—'} />
                       <Field t={t} label="Агент" value={selected.assignment?.agent?.name?.trim() || 'не назначен'} />
+                      <div style={{ marginTop: 8 }}>
+                        <TeamCombo key={teamChangeKey} teams={sortedTeams} valueID=""
+                          placeholder="↪ сменить группу" onPick={changeTicketTeam}
+                          style={{ ...input, width: '100%', boxSizing: 'border-box', cursor: 'text' }} />
+                      </div>
                     </div>
                     {selected.customFields && Object.keys(selected.customFields).length > 0 && (
                       <div>

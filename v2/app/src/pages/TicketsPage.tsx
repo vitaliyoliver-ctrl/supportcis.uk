@@ -100,19 +100,9 @@ export default function TicketsPage() {
 
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   useEffect(() => { listTeams().then(setAllTeams).catch(() => { /* список групп опционален */ }); }, []);
-  const teamNames = useMemo(() => [...new Set(allTeams.map(t => t.name))].sort(), [allTeams]);
 
-  // Статус фильтруется на сервере (см. load), здесь только команда и даты.
-  const filtered = useMemo(() => rows.filter(r => {
-    if (fTeam !== 'all' && r.assignment?.team?.name !== fTeam) return false;
-    const created = (r.createdAt || '').slice(0, 10);
-    if (fCreatedFrom && created < fCreatedFrom) return false;
-    if (fCreatedTo && created > fCreatedTo) return false;
-    const active = (r.lastMessageAt || r.createdAt || '').slice(0, 10);
-    if (fActiveFrom && active < fActiveFrom) return false;
-    if (fActiveTo && active > fActiveTo) return false;
-    return true;
-  }), [rows, fTeam, fCreatedFrom, fCreatedTo, fActiveFrom, fActiveTo]);
+  // Вся фильтрация серверная — показываем rows как есть.
+  const filtered = rows;
 
   const selected = useMemo(() => rows.find(r => r.ID === selId) || null, [rows, selId]);
   const requesterTickets = useMemo(() => {
@@ -120,12 +110,21 @@ export default function TicketsPage() {
     return rows.filter(r => r.requester?.email === selected.requester?.email && r.ID !== selected.ID);
   }, [rows, selected]);
 
-  // Статус фильтруется на сервере (по всей базе), поэтому смена статуса = новый запрос.
-  async function load(statusOverride?: string) {
-    const status = statusOverride ?? fStatus;
+  // Все фильтры применяются на сервере (по всей базе). Любая смена фильтра = запрос.
+  // ov позволяет передать новое значение поля, не дожидаясь обновления state.
+  async function load(ov: { status?: string; team?: string; cf?: string; ct?: string; af?: string; at?: string } = {}) {
+    const status = ov.status ?? fStatus, team = ov.team ?? fTeam;
     setLoading(true); setErr(''); setSearched(true);
     try {
-      const data = await listTickets({ query: query.trim() || undefined, status: status !== 'all' ? status : undefined });
+      const data = await listTickets({
+        query: query.trim() || undefined,
+        status: status !== 'all' ? status : undefined,
+        teamID: team !== 'all' ? team : undefined,
+        createdFrom: (ov.cf ?? fCreatedFrom) || undefined,
+        createdTo: (ov.ct ?? fCreatedTo) || undefined,
+        activeFrom: (ov.af ?? fActiveFrom) || undefined,
+        activeTo: (ov.at ?? fActiveTo) || undefined,
+      });
       setRows(data);
       if (!data.find(r => r.ID === selId)) setSelId('');
     } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
@@ -184,26 +183,26 @@ export default function TicketsPage() {
           <button type="submit" disabled={loading} style={{ ...input, cursor: 'pointer', background: '#4f8ef7', borderColor: '#4f8ef7', color: '#fff', fontWeight: 600 }}>{loading ? '…' : 'Найти'}</button>
         </form>
 
-        {rows.length > 0 && (
+        {searched && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={fStatus} onChange={e => { setFStatus(e.target.value); load(e.target.value); }} style={{ ...input, cursor: 'pointer' }}>
+            <select value={fStatus} onChange={e => { setFStatus(e.target.value); load({ status: e.target.value }); }} style={{ ...input, cursor: 'pointer' }}>
               <option value="all">Все статусы</option>
               {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-            <select value={fTeam} onChange={e => setFTeam(e.target.value)} style={{ ...input, cursor: 'pointer', maxWidth: 200 }}>
+            <select value={fTeam} onChange={e => { setFTeam(e.target.value); load({ team: e.target.value }); }} style={{ ...input, cursor: 'pointer', maxWidth: 220 }}>
               <option value="all">Все группы{allTeams.length ? ` (${allTeams.length})` : ''}</option>
-              {teamNames.map(tm => <option key={tm} value={tm}>{tm}</option>)}
+              {allTeams.map(tm => <option key={tm.ID} value={tm.ID}>{tm.name}</option>)}
             </select>
             <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>создан:</span>
-            <input type="date" value={fCreatedFrom} onChange={e => setFCreatedFrom(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
-            <input type="date" value={fCreatedTo} onChange={e => setFCreatedTo(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
+            <input type="date" value={fCreatedFrom} onChange={e => { setFCreatedFrom(e.target.value); load({ cf: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+            <input type="date" value={fCreatedTo} onChange={e => { setFCreatedTo(e.target.value); load({ ct: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
             <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>активность:</span>
-            <input type="date" value={fActiveFrom} onChange={e => setFActiveFrom(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
-            <input type="date" value={fActiveTo} onChange={e => setFActiveTo(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
+            <input type="date" value={fActiveFrom} onChange={e => { setFActiveFrom(e.target.value); load({ af: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+            <input type="date" value={fActiveTo} onChange={e => { setFActiveTo(e.target.value); load({ at: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
             {(fStatus !== 'all' || fTeam !== 'all' || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) && (
-              <button onClick={() => { setFStatus('all'); setFTeam('all'); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); load('all'); }} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
+              <button onClick={() => { setFStatus('all'); setFTeam('all'); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); load({ status: 'all', team: 'all', cf: '', ct: '', af: '', at: '' }); }} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
             )}
-            <span style={{ fontSize: 12, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{filtered.length} из {rows.length}</span>
+            <span style={{ fontSize: 12, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{rows.length} тикетов</span>
           </div>
         )}
 

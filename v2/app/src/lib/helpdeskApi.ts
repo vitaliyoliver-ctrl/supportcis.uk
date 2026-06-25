@@ -41,12 +41,23 @@ export interface Ticket {
   [k: string]: unknown;
 }
 
-/** Список/поиск тикетов. Почты в ответе уже замаскированы псевдонимами. */
-export async function listTickets(opts: { query?: string; cursor?: string; status?: string } = {}): Promise<Ticket[]> {
+export interface TicketFilters {
+  query?: string; status?: string; teamID?: string;
+  createdFrom?: string; createdTo?: string; activeFrom?: string; activeTo?: string;
+}
+
+/** Список/поиск тикетов с серверной фильтрацией. Почты уже замаскированы. */
+export async function listTickets(opts: TicketFilters = {}): Promise<Ticket[]> {
   const p = new URLSearchParams();
+  p.set('pageSize', '100');
   if (opts.query) p.set('query', opts.query);
-  if (opts.cursor) p.set('cursor', opts.cursor);
   if (opts.status) p.set('status', opts.status);
+  if (opts.teamID) p.set('teamIDs[]', opts.teamID);
+  // Даты приводим к границам суток в ISO.
+  if (opts.createdFrom) p.set('createdDateFrom', opts.createdFrom + 'T00:00:00Z');
+  if (opts.createdTo) p.set('createdDateTo', opts.createdTo + 'T23:59:59Z');
+  if (opts.activeFrom) p.set('lastMessageFrom', opts.activeFrom + 'T00:00:00Z');
+  if (opts.activeTo) p.set('lastMessageTo', opts.activeTo + 'T23:59:59Z');
   const data = await call<unknown>(`/tickets${p.toString() ? '?' + p : ''}`);
   if (Array.isArray(data)) return data as Ticket[];
   const d = (data || {}) as Record<string, unknown>;

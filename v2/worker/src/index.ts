@@ -908,7 +908,8 @@ app.get('/api/helpdesk/tickets', async (c) => {
   if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
 
   const params = new URLSearchParams();
-  for (const k of ['query', 'cursor', 'status', 'sortBy', 'sortOrder']) {
+  for (const k of ['query', 'cursor', 'status', 'sortBy', 'order', 'pageSize', 'teamIDs[]',
+    'createdDateFrom', 'createdDateTo', 'lastMessageFrom', 'lastMessageTo']) {
     const v = c.req.query(k);
     if (v) params.set(k, v);
   }
@@ -996,11 +997,11 @@ app.post('/api/helpdesk/tickets/:id/reply', async (c) => {
 
   await hdAudit(c.env, session.email, isPrivate ? 'note' : 'reply', id);
 
-  // Публичный ответ vs приватная заметка. Поля text/isPrivate — по модели
-  // сообщений HelpDesk; форма может отличаться по версии API и правится здесь.
-  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}/messages`, {
-    method: 'POST',
-    body: JSON.stringify({ text, isPrivate }),
+  // По документации HelpDesk сообщение/заметка добавляются через PATCH тикета:
+  // author.type=agent, message.text, isPrivate (верхний уровень). true — заметка.
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ author: { type: 'agent' }, message: { text }, isPrivate }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
@@ -1023,122 +1024,6 @@ app.get('/api/helpdesk/audit', async (c) => {
     .sort((a: any, b: any) => String(b.at).localeCompare(String(a.at)))
     .slice(0, 500);
   return c.json({ ok: true, log });
-});
-
-// Диагностика API HelpDesk (только TL). Определяет рабочие эндпоинты по кодам
-// ответа, не зная закрытой документации:
-//  • GET на POST-only путь обычно даёт 405 (путь есть) либо 404 (пути нет) —
-//    так находим эндпоинт отправки сообщения/заметки, не создавая ничего лишнего;
-//  • GET на коллекции команд → 200 у правильного пути;
-//  • пробуем серверную фильтрацию тикетов по статусу/команде и считаем результат.
-// Использование: /api/helpdesk/diagnose?ticket=<ID любого тикета>
-app.get('/api/helpdesk/diagnose', async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ ok: false }, 401);
-  if (session.role !== 'tl') return c.json({ ok: false, error: 'Доступ только для TL' }, 403);
-  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
-
-  const ticket = c.req.query('ticket') || '';
-  const result: Record<string, unknown> = {};
-
-  // Если ID не передан — берём первый тикет из списка автоматически.
-  let ticketId = ticket;
-  if (!ticketId) {
-    try {
-      const r = await helpdeskFetch(c.env, '/tickets');
-      const j = await r.json().catch(() => null);
-      const arr = Array.isArray(j) ? j : (j as any)?.tickets;
-      if (Array.isArray(arr) && arr[0]?.ID) ticketId = String(arr[0].ID);
-    } catch { /* noop */ }
-  }
-  result.usedTicketId = ticketId || '(не найден)';
-
-  // Содержимое /teams — увидеть все группы и структуру (id/name).
-  try {
-    const r = await helpdeskFetch(c.env, '/teams');
-    const j = await r.json().catch(() => null);
-    const arr = Array.isArray(j) ? j : (j as any)?.teams;
-    result.teamsSample = { status: r.status, count: Array.isArray(arr) ? arr.length : '?', first: Array.isArray(arr) ? arr.slice(0, 3) : j };
-  } catch (e) { result.teamsSample = { error: String(e) }; }
-
-  // Подбор значения статуса «on hold» и проверка остальных.
-  const filterProbe = async (qs: string) => {
-    try {
-      const r = await helpdeskFetch(c.env, `/tickets?${qs}`);
-      let len: number | string = '—';
-      if (r.ok) { const j = await r.json().catch(() => null); len = Array.isArray(j) ? j.length : (Array.isArray((j as any)?.tickets) ? (j as any).tickets.length : '?'); }
-      return { qs, status: r.status, count: len };
-    } catch (e) { return { qs, status: 'ERR', error: String(e) }; }
-  };
-  result.statusValues = await Promise.all(
-    ['open', 'pending', 'solved', 'closed', 'onhold', 'on hold', 'hold', 'snoozed', 'on_hold', 'on-hold', 'onHold'].map(s => filterProbe(`status=${encodeURIComponent(s)}`)),
-  );
-
-  // Имя параметра фильтра по команде (берём id первой команды).
-  let teamId = '';
-  try {
-    const r = await helpdeskFetch(c.env, '/teams');
-    const j = await r.json().catch(() => null);
-    const arr = Array.isArray(j) ? j : (j as any)?.teams;
-    if (Array.isArray(arr) && (arr[0]?.ID || arr[0]?.id)) teamId = String(arr[0].ID || arr[0].id);
-  } catch { /* noop */ }
-  result.teamFilter = teamId
-    ? await Promise.all([
-        `teamIDs[]=${teamId}`, `teamID[]=${teamId}`, `filter[teamIDs]=${teamId}`,
-        `teamId=${teamId}`, `teams=${teamId}`, `assignedTeamID=${teamId}`,
-      ].map(filterProbe))
-    : 'team id не найден';
-
-  // Фильтр по дате (подбор имён параметров).
-  result.dateFilter = await Promise.all([
-    filterProbe('createdAtFrom=2026-06-01'),
-    filterProbe('createdAt[from]=2026-06-01'),
-    filterProbe('from=2026-06-01'),
-    filterProbe('dateFrom=2026-06-01'),
-  ]);
-
-  // POST /tickets/list — частый паттерн для богатой фильтрации.
-  try {
-    const r = await helpdeskFetch(c.env, '/tickets/list', { method: 'POST', body: JSON.stringify({ filters: { status: ['open'] } }) });
-    const txt = await r.text().catch(() => '');
-    result.ticketsListPost = { status: r.status, resp: txt.slice(0, 120) };
-  } catch (e) { result.ticketsListPost = { error: String(e) }; }
-
-  // Реальные пробы отправки сообщения (приватной заметкой — безопасно). Только с ?post=1.
-  if (c.req.query('post') === '1' && ticketId) {
-    const id = encodeURIComponent(ticketId);
-    const tag = '[portal-diagnostic ' + Date.now() + ']';
-    const wProbe = async (method: string, path: string, body: unknown) => {
-      try {
-        const r = await helpdeskFetch(c.env, path, { method, body: JSON.stringify(body) });
-        const txt = await r.text().catch(() => '');
-        return { method, path, body: JSON.stringify(body).slice(0, 60), status: r.status, resp: txt.slice(0, 140) };
-      } catch (e) { return { method, path, status: 'ERR', error: String(e) }; }
-    };
-    result.postProbes = [];
-    const candidates: Array<[string, string, unknown]> = [
-      ['POST', `/tickets/${id}/reply`, { text: tag, isPrivate: true }],
-      ['POST', `/tickets/${id}/message`, { text: tag, isPrivate: true }],
-      ['POST', `/tickets/${id}/send`, { text: tag, isPrivate: true }],
-      ['POST', `/tickets/${id}/answer`, { text: tag, isPrivate: true }],
-      ['POST', `/tickets/${id}/events`, { type: 'message', message: { text: tag, isPrivate: true } }],
-      ['POST', `/tickets/${id}/threads`, { text: tag, isPrivate: true }],
-      ['POST', `/tickets/${id}/conversation`, { text: tag, isPrivate: true }],
-      ['POST', `/tickets/${id}`, { message: { text: tag, isPrivate: true } }],
-      ['PUT', `/tickets/${id}`, { events: [{ type: 'message', message: { text: tag, isPrivate: true } }] }],
-      ['PATCH', `/tickets/${id}`, { message: { text: tag, isPrivate: true } }],
-      ['POST', `/messages`, { ticketID: ticketId, text: tag, isPrivate: true }],
-    ];
-    for (const [m, p, b] of candidates) {
-      const res = await wProbe(m, p, b);
-      (result.postProbes as unknown[]).push(res);
-      if (typeof res.status === 'number' && res.status >= 200 && res.status < 300) break;
-    }
-  } else {
-    result.postProbes = 'добавьте &post=1 для реальных проб отправки (создаст максимум 1 запись на тест-тикете)';
-  }
-
-  return c.json({ ok: true, result });
 });
 
 // ── Health (liveness для Docker/реверс-прокси) ──────────────────────────────────

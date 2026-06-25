@@ -1047,10 +1047,10 @@ app.post('/api/helpdesk/tickets/:id/assign', async (c) => {
   try { const b = await c.req.json<{ teamID?: string }>(); teamID = (b.teamID || '').trim(); } catch { return c.json({ ok: false, error: 'Некорректный запрос' }, 400); }
   if (!teamID) return c.json({ ok: false, error: 'Не указана группа' }, 400);
   await hdAudit(c.env, session.email, 'assign', `${id} → ${teamID}`);
-  // Назначение только на команду (без агента) задаётся через teamIDs:
-  // assignment.team в записи требует обязательного peer agent.
+  // Назначение на команду без агента: assignment.team требует peer agent (может быть
+  // null), и назначенная команда должна входить в teamIDs.
   const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`, {
-    method: 'PATCH', body: JSON.stringify({ teamIDs: [teamID] }),
+    method: 'PATCH', body: JSON.stringify({ teamIDs: [teamID], assignment: { team: { ID: teamID }, agent: null } }),
   });
   if (!res.ok) { const d = await res.text().catch(() => ''); return c.json({ ok: false, error: `HelpDesk ${res.status}: ${d.slice(0, 200)}` }, 502); }
   return c.json({ ok: true });

@@ -137,6 +137,9 @@ export default function TicketsPage() {
   // Команды по алфавиту — для фильтра и формы создания.
   const sortedTeams = useMemo(() => [...allTeams].sort((a, b) => a.name.localeCompare(b.name, 'ru')), [allTeams]);
 
+  // Автозагрузка тикетов при открытии страницы (без нажатия «Найти»).
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
   const [allTags, setAllTags] = useState<Tag[]>([]);
   useEffect(() => { listTags().then(setAllTags).catch(() => { /* теги опциональны */ }); }, []);
   const tagName = (id: string) => allTags.find(x => x.ID === id)?.name || id;
@@ -279,7 +282,9 @@ export default function TicketsPage() {
         subject: nf.subject.trim(),
         message: { text: nf.text.trim() },
         requester: { email: nf.email.trim(), name: nf.name.trim() || undefined },
-        ...(nf.teamID ? { teamIDs: [nf.teamID] } : {}),
+        // Назначаем на команду без агента: assignment.team требует peer agent (можно null),
+        // и назначенная команда должна входить в teamIDs.
+        ...(nf.teamID ? { teamIDs: [nf.teamID], assignment: { team: { ID: nf.teamID }, agent: null } } : {}),
         priority: Number(nf.priority),
         status: nf.status,
       });

@@ -72,8 +72,15 @@ function Linkified({ text }: { text: string }) {
 function eventSummary(e: TicketEvent): string | null {
   switch (e.type) {
     case 'status': return `статус: ${e.status?.old ?? '—'} → ${e.status?.new ?? '—'}`;
+    case 'assignment': {
+      const a = e.assignment; const parts: string[] = [];
+      const ot = a?.old?.team?.name, nt = a?.new?.team?.name;
+      if (ot || nt) parts.push(`группа: ${ot || '—'} → ${nt || '—'}`);
+      const oa = a?.old?.agent?.name?.trim(), na = a?.new?.agent?.name?.trim();
+      if (oa || na) parts.push(`агент: ${oa || '—'} → ${na || '—'}`);
+      return parts.join('; ') || 'изменено назначение';
+    }
     case 'tags': return 'изменены теги';
-    case 'assignment': return 'изменено назначение';
     case 'teamVisibility': return 'изменена видимость команд';
     case 'customFields': return 'обновлены доп. поля';
     case 'followers': return 'изменены наблюдатели';
@@ -164,6 +171,16 @@ export default function TicketsPage() {
         const map = new Map<string, Ticket>();
         for (const arr of parts) for (const tk of arr) map.set(tk.ID, tk);
         data = [...map.values()].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      }
+      // teamIDs[] на сервере фильтрует по видимости (включая команду создания после
+      // перевода). Дофильтровываем по ТЕКУЩЕЙ назначенной группе — назначенная
+      // команда всегда входит в видимость, поэтому нужные тикеты не теряются.
+      if (teams.length) {
+        const set = new Set(teams);
+        data = data.filter(r => {
+          const tid = (r.assignment?.team as { ID?: string } | null | undefined)?.ID;
+          return tid ? set.has(tid) : false;
+        });
       }
       setRows(data);
       if (!data.find(r => r.ID === selId)) setSelId('');

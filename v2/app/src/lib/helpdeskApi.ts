@@ -26,6 +26,10 @@ export interface TicketEvent {
   author?: { type?: string; ID?: string; name?: string; email?: string };
   message?: { isPrivate?: boolean; text?: string; richTextHtml?: string | null };
   status?: { new?: string; old?: string };
+  assignment?: {
+    new?: { team?: { name?: string }; agent?: { name?: string } };
+    old?: { team?: { name?: string }; agent?: { name?: string } };
+  };
 }
 export interface Ticket {
   ID: string;

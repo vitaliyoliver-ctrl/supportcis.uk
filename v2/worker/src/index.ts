@@ -941,7 +941,7 @@ app.post('/api/helpdesk/tickets', async (c) => {
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     console.error('helpdesk create failed', res.status, detail);
-    return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+    return c.json({ ok: false, error: `HelpDesk ${res.status}: ${detail.slice(0, 300)}` }, 502);
   }
   const data = await res.json().catch(() => null);
   return c.json({ ok: true, data: maskDeep(data) });
@@ -1031,8 +1031,44 @@ app.get('/api/helpdesk/tickets/:id', async (c) => {
 
   const id = c.req.param('id');
   await hdAudit(c.env, session.email, 'view', id);
-
   const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`);
+  if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  const data = await res.json().catch(() => null);
+  return c.json({ ok: true, data: maskDeep(data) });
+});
+
+// Сменить группу (команду) тикета. PATCH assignment.team + teamIDs.
+app.post('/api/helpdesk/tickets/:id/assign', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  const id = c.req.param('id');
+  let teamID = '';
+  try { const b = await c.req.json<{ teamID?: string }>(); teamID = (b.teamID || '').trim(); } catch { return c.json({ ok: false, error: 'Некорректный запрос' }, 400); }
+  if (!teamID) return c.json({ ok: false, error: 'Не указана группа' }, 400);
+  await hdAudit(c.env, session.email, 'assign', `${id} → ${teamID}`);
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`, {
+    method: 'PATCH', body: JSON.stringify({ assignment: { team: { ID: teamID } }, teamIDs: [teamID] }),
+  });
+  if (!res.ok) { const d = await res.text().catch(() => ''); return c.json({ ok: false, error: `HelpDesk ${res.status}: ${d.slice(0, 200)}` }, 502); }
+  return c.json({ ok: true });
+});
+
+// Тикеты этого же клиента: берём реальную почту тикета (она на сервере) и ищем
+// по ней полнотекстово — так находятся все обращения клиента, даже не из выдачи.
+app.get('/api/helpdesk/tickets/:id/related', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
+  const id = c.req.param('id');
+  const tRes = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`);
+  if (!tRes.ok) return c.json({ ok: false, error: `HelpDesk ${tRes.status}` }, 502);
+  const ticket = await tRes.json().catch(() => null) as { requester?: { email?: string } } | null;
+  const email = ticket?.requester?.email;
+  if (!email) return c.json({ ok: true, data: [] });
+  const params = new URLSearchParams({ query: email, pageSize: '100' });
+  const res = await helpdeskFetch(c.env, `/tickets?${params}`);
   if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
   const data = await res.json().catch(() => null);
   return c.json({ ok: true, data: maskDeep(data) });

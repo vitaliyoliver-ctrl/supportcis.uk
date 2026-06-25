@@ -133,6 +133,22 @@ export function getTicket(id: string): Promise<unknown> {
   return call(`/tickets/${encodeURIComponent(id)}`);
 }
 
+/** Сменить группу (команду) тикета. */
+export function changeTeam(ticketID: string, teamID: string): Promise<unknown> {
+  return call(`/tickets/${encodeURIComponent(ticketID)}/assign`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamID }),
+  });
+}
+
+/** Все тикеты клиента (поиск по реальной почте на сервере). */
+export async function relatedTickets(ticketID: string): Promise<Ticket[]> {
+  const data = await call<unknown>(`/tickets/${encodeURIComponent(ticketID)}/related`);
+  if (Array.isArray(data)) return data as Ticket[];
+  const d = (data || {}) as Record<string, unknown>;
+  for (const k of ['tickets', 'records', 'items', 'data', 'results']) if (Array.isArray(d[k])) return d[k] as Ticket[];
+  return [];
+}
+
 /** Ответ оператора по ticket_id. isPrivate=true — приватная заметка для команды. */
 export function replyTicket(id: string, text: string, isPrivate = false): Promise<unknown> {
   return call(`/tickets/${encodeURIComponent(id)}/reply`, {

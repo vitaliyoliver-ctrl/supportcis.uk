@@ -1,11 +1,32 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
 import { listTickets, listTeams, replyTicket, createTicket, type Ticket, type TicketEvent, type Team } from '@/lib/helpdeskApi';
 
-// Все 5 статусов HelpDesk (значения API подтверждены диагностикой; on hold = onhold).
+// Все 5 статусов HelpDesk (значения API; on hold = onhold).
 const STATUSES: [string, string][] = [
   ['open', 'Открыт'], ['pending', 'Ожидает'], ['onhold', 'На удержании'], ['solved', 'Решён'], ['closed', 'Закрыт'],
 ];
+// Приоритеты тикета (enum HelpDesk: -10 / 0 / 10 / 20).
+const PRIORITIES: [string, string][] = [
+  ['-10', 'Низкий'], ['0', 'Средний'], ['10', 'Высокий'], ['20', 'Срочный'],
+];
+
+// Комбобокс команды с автоподстановкой (нативный datalist): ввод фильтрует список.
+function TeamCombo({ teams, valueID, onPick, placeholder, style }: {
+  teams: Team[]; valueID: string; onPick: (id: string) => void; placeholder: string; style: React.CSSProperties;
+}) {
+  const listId = useId();
+  const [text, setText] = useState('');
+  useEffect(() => { setText(teams.find(x => x.ID === valueID)?.name || ''); }, [valueID, teams]);
+  return (
+    <>
+      <input list={listId} value={text} placeholder={placeholder}
+        onChange={e => { const v = e.target.value; setText(v); const m = teams.find(x => x.name === v); onPick(m ? m.ID : ''); }}
+        style={style} />
+      <datalist id={listId}>{teams.map(x => <option key={x.ID} value={x.name} />)}</datalist>
+    </>
+  );
+}
 
 // Своя тикет-система поверх HelpDesk: список, поиск, детальный тикет с перепиской,
 // инфо-панель, тикеты пользователя, ответ и создание. Почты замаскированы на бэке.
@@ -95,11 +116,13 @@ export default function TicketsPage() {
   const [fActiveTo, setFActiveTo] = useState('');
 
   const [showNew, setShowNew] = useState(false);
-  const [nf, setNf] = useState({ subject: '', email: '', name: '', text: '' });
+  const [nf, setNf] = useState({ subject: '', email: '', name: '', text: '', teamID: '', priority: '0', status: 'open' });
   const [creating, setCreating] = useState(false);
 
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   useEffect(() => { listTeams().then(setAllTeams).catch(() => { /* список групп опционален */ }); }, []);
+  // Команды по алфавиту — для фильтра и формы создания.
+  const sortedTeams = useMemo(() => [...allTeams].sort((a, b) => a.name.localeCompare(b.name, 'ru')), [allTeams]);
 
   // Вся фильтрация серверная — показываем rows как есть.
   const filtered = rows;
@@ -152,8 +175,11 @@ export default function TicketsPage() {
         subject: nf.subject.trim(),
         message: { text: nf.text.trim() },
         requester: { email: nf.email.trim(), name: nf.name.trim() || undefined },
+        teamIDs: nf.teamID ? [nf.teamID] : undefined,
+        priority: Number(nf.priority),
+        status: nf.status,
       });
-      setShowNew(false); setNf({ subject: '', email: '', name: '', text: '' });
+      setShowNew(false); setNf({ subject: '', email: '', name: '', text: '', teamID: '', priority: '0', status: 'open' });
       setNotice('Тикет создан'); await search();
     } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка создания'); }
     finally { setCreating(false); }
@@ -189,10 +215,10 @@ export default function TicketsPage() {
               <option value="all">Все статусы</option>
               {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-            <select value={fTeam} onChange={e => { setFTeam(e.target.value); load({ team: e.target.value }); }} style={{ ...input, cursor: 'pointer', maxWidth: 220 }}>
-              <option value="all">Все группы{allTeams.length ? ` (${allTeams.length})` : ''}</option>
-              {allTeams.map(tm => <option key={tm.ID} value={tm.ID}>{tm.name}</option>)}
-            </select>
+            <TeamCombo teams={sortedTeams} valueID={fTeam === 'all' ? '' : fTeam}
+              placeholder={`Все группы${allTeams.length ? ` (${allTeams.length})` : ''}`}
+              onPick={id => { setFTeam(id || 'all'); load({ team: id || 'all' }); }}
+              style={{ ...input, cursor: 'text', minWidth: 200 }} />
             <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>создан:</span>
             <input type="date" value={fCreatedFrom} onChange={e => { setFCreatedFrom(e.target.value); load({ cf: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
             <input type="date" value={fCreatedTo} onChange={e => { setFCreatedTo(e.target.value); load({ ct: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
@@ -332,6 +358,25 @@ export default function TicketsPage() {
             <input value={nf.email} onChange={e => setNf({ ...nf, email: e.target.value })} placeholder="client@example.com" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 12 }} />
             <Lbl t={t}>Имя клиента (необязательно)</Lbl>
             <input value={nf.name} onChange={e => setNf({ ...nf, name: e.target.value })} style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 12 }} />
+            <Lbl t={t}>Группа (команда отправки)</Lbl>
+            <div style={{ marginBottom: 12 }}>
+              <TeamCombo teams={sortedTeams} valueID={nf.teamID} placeholder="Начните вводить название…"
+                onPick={id => setNf({ ...nf, teamID: id })} style={{ ...input, width: '100%', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Lbl t={t}>Приоритет</Lbl>
+                <select value={nf.priority} onChange={e => setNf({ ...nf, priority: e.target.value })} style={{ ...input, width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>
+                  {PRIORITIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <Lbl t={t}>Статус</Lbl>
+                <select value={nf.status} onChange={e => setNf({ ...nf, status: e.target.value })} style={{ ...input, width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}>
+                  {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+            </div>
             <Lbl t={t}>Сообщение</Lbl>
             <textarea value={nf.text} onChange={e => setNf({ ...nf, text: e.target.value })} rows={4} style={{ ...input, width: '100%', boxSizing: 'border-box', resize: 'vertical', marginBottom: 16 }} />
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

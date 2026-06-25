@@ -908,10 +908,14 @@ app.get('/api/helpdesk/tickets', async (c) => {
   if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
 
   const params = new URLSearchParams();
-  for (const k of ['query', 'cursor', 'status', 'sortBy', 'order', 'pageSize', 'teamIDs[]',
+  for (const k of ['query', 'cursor', 'status', 'sortBy', 'order', 'pageSize',
     'createdDateFrom', 'createdDateTo', 'lastMessageFrom', 'lastMessageTo']) {
     const v = c.req.query(k);
     if (v) params.set(k, v);
+  }
+  // teamIDs[] может прийти несколько раз (мультивыбор групп) — пробрасываем все.
+  for (const tid of c.req.queries('teamIDs[]') || []) {
+    if (tid) params.append('teamIDs[]', tid);
   }
   await hdAudit(c.env, session.email, 'list', params.get('query') || '(все)');
 
@@ -957,6 +961,24 @@ app.get('/api/helpdesk/teams', async (c) => {
     ? arr.map((t) => ({ ID: (t as { ID?: string }).ID, name: (t as { name?: string }).name })).filter(t => t.ID && t.name)
     : [];
   return c.json({ ok: true, teams });
+});
+
+// Персональные сохранённые фильтры — по email пользователя.
+app.get('/api/helpdesk/saved-filters', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  const raw = await c.env.AUTH_KV.get(`hd-filters:${session.email.toLowerCase()}`);
+  return c.json({ ok: true, filters: raw ? JSON.parse(raw) : [] });
+});
+
+app.post('/api/helpdesk/saved-filters', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ ok: false, error: 'Некорректный запрос' }, 400); }
+  if (!Array.isArray(body)) return c.json({ ok: false, error: 'Ожидается массив' }, 400);
+  await c.env.AUTH_KV.put(`hd-filters:${session.email.toLowerCase()}`, JSON.stringify(body.slice(0, 50)));
+  return c.json({ ok: true });
 });
 
 // Один тикет с перепиской. Маскируется целиком, включая тела сообщений.

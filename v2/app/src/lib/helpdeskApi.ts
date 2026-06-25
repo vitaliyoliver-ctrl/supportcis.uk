@@ -42,7 +42,7 @@ export interface Ticket {
 }
 
 export interface TicketFilters {
-  query?: string; status?: string; teamID?: string;
+  query?: string; status?: string; teamIDs?: string[];
   createdFrom?: string; createdTo?: string; activeFrom?: string; activeTo?: string;
 }
 
@@ -52,7 +52,7 @@ export async function listTickets(opts: TicketFilters = {}): Promise<Ticket[]> {
   p.set('pageSize', '100');
   if (opts.query) p.set('query', opts.query);
   if (opts.status) p.set('status', opts.status);
-  if (opts.teamID) p.set('teamIDs[]', opts.teamID);
+  for (const id of opts.teamIDs || []) p.append('teamIDs[]', id);
   // Даты приводим к границам суток в ISO.
   if (opts.createdFrom) p.set('createdDateFrom', opts.createdFrom + 'T00:00:00Z');
   if (opts.createdTo) p.set('createdDateTo', opts.createdTo + 'T23:59:59Z');
@@ -74,6 +74,27 @@ export async function listTeams(): Promise<Team[]> {
   const data = await res.json().catch(() => ({})) as { ok: boolean; teams?: Team[]; error?: string };
   if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data.teams || [];
+}
+
+// Персональные сохранённые наборы фильтров.
+export interface SavedFilter {
+  name: string; statuses: string[]; teamIDs: string[];
+  createdFrom?: string; createdTo?: string; activeFrom?: string; activeTo?: string;
+}
+export async function getSavedFilters(): Promise<SavedFilter[]> {
+  const res = await fetch(`${API}/saved-filters`, { credentials: 'include' });
+  const data = await res.json().catch(() => ({})) as { ok: boolean; filters?: SavedFilter[] };
+  if (!res.ok || !data.ok) return [];
+  return data.filters || [];
+}
+export async function saveSavedFilters(filters: SavedFilter[]): Promise<void> {
+  const res = await fetch(`${API}/saved-filters`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(filters),
+  });
+  const data = await res.json().catch(() => ({})) as { ok: boolean; error?: string };
+  if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
 }
 
 /** Создание нового тикета. */

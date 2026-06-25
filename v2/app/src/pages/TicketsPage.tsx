@@ -282,7 +282,9 @@ export default function TicketsPage() {
         subject: nf.subject.trim(),
         message: { text: nf.text.trim() },
         requester: { email: nf.email.trim(), name: nf.name.trim() || undefined },
-        ...(nf.teamID ? { teamIDs: [nf.teamID] } : {}),
+        // Назначаем на команду без агента: assignment.team требует peer agent (можно null),
+        // и назначенная команда должна входить в teamIDs.
+        ...(nf.teamID ? { teamIDs: [nf.teamID], assignment: { team: { ID: nf.teamID }, agent: null } } : {}),
         priority: Number(nf.priority),
         status: nf.status,
       });

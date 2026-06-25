@@ -71,12 +71,12 @@ export function getTicket(id: string): Promise<unknown> {
   return call(`/tickets/${encodeURIComponent(id)}`);
 }
 
-/** Ответ оператора по ticket_id. Адрес получателя знать не нужно. */
-export function replyTicket(id: string, text: string): Promise<unknown> {
+/** Ответ оператора по ticket_id. isPrivate=true — приватная заметка для команды. */
+export function replyTicket(id: string, text: string, isPrivate = false): Promise<unknown> {
   return call(`/tickets/${encodeURIComponent(id)}/reply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, isPrivate }),
   });
 }
 

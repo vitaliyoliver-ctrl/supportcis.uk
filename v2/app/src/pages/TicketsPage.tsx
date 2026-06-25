@@ -432,8 +432,10 @@ export default function TicketsPage() {
                         const priv = e.message.isPrivate;
                         const name = isClient ? (selected.requester?.name || 'Клиент') : (e.author?.name || 'Агент');
                         return (
-                          <div key={i} style={{ marginBottom: 12, padding: 12, borderRadius: 10, border: `1px solid ${t.border}`,
-                            background: priv ? t.msgPriv : isClient ? t.msgClient : t.msgAgent }}>
+                          <div key={i} style={{ marginBottom: 12, padding: 12, borderRadius: 10,
+                            border: `1px solid ${priv ? '#e0a80066' : t.border}`,
+                            borderLeft: priv ? '3px solid #e0a800' : `1px solid ${t.border}`,
+                            background: priv ? 'rgba(224,168,0,0.12)' : isClient ? t.msgClient : t.msgAgent }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6, fontSize: 11, fontFamily: mono, color: t.dim }}>
                               <span style={{ color: priv ? '#c79100' : isClient ? '#7c5cff' : '#4f8ef7', fontWeight: 600 }}>
                                 {priv ? '🔒 Приватная заметка · ' : ''}{name.trim()}

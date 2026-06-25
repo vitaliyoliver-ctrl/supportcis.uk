@@ -1,6 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
-import { listTickets, replyTicket, createTicket, type Ticket, type TicketEvent } from '@/lib/helpdeskApi';
+import { listTickets, listTeams, replyTicket, createTicket, type Ticket, type TicketEvent, type Team } from '@/lib/helpdeskApi';
+
+// Все 5 статусов HelpDesk (значения API подтверждены диагностикой; on hold = onhold).
+const STATUSES: [string, string][] = [
+  ['open', 'Открыт'], ['pending', 'Ожидает'], ['onhold', 'На удержании'], ['solved', 'Решён'], ['closed', 'Закрыт'],
+];
 
 // Своя тикет-система поверх HelpDesk: список, поиск, детальный тикет с перепиской,
 // инфо-панель, тикеты пользователя, ответ и создание. Почты замаскированы на бэке.
@@ -93,11 +98,12 @@ export default function TicketsPage() {
   const [nf, setNf] = useState({ subject: '', email: '', name: '', text: '' });
   const [creating, setCreating] = useState(false);
 
-  const teams = useMemo(() => [...new Set(rows.map(r => r.assignment?.team?.name).filter(Boolean) as string[])].sort(), [rows]);
-  const statuses = useMemo(() => [...new Set(rows.map(r => r.status).filter(Boolean) as string[])].sort(), [rows]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  useEffect(() => { listTeams().then(setAllTeams).catch(() => { /* список групп опционален */ }); }, []);
+  const teamNames = useMemo(() => [...new Set(allTeams.map(t => t.name))].sort(), [allTeams]);
 
+  // Статус фильтруется на сервере (см. load), здесь только команда и даты.
   const filtered = useMemo(() => rows.filter(r => {
-    if (fStatus !== 'all' && r.status !== fStatus) return false;
     if (fTeam !== 'all' && r.assignment?.team?.name !== fTeam) return false;
     const created = (r.createdAt || '').slice(0, 10);
     if (fCreatedFrom && created < fCreatedFrom) return false;
@@ -106,7 +112,7 @@ export default function TicketsPage() {
     if (fActiveFrom && active < fActiveFrom) return false;
     if (fActiveTo && active > fActiveTo) return false;
     return true;
-  }), [rows, fStatus, fTeam, fCreatedFrom, fCreatedTo, fActiveFrom, fActiveTo]);
+  }), [rows, fTeam, fCreatedFrom, fCreatedTo, fActiveFrom, fActiveTo]);
 
   const selected = useMemo(() => rows.find(r => r.ID === selId) || null, [rows, selId]);
   const requesterTickets = useMemo(() => {
@@ -114,16 +120,18 @@ export default function TicketsPage() {
     return rows.filter(r => r.requester?.email === selected.requester?.email && r.ID !== selected.ID);
   }, [rows, selected]);
 
-  async function search(e?: React.FormEvent) {
-    e?.preventDefault();
+  // Статус фильтруется на сервере (по всей базе), поэтому смена статуса = новый запрос.
+  async function load(statusOverride?: string) {
+    const status = statusOverride ?? fStatus;
     setLoading(true); setErr(''); setSearched(true);
     try {
-      const data = await listTickets({ query: query.trim() || undefined });
+      const data = await listTickets({ query: query.trim() || undefined, status: status !== 'all' ? status : undefined });
       setRows(data);
       if (!data.find(r => r.ID === selId)) setSelId('');
     } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
     finally { setLoading(false); }
   }
+  function search(e?: React.FormEvent) { e?.preventDefault(); return load(); }
 
   async function send() {
     if (!reply.trim() || !selId) return;
@@ -178,13 +186,13 @@ export default function TicketsPage() {
 
         {rows.length > 0 && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ ...input, cursor: 'pointer' }}>
+            <select value={fStatus} onChange={e => { setFStatus(e.target.value); load(e.target.value); }} style={{ ...input, cursor: 'pointer' }}>
               <option value="all">Все статусы</option>
-              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+              {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
             <select value={fTeam} onChange={e => setFTeam(e.target.value)} style={{ ...input, cursor: 'pointer', maxWidth: 200 }}>
-              <option value="all">Все группы</option>
-              {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
+              <option value="all">Все группы{allTeams.length ? ` (${allTeams.length})` : ''}</option>
+              {teamNames.map(tm => <option key={tm} value={tm}>{tm}</option>)}
             </select>
             <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>создан:</span>
             <input type="date" value={fCreatedFrom} onChange={e => setFCreatedFrom(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
@@ -193,7 +201,7 @@ export default function TicketsPage() {
             <input type="date" value={fActiveFrom} onChange={e => setFActiveFrom(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
             <input type="date" value={fActiveTo} onChange={e => setFActiveTo(e.target.value)} style={{ ...input, colorScheme: t.scheme }} />
             {(fStatus !== 'all' || fTeam !== 'all' || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) && (
-              <button onClick={() => { setFStatus('all'); setFTeam('all'); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); }} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
+              <button onClick={() => { setFStatus('all'); setFTeam('all'); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); load('all'); }} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
             )}
             <span style={{ fontSize: 12, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{filtered.length} из {rows.length}</span>
           </div>

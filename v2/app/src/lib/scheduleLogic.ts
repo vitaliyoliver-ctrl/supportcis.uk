@@ -242,8 +242,10 @@ export function swapGroupOf(
   getEmpFn: (n: string) => { position: string }
 ): 'support' | 'supervisor' | null {
   const p = getEmpFn(name).position.toLowerCase();
-  if (p === 'support' || p === 'vip')        return 'support';
-  if (p === 'supervisor' || p === 'vip sup') return 'supervisor';
+  // Сопоставляем по вхождению, чтобы работали и SG («Support», «VIP Sup»), и НК
+  // («Support NC», «Supervisor NC», «Support (SG)»). Супервайзера проверяем первым.
+  if (p.includes('supervisor') || p.includes('vip sup')) return 'supervisor';
+  if (p.includes('support') || p.includes('vip'))        return 'support';
   return null;
 }
 

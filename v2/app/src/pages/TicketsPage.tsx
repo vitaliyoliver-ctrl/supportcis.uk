@@ -279,7 +279,7 @@ export default function TicketsPage() {
         subject: nf.subject.trim(),
         message: { text: nf.text.trim() },
         requester: { email: nf.email.trim(), name: nf.name.trim() || undefined },
-        ...(nf.teamID ? { assignment: { team: { ID: nf.teamID } } } : {}),
+        ...(nf.teamID ? { teamIDs: [nf.teamID] } : {}),
         priority: Number(nf.priority),
         status: nf.status,
       });

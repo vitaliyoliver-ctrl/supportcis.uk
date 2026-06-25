@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
-import { listTickets, listTeams, replyTicket, createTicket, type Ticket, type TicketEvent, type Team } from '@/lib/helpdeskApi';
+import { listTickets, listTeams, replyTicket, createTicket, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type SavedFilter } from '@/lib/helpdeskApi';
 
 // Все 5 статусов HelpDesk (значения API; on hold = onhold).
 const STATUSES: [string, string][] = [
@@ -108,12 +108,18 @@ export default function TicketsPage() {
   const [notice, setNotice] = useState('');
   const [searched, setSearched] = useState(false);
 
-  const [fStatus, setFStatus] = useState('all');
-  const [fTeam, setFTeam] = useState('all');
+  const [fStatuses, setFStatuses] = useState<string[]>([]);
+  const [fTeams, setFTeams] = useState<string[]>([]);
   const [fCreatedFrom, setFCreatedFrom] = useState('');
   const [fCreatedTo, setFCreatedTo] = useState('');
   const [fActiveFrom, setFActiveFrom] = useState('');
   const [fActiveTo, setFActiveTo] = useState('');
+  const [teamComboKey, setTeamComboKey] = useState(0); // для очистки комбобокса после добавления
+
+  // Персональные сохранённые фильтры
+  const [saved, setSaved] = useState<SavedFilter[]>([]);
+  const [appliedName, setAppliedName] = useState('');
+  useEffect(() => { getSavedFilters().then(setSaved).catch(() => { /* опционально */ }); }, []);
 
   const [showNew, setShowNew] = useState(false);
   const [nf, setNf] = useState({ subject: '', email: '', name: '', text: '', teamID: '', priority: '0', status: 'open' });
@@ -134,26 +140,81 @@ export default function TicketsPage() {
   }, [rows, selected]);
 
   // Все фильтры применяются на сервере (по всей базе). Любая смена фильтра = запрос.
-  // ov позволяет передать новое значение поля, не дожидаясь обновления state.
-  async function load(ov: { status?: string; team?: string; cf?: string; ct?: string; af?: string; at?: string } = {}) {
-    const status = ov.status ?? fStatus, team = ov.team ?? fTeam;
+  // ov позволяет передать новые значения, не дожидаясь обновления state.
+  // Статусы HelpDesk фильтруются по одному значению, поэтому для нескольких
+  // делаем параллельные запросы и объединяем результат по ID.
+  async function load(ov: { statuses?: string[]; teams?: string[]; cf?: string; ct?: string; af?: string; at?: string } = {}) {
+    const statuses = ov.statuses ?? fStatuses;
+    const teams = ov.teams ?? fTeams;
     setLoading(true); setErr(''); setSearched(true);
+    const common = {
+      query: query.trim() || undefined,
+      teamIDs: teams.length ? teams : undefined,
+      createdFrom: (ov.cf ?? fCreatedFrom) || undefined,
+      createdTo: (ov.ct ?? fCreatedTo) || undefined,
+      activeFrom: (ov.af ?? fActiveFrom) || undefined,
+      activeTo: (ov.at ?? fActiveTo) || undefined,
+    };
     try {
-      const data = await listTickets({
-        query: query.trim() || undefined,
-        status: status !== 'all' ? status : undefined,
-        teamID: team !== 'all' ? team : undefined,
-        createdFrom: (ov.cf ?? fCreatedFrom) || undefined,
-        createdTo: (ov.ct ?? fCreatedTo) || undefined,
-        activeFrom: (ov.af ?? fActiveFrom) || undefined,
-        activeTo: (ov.at ?? fActiveTo) || undefined,
-      });
+      let data: Ticket[];
+      if (statuses.length <= 1) {
+        data = await listTickets({ ...common, status: statuses[0] });
+      } else {
+        const parts = await Promise.all(statuses.map(s => listTickets({ ...common, status: s })));
+        const map = new Map<string, Ticket>();
+        for (const arr of parts) for (const tk of arr) map.set(tk.ID, tk);
+        data = [...map.values()].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      }
       setRows(data);
       if (!data.find(r => r.ID === selId)) setSelId('');
     } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
     finally { setLoading(false); }
   }
   function search(e?: React.FormEvent) { e?.preventDefault(); return load(); }
+
+  function toggleStatus(s: string) {
+    const next = fStatuses.includes(s) ? fStatuses.filter(x => x !== s) : [...fStatuses, s];
+    setFStatuses(next); setAppliedName(''); load({ statuses: next });
+  }
+  function addTeam(id: string) {
+    if (!id || fTeams.includes(id)) return;
+    const next = [...fTeams, id];
+    setFTeams(next); setAppliedName(''); setTeamComboKey(k => k + 1); load({ teams: next });
+  }
+  function removeTeam(id: string) {
+    const next = fTeams.filter(x => x !== id);
+    setFTeams(next); setAppliedName(''); load({ teams: next });
+  }
+  function resetFilters() {
+    setFStatuses([]); setFTeams([]); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); setAppliedName('');
+    load({ statuses: [], teams: [], cf: '', ct: '', af: '', at: '' });
+  }
+
+  function applySaved(name: string) {
+    const f = saved.find(x => x.name === name);
+    if (!f) { setAppliedName(''); return; }
+    setFStatuses(f.statuses || []); setFTeams(f.teamIDs || []);
+    setFCreatedFrom(f.createdFrom || ''); setFCreatedTo(f.createdTo || '');
+    setFActiveFrom(f.activeFrom || ''); setFActiveTo(f.activeTo || '');
+    setAppliedName(name);
+    load({ statuses: f.statuses || [], teams: f.teamIDs || [], cf: f.createdFrom || '', ct: f.createdTo || '', af: f.activeFrom || '', at: f.activeTo || '' });
+  }
+  async function saveCurrent() {
+    const name = window.prompt('Название фильтра:')?.trim();
+    if (!name) return;
+    const entry: SavedFilter = {
+      name, statuses: fStatuses, teamIDs: fTeams,
+      createdFrom: fCreatedFrom, createdTo: fCreatedTo, activeFrom: fActiveFrom, activeTo: fActiveTo,
+    };
+    const next = [...saved.filter(x => x.name !== name), entry];
+    setSaved(next); setAppliedName(name);
+    try { await saveSavedFilters(next); setNotice('Фильтр сохранён'); } catch { setErr('Не удалось сохранить фильтр'); }
+  }
+  async function deleteSaved(name: string) {
+    const next = saved.filter(x => x.name !== name);
+    setSaved(next); if (appliedName === name) setAppliedName('');
+    try { await saveSavedFilters(next); } catch { setErr('Не удалось удалить фильтр'); }
+  }
 
   async function send() {
     if (!reply.trim() || !selId) return;
@@ -210,25 +271,56 @@ export default function TicketsPage() {
         </form>
 
         {searched && (
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={fStatus} onChange={e => { setFStatus(e.target.value); load({ status: e.target.value }); }} style={{ ...input, cursor: 'pointer' }}>
-              <option value="all">Все статусы</option>
-              {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-            <TeamCombo teams={sortedTeams} valueID={fTeam === 'all' ? '' : fTeam}
-              placeholder={`Все группы${allTeams.length ? ` (${allTeams.length})` : ''}`}
-              onPick={id => { setFTeam(id || 'all'); load({ team: id || 'all' }); }}
-              style={{ ...input, cursor: 'text', minWidth: 200 }} />
-            <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>создан:</span>
-            <input type="date" value={fCreatedFrom} onChange={e => { setFCreatedFrom(e.target.value); load({ cf: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-            <input type="date" value={fCreatedTo} onChange={e => { setFCreatedTo(e.target.value); load({ ct: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-            <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>активность:</span>
-            <input type="date" value={fActiveFrom} onChange={e => { setFActiveFrom(e.target.value); load({ af: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-            <input type="date" value={fActiveTo} onChange={e => { setFActiveTo(e.target.value); load({ at: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
-            {(fStatus !== 'all' || fTeam !== 'all' || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) && (
-              <button onClick={() => { setFStatus('all'); setFTeam('all'); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); load({ status: 'all', team: 'all', cf: '', ct: '', af: '', at: '' }); }} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
-            )}
-            <span style={{ fontSize: 12, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{rows.length} тикетов</span>
+          <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Статусы — мультивыбор */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              {STATUSES.map(([v, l]) => {
+                const on = fStatuses.includes(v); const c = statusColor(v);
+                return (
+                  <button key={v} onClick={() => toggleStatus(v)} style={{ ...input, cursor: 'pointer', padding: '6px 12px', fontSize: 12,
+                    background: on ? `${c}22` : 'transparent', borderColor: on ? c : t.border, color: on ? c : t.dim, fontWeight: on ? 600 : 400 }}>
+                    {on ? '✓ ' : ''}{l}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Группы — мультивыбор с автоподстановкой + чипы */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <TeamCombo key={teamComboKey} teams={sortedTeams.filter(x => !fTeams.includes(x.ID))} valueID=""
+                placeholder={`+ группа${allTeams.length ? ` (${allTeams.length})` : ''}`}
+                onPick={addTeam} style={{ ...input, cursor: 'text', minWidth: 200 }} />
+              {fTeams.map(id => {
+                const nm = allTeams.find(x => x.ID === id)?.name || id;
+                return (
+                  <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontFamily: mono, background: 'rgba(79,142,247,0.15)', color: '#4f8ef7', border: '1px solid #4f8ef755', borderRadius: 16, padding: '4px 10px' }}>
+                    {nm}<span onClick={() => removeTeam(id)} style={{ cursor: 'pointer', fontWeight: 700 }}>×</span>
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* Даты + сохранённые фильтры */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>создан:</span>
+              <input type="date" value={fCreatedFrom} onChange={e => { setFCreatedFrom(e.target.value); setAppliedName(''); load({ cf: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+              <input type="date" value={fCreatedTo} onChange={e => { setFCreatedTo(e.target.value); setAppliedName(''); load({ ct: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+              <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>активность:</span>
+              <input type="date" value={fActiveFrom} onChange={e => { setFActiveFrom(e.target.value); setAppliedName(''); load({ af: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+              <input type="date" value={fActiveTo} onChange={e => { setFActiveTo(e.target.value); setAppliedName(''); load({ at: e.target.value }); }} style={{ ...input, colorScheme: t.scheme }} />
+
+              <span style={{ width: 1, height: 22, background: t.border, margin: '0 4px' }} />
+              <select value={appliedName} onChange={e => applySaved(e.target.value)} style={{ ...input, cursor: 'pointer', maxWidth: 200 }}>
+                <option value="">Мои фильтры…</option>
+                {saved.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
+              </select>
+              <button onClick={saveCurrent} style={{ ...input, cursor: 'pointer' }}>💾 Сохранить</button>
+              {appliedName && <button onClick={() => deleteSaved(appliedName)} title="Удалить выбранный фильтр" style={{ ...input, cursor: 'pointer' }}>🗑</button>}
+              {(fStatuses.length || fTeams.length || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) ? (
+                <button onClick={resetFilters} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
+              ) : null}
+              <span style={{ fontSize: 12, color: t.dim, fontFamily: mono, marginLeft: 'auto' }}>{rows.length} тикетов</span>
+            </div>
           </div>
         )}
 

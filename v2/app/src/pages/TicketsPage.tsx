@@ -54,14 +54,38 @@ export default function TicketsPage() {
   const [err, setErr] = useState('');
   const [selId, setSelId] = useState('');
   const [reply, setReply] = useState('');
+  const [replyPrivate, setReplyPrivate] = useState(false);
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
   const [searched, setSearched] = useState(false);
+
+  // Фильтры (по загруженным тикетам)
+  const [fStatus, setFStatus] = useState('all');
+  const [fTeam, setFTeam] = useState('all');
+  const [fCreatedFrom, setFCreatedFrom] = useState('');
+  const [fCreatedTo, setFCreatedTo] = useState('');
+  const [fActiveFrom, setFActiveFrom] = useState('');
+  const [fActiveTo, setFActiveTo] = useState('');
 
   // Создание тикета
   const [showNew, setShowNew] = useState(false);
   const [nf, setNf] = useState({ subject: '', email: '', name: '', text: '' });
   const [creating, setCreating] = useState(false);
+
+  const teams = useMemo(() => [...new Set(rows.map(r => r.assignment?.team?.name).filter(Boolean) as string[])].sort(), [rows]);
+  const statuses = useMemo(() => [...new Set(rows.map(r => r.status).filter(Boolean) as string[])].sort(), [rows]);
+
+  const filtered = useMemo(() => rows.filter(r => {
+    if (fStatus !== 'all' && r.status !== fStatus) return false;
+    if (fTeam !== 'all' && r.assignment?.team?.name !== fTeam) return false;
+    const created = (r.createdAt || '').slice(0, 10);
+    if (fCreatedFrom && created < fCreatedFrom) return false;
+    if (fCreatedTo && created > fCreatedTo) return false;
+    const active = (r.lastMessageAt || r.createdAt || '').slice(0, 10);
+    if (fActiveFrom && active < fActiveFrom) return false;
+    if (fActiveTo && active > fActiveTo) return false;
+    return true;
+  }), [rows, fStatus, fTeam, fCreatedFrom, fCreatedTo, fActiveFrom, fActiveTo]);
 
   const selected = useMemo(() => rows.find(r => r.ID === selId) || null, [rows, selId]);
   const requesterTickets = useMemo(() => {
@@ -84,8 +108,8 @@ export default function TicketsPage() {
     if (!reply.trim() || !selId) return;
     setSending(true); setErr(''); setNotice('');
     try {
-      await replyTicket(selId, reply.trim());
-      setReply(''); setNotice('Ответ отправлен');
+      await replyTicket(selId, reply.trim(), replyPrivate);
+      setReply(''); setNotice(replyPrivate ? 'Заметка добавлена' : 'Ответ отправлен');
       const data = await listTickets({ query: query.trim() || undefined });
       setRows(data);
     } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка отправки'); }
@@ -126,6 +150,30 @@ export default function TicketsPage() {
           <button type="submit" disabled={loading} style={{ ...input, cursor: 'pointer', background: '#4f8ef7', borderColor: '#4f8ef7', color: '#fff', fontWeight: 600 }}>{loading ? '…' : 'Найти'}</button>
         </form>
 
+        {/* Фильтры по загруженным тикетам */}
+        {rows.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select value={fStatus} onChange={e => setFStatus(e.target.value)} style={{ ...input, cursor: 'pointer' }}>
+              <option value="all">Все статусы</option>
+              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select value={fTeam} onChange={e => setFTeam(e.target.value)} style={{ ...input, cursor: 'pointer', maxWidth: 200 }}>
+              <option value="all">Все группы</option>
+              {teams.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <span style={{ fontSize: 12, color: '#6b7280', fontFamily: mono }}>создан:</span>
+            <input type="date" value={fCreatedFrom} onChange={e => setFCreatedFrom(e.target.value)} style={{ ...input, colorScheme: 'dark' }} />
+            <input type="date" value={fCreatedTo} onChange={e => setFCreatedTo(e.target.value)} style={{ ...input, colorScheme: 'dark' }} />
+            <span style={{ fontSize: 12, color: '#6b7280', fontFamily: mono }}>активность:</span>
+            <input type="date" value={fActiveFrom} onChange={e => setFActiveFrom(e.target.value)} style={{ ...input, colorScheme: 'dark' }} />
+            <input type="date" value={fActiveTo} onChange={e => setFActiveTo(e.target.value)} style={{ ...input, colorScheme: 'dark' }} />
+            {(fStatus !== 'all' || fTeam !== 'all' || fCreatedFrom || fCreatedTo || fActiveFrom || fActiveTo) && (
+              <button onClick={() => { setFStatus('all'); setFTeam('all'); setFCreatedFrom(''); setFCreatedTo(''); setFActiveFrom(''); setFActiveTo(''); }} style={{ ...input, cursor: 'pointer' }}>Сбросить</button>
+            )}
+            <span style={{ fontSize: 12, color: '#8b8a9e', fontFamily: mono, marginLeft: 'auto' }}>{filtered.length} из {rows.length}</span>
+          </div>
+        )}
+
         {err && <div style={{ ...box, padding: 12, marginBottom: 14, borderColor: '#e17055', color: '#e17055', fontSize: 13, fontFamily: mono }}>{err}</div>}
         {notice && <div style={{ ...box, padding: 12, marginBottom: 14, borderColor: '#00b894', color: '#00b894', fontSize: 13, fontFamily: mono }}>{notice}</div>}
 
@@ -133,8 +181,8 @@ export default function TicketsPage() {
           {/* ── Список ── */}
           <div style={{ flex: '1 1 420px', minWidth: 340, maxWidth: 560 }}>
             <div style={{ ...box, overflow: 'hidden' }}>
-              {rows.length === 0 && <div style={{ padding: 20, color: '#8b8a9e', fontSize: 13 }}>{loading ? 'Загрузка…' : searched ? 'Ничего не найдено.' : 'Нажмите «Найти», чтобы загрузить тикеты.'}</div>}
-              {rows.map(r => (
+              {filtered.length === 0 && <div style={{ padding: 20, color: '#8b8a9e', fontSize: 13 }}>{loading ? 'Загрузка…' : searched ? (rows.length ? 'Под фильтры ничего не подходит.' : 'Ничего не найдено.') : 'Нажмите «Найти», чтобы загрузить тикеты.'}</div>}
+              {filtered.map(r => (
                 <div key={r.ID} onClick={() => { setSelId(r.ID); setNotice(''); }} style={{ padding: '12px 16px', borderBottom: '1px solid #2a2e3d', cursor: 'pointer', background: selId === r.ID ? 'rgba(79,142,247,0.10)' : undefined }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontFamily: mono, fontSize: 11, color: '#6b7280' }}>#{r.shortID || r.ID.slice(0, 6)}</span>
@@ -191,8 +239,16 @@ export default function TicketsPage() {
                   </div>
 
                   <div style={{ ...box, padding: 14 }}>
-                    <textarea value={reply} onChange={e => setReply(e.target.value)} placeholder="Ответ клиенту…" rows={4} style={{ ...input, width: '100%', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
-                    <button onClick={send} disabled={sending || !reply.trim()} style={{ ...input, cursor: 'pointer', background: reply.trim() ? '#4f8ef7' : '#2a2e3d', borderColor: 'transparent', color: '#fff', fontWeight: 600 }}>{sending ? 'Отправка…' : 'Отправить ответ'}</button>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                      {[['Публичный ответ', false], ['🔒 Приватная заметка', true]].map(([lbl2, val]) => (
+                        <button key={String(val)} onClick={() => setReplyPrivate(val as boolean)} style={{ ...input, cursor: 'pointer', padding: '6px 12px', fontSize: 12,
+                          background: replyPrivate === val ? (val ? 'rgba(253,203,110,0.15)' : 'rgba(79,142,247,0.15)') : 'transparent',
+                          borderColor: replyPrivate === val ? (val ? '#fdcb6e' : '#4f8ef7') : '#2a2e3d',
+                          color: replyPrivate === val ? (val ? '#fdcb6e' : '#4f8ef7') : '#8b8a9e', fontWeight: replyPrivate === val ? 600 : 400 }}>{lbl2 as string}</button>
+                      ))}
+                    </div>
+                    <textarea value={reply} onChange={e => setReply(e.target.value)} placeholder={replyPrivate ? 'Приватная заметка для команды (клиент не увидит)…' : 'Ответ клиенту…'} rows={4} style={{ ...input, width: '100%', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
+                    <button onClick={send} disabled={sending || !reply.trim()} style={{ ...input, cursor: 'pointer', background: reply.trim() ? (replyPrivate ? '#b8860b' : '#4f8ef7') : '#2a2e3d', borderColor: 'transparent', color: '#fff', fontWeight: 600 }}>{sending ? 'Отправка…' : replyPrivate ? 'Добавить заметку' : 'Отправить ответ'}</button>
                   </div>
                 </div>
 

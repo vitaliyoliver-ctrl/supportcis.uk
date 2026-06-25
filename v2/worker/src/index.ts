@@ -969,21 +969,23 @@ app.post('/api/helpdesk/tickets/:id/reply', async (c) => {
 
   const id = c.req.param('id');
   let text = '';
+  let isPrivate = false;
   try {
-    const body = await c.req.json<{ text?: string }>();
+    const body = await c.req.json<{ text?: string; isPrivate?: boolean }>();
     text = (body.text || '').trim();
+    isPrivate = body.isPrivate === true;
   } catch {
     return c.json({ ok: false, error: 'Некорректный запрос' }, 400);
   }
   if (!text) return c.json({ ok: false, error: 'Пустой ответ' }, 400);
 
-  await hdAudit(c.env, session.email, 'reply', id);
+  await hdAudit(c.env, session.email, isPrivate ? 'note' : 'reply', id);
 
+  // Публичный ответ vs приватная заметка. Поля text/isPrivate — по модели
+  // сообщений HelpDesk; форма может отличаться по версии API и правится здесь.
   const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}/messages`, {
     method: 'POST',
-    // Тело сообщения. Поле text — текст ответа агента; форма может отличаться по
-    // версии API и при необходимости правится здесь.
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, isPrivate }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');

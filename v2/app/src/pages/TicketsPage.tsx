@@ -137,6 +137,9 @@ export default function TicketsPage() {
   // Команды по алфавиту — для фильтра и формы создания.
   const sortedTeams = useMemo(() => [...allTeams].sort((a, b) => a.name.localeCompare(b.name, 'ru')), [allTeams]);
 
+  // Автозагрузка тикетов при открытии страницы (без нажатия «Найти»).
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
   const [allTags, setAllTags] = useState<Tag[]>([]);
   useEffect(() => { listTags().then(setAllTags).catch(() => { /* теги опциональны */ }); }, []);
   const tagName = (id: string) => allTags.find(x => x.ID === id)?.name || id;

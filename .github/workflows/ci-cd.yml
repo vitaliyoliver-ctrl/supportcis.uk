@@ -73,6 +73,8 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_WEBHOOK_SECRET: ${{ secrets.TG_WEBHOOK_SECRET }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          HELPDESK_ACCOUNT_ID: ${{ secrets.HELPDESK_ACCOUNT_ID }}
+          HELPDESK_PAT: ${{ secrets.HELPDESK_PAT }}
         run: |
           # Переменные бота свапов лежат в GitHub Secrets (серверный .env исключён
           # из деплоя). Прокидываем их в docker compose, который пишет их в env
@@ -84,6 +86,8 @@ jobs:
              TG_BOT_TOKEN='$TG_BOT_TOKEN' \
              TG_WEBHOOK_SECRET='$TG_WEBHOOK_SECRET' \
              TG_CHAT_ID='$TG_CHAT_ID' \
+             HELPDESK_ACCOUNT_ID='$HELPDESK_ACCOUNT_ID' \
+             HELPDESK_PAT='$HELPDESK_PAT' \
              docker compose up -d --build && echo '${{ github.sha }}' > .deployed_sha"
 
       - name: Health check

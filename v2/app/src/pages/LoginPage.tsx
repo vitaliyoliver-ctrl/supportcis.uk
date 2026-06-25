@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 const ALLOWED_DOMAINS = ['velvix.org', 'gameup.club'];
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const redirect = params.get('redirect') || '/';
 
@@ -22,9 +24,14 @@ export default function LoginPage() {
   useEffect(() => {
     fetch('/api/check', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.ok) navigate(redirect, { replace: true }); })
+      .then(d => {
+        if (d.ok) {
+          queryClient.invalidateQueries({ queryKey: ['auth'] });
+          navigate(redirect, { replace: true });
+        }
+      })
       .catch(() => {});
-  }, [navigate, redirect]);
+  }, [navigate, redirect, queryClient]);
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
@@ -82,6 +89,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (res.ok && data.ok) {
+        await queryClient.invalidateQueries({ queryKey: ['auth'] });
         navigate(redirect, { replace: true });
       } else {
         setCodeError(data.error || 'Неверный код. Попробуйте ещё раз.');

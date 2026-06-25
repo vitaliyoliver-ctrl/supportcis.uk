@@ -14,6 +14,7 @@ const ACCENT = '#34d399';
 const GLOW = 'rgba(52,211,153,0.18)';
 
 const cards = [
+  { to: '/support/tickets',     icon: '🎫', title: 'Тикеты', desc: 'Поиск по тикетам и ответы клиентам — почты клиентов замаскированы' },
   { to: '/support/schedule',    icon: '📅', title: 'График смен SG', desc: 'Расписание смен команды SupportCIS — Regular, VIP и Management' },
   { to: '/support/schedule-nc', icon: '🛰️', title: 'График смен НК', desc: 'Расписание смен НК-команды — Supervisors и Support NC' },
   { to: '/support/champions', icon: '🏆', title: 'Support Champions', desc: 'Турнирная таблица операторов — рейтинг по КСАТ, времени ответа и чемпионскому баллу' },

@@ -46,6 +46,7 @@ function Spinner() {
 
 const HomePage        = React.lazy(() => import('./pages/HomePage'));
 const SupportPage     = React.lazy(() => import('./pages/SupportPage'));
+const TicketsPage     = React.lazy(() => import('./pages/TicketsPage'));
 
 const SchedulePage    = React.lazy(() => import('./pages/schedule/SchedulePage'));
 const BreaksPage      = React.lazy(() => import('./pages/BreaksPage'));
@@ -79,6 +80,7 @@ export default function App() {
 
         {/* Support */}
         <Route path="/support"          element={<RequireAuth><SupportPage /></RequireAuth>} />
+        <Route path="/support/tickets"  element={<RequireAuth><TicketsPage /></RequireAuth>} />
         <Route path="/support/schedule"    element={<RequireAuth><SchedulePage project="sg" /></RequireAuth>} />
         <Route path="/support/schedule-nc" element={<RequireAuth><SchedulePage project="nk" /></RequireAuth>} />
         <Route path="/support/breaks"   element={<RequireAuth><BreaksPage /></RequireAuth>} />

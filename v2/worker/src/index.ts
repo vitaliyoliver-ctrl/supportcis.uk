@@ -15,6 +15,8 @@ export type Env = {
   TG_CHAT_ID: string;
   OWNER_EMAIL?: string;           // кто получает роль TL по умолчанию (bootstrap)
   ALLOWED_DOMAINS?: string;       // разрешённые домены входа через запятую
+  HELPDESK_ACCOUNT_ID?: string;   // account_id из Developers Console HelpDesk (логин Basic-auth)
+  HELPDESK_PAT?: string;          // Personal Access Token HelpDesk (пароль Basic-auth)
 };
 
 type Session = { email: string; role: string };
@@ -797,6 +799,190 @@ app.post('/api/ops/structure', async (c) => {
   if (!Array.isArray(body)) return c.json({ ok: false, error: 'Ожидается массив' }, 400);
   await c.env.AUTH_KV.put('ops-structure', JSON.stringify(body));
   return c.json({ ok: true });
+});
+
+// ── HelpDesk (тикеты с маскировкой почт) ─────────────────────────────────────
+// Свой ограниченный интерфейс к тикет-системе HelpDesk (api.helpdesk.com).
+// Смысл: операторы работают через портал и НЕ имеют учётки/токена самого
+// HelpDesk. Worker ходит в HelpDesk единым серверным токеном, а перед отдачей
+// фронту вычищает из ответа адреса почт. Так недобросовестный оператор не может
+// собрать базу контактов — почты до его браузера просто не доходят.
+//
+// ВАЖНО про точные пути/параметры: ниже зафиксированы базовый URL и эндпоинты
+// HelpDesk API v1. Конкретные имена query-параметров поиска и форма тела ответа
+// зависят от тарифа/версии аккаунта — при необходимости правятся в одном месте
+// (HELPDESK_BASE и хелперы ниже). Маскировка же schema-agnostic: рекурсивно
+// обходит ЛЮБОЙ JSON-ответ, поэтому работает независимо от точной формы данных.
+
+const HELPDESK_BASE = 'https://api.helpdesk.com/v1';
+
+// Адрес почты в произвольном тексте (тело письма, цитаты, подписи).
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+
+// Поля, которые целиком являются контактом и должны стать псевдонимом, даже
+// если значение почему-то не похоже на email регуляркой.
+const EMAIL_KEYS = new Set([
+  'email', 'from', 'to', 'cc', 'bcc', 'mail', 'address', 'replyto', 'sender',
+  'recipient', 'requester', 'requesteremail', 'authoremail', 'contactemail',
+  'customeremail', 'useremail', 'fromemail', 'toemail',
+]);
+
+// Стабильный псевдоним: один и тот же адрес → один и тот же ярлык (чтобы оператор
+// видел, что несколько тикетов от одного человека), но восстановить адрес нельзя.
+function pseudonym(email: string): string {
+  let h = 5381;
+  const s = email.trim().toLowerCase();
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h + s.charCodeAt(i)) >>> 0);
+  return `client#${h.toString(36)}`;
+}
+
+// Рекурсивный обход JSON: и строковые значения (почты внутри текста), и
+// поля-контакты заменяются на псевдонимы. lastIndex у глобальной регулярки
+// сбрасывается самим .replace, состояние между вызовами не течёт.
+function maskDeep(node: unknown, keyHint = ''): unknown {
+  if (typeof node === 'string') {
+    const k = keyHint.toLowerCase().replace(/[^a-z]/g, '');
+    if (EMAIL_KEYS.has(k) && node.includes('@')) return pseudonym(node);
+    return node.replace(EMAIL_RE, m => pseudonym(m));
+  }
+  if (Array.isArray(node)) return node.map(v => maskDeep(v, keyHint));
+  if (node && typeof node === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) out[k] = maskDeep(v, k);
+    return out;
+  }
+  return node;
+}
+
+function helpdeskAuth(env: Env): string {
+  return 'Basic ' + btoa(`${env.HELPDESK_ACCOUNT_ID}:${env.HELPDESK_PAT}`);
+}
+
+async function helpdeskFetch(env: Env, path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${HELPDESK_BASE}${path}`, {
+    ...init,
+    headers: {
+      'Authorization': helpdeskAuth(env),
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  });
+}
+
+// Простой лимит на оператора, чтобы нельзя было выкачать всю базу скриптом.
+const HD_RL_MAX = 120;     // запросов в окно
+const HD_RL_WINDOW = 60;   // секунд
+
+async function hdRateLimit(env: Env, email: string): Promise<boolean> {
+  const win = Math.floor(Date.now() / 1000 / HD_RL_WINDOW);
+  const key = `hd-rl:${email}:${win}`;
+  const cur = parseInt((await env.AUTH_KV.get(key)) || '0', 10);
+  if (cur >= HD_RL_MAX) return false;
+  await env.AUTH_KV.put(key, String(cur + 1), { expirationTtl: HD_RL_WINDOW * 2 });
+  return true;
+}
+
+// Аудит: кто что искал/открывал/отправлял. Хранится 90 дней. Доступен TL —
+// так массовое выкачивание видно постфактум.
+async function hdAudit(env: Env, email: string, action: string, detail: string): Promise<void> {
+  const at = new Date().toISOString();
+  const id = crypto.randomUUID().slice(0, 8);
+  await env.AUTH_KV.put(
+    `hd-audit:${at}:${id}`,
+    JSON.stringify({ at, by: email, action, detail }),
+    { expirationTtl: 60 * 60 * 24 * 90 },
+  );
+}
+
+function helpdeskConfigured(env: Env): boolean {
+  return Boolean(env.HELPDESK_ACCOUNT_ID && env.HELPDESK_PAT);
+}
+
+// Список/поиск тикетов. Проброс безопасного набора query-параметров; ответ
+// маскируется целиком.
+app.get('/api/helpdesk/tickets', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
+
+  const params = new URLSearchParams();
+  for (const k of ['query', 'cursor', 'status', 'sortBy', 'sortOrder']) {
+    const v = c.req.query(k);
+    if (v) params.set(k, v);
+  }
+  await hdAudit(c.env, session.email, 'list', params.get('query') || '(все)');
+
+  const res = await helpdeskFetch(c.env, `/tickets${params.toString() ? '?' + params : ''}`);
+  if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  const data = await res.json().catch(() => null);
+  return c.json({ ok: true, data: maskDeep(data) });
+});
+
+// Один тикет с перепиской. Маскируется целиком, включая тела сообщений.
+app.get('/api/helpdesk/tickets/:id', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
+
+  const id = c.req.param('id');
+  await hdAudit(c.env, session.email, 'view', id);
+
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`);
+  if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  const data = await res.json().catch(() => null);
+  return c.json({ ok: true, data: maskDeep(data) });
+});
+
+// Ответ оператора. Получателя НЕ принимаем от клиента — пишем строго по ticket_id,
+// адрес знать не нужно. HelpDesk сам доставит письмо адресату тикета.
+app.post('/api/helpdesk/tickets/:id/reply', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
+
+  const id = c.req.param('id');
+  let text = '';
+  try {
+    const body = await c.req.json<{ text?: string }>();
+    text = (body.text || '').trim();
+  } catch {
+    return c.json({ ok: false, error: 'Некорректный запрос' }, 400);
+  }
+  if (!text) return c.json({ ok: false, error: 'Пустой ответ' }, 400);
+
+  await hdAudit(c.env, session.email, 'reply', id);
+
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}/messages`, {
+    method: 'POST',
+    // Тело сообщения. Поле text — текст ответа агента; форма может отличаться по
+    // версии API и при необходимости правится здесь.
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    console.error('helpdesk reply failed', res.status, detail);
+    return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  }
+  const data = await res.json().catch(() => null);
+  return c.json({ ok: true, data: maskDeep(data) });
+});
+
+// Журнал действий в HelpDesk — только TL.
+app.get('/api/helpdesk/audit', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (session.role !== 'tl') return c.json({ ok: false, error: 'Доступ только для TL' }, 403);
+  const entries = await c.env.AUTH_KV.list('hd-audit:');
+  const log = entries
+    .map(e => { try { return JSON.parse(e.value); } catch { return null; } })
+    .filter(Boolean)
+    .sort((a: any, b: any) => String(b.at).localeCompare(String(a.at)))
+    .slice(0, 500);
+  return c.json({ ok: true, log });
 });
 
 // ── Health (liveness для Docker/реверс-прокси) ──────────────────────────────────

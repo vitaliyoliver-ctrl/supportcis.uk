@@ -42,6 +42,8 @@ const appEnv: Env = {
   TG_CHAT_ID: process.env.TG_CHAT_ID ?? '',
   OWNER_EMAIL: process.env.OWNER_EMAIL,
   ALLOWED_DOMAINS: process.env.ALLOWED_DOMAINS,
+  HELPDESK_ACCOUNT_ID: process.env.HELPDESK_ACCOUNT_ID,
+  HELPDESK_PAT: process.env.HELPDESK_PAT,
 };
 
 // Статика + фолбэк на index.html (клиентский роутинг SPA).

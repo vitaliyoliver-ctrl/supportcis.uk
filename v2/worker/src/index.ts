@@ -1033,6 +1033,18 @@ app.get('/api/helpdesk/diagnose', async (c) => {
 
   const result: Record<string, unknown> = {};
 
+  // Если ID не передан — берём первый тикет из списка автоматически.
+  let ticketId = ticket;
+  if (!ticketId) {
+    try {
+      const r = await helpdeskFetch(c.env, '/tickets');
+      const j = await r.json().catch(() => null);
+      const arr = Array.isArray(j) ? j : (j as any)?.tickets;
+      if (Array.isArray(arr) && arr[0]?.ID) ticketId = String(arr[0].ID);
+    } catch { /* noop */ }
+  }
+  result.usedTicketId = ticketId || '(не найден)';
+
   // Эндпоинты списка команд/групп (ищем тот, что вернёт 200)
   result.teams = await Promise.all([
     probe('GET', '/teams'),
@@ -1058,8 +1070,8 @@ app.get('/api/helpdesk/diagnose', async (c) => {
   ]);
 
   // Пути отправки сообщения/заметки (GET → 405 значит POST-путь существует)
-  if (ticket) {
-    const id = encodeURIComponent(ticket);
+  if (ticketId) {
+    const id = encodeURIComponent(ticketId);
     result.messagePaths = await Promise.all([
       probe('GET', `/tickets/${id}/messages`),
       probe('GET', `/tickets/${id}/notes`),
@@ -1069,7 +1081,7 @@ app.get('/api/helpdesk/diagnose', async (c) => {
       probe('GET', `/tickets/${id}`),
     ]);
   } else {
-    result.messagePaths = 'передайте ?ticket=<ID> чтобы проверить пути сообщений';
+    result.messagePaths = 'тикет не найден — передайте ?ticket=<ID>';
   }
 
   return c.json({ ok: true, result });

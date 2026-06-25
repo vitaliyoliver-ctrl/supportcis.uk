@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
-import { listTickets, listTeams, listTags, addTags, removeTag, replyTicket, createTicket, changeTeam, relatedTickets, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type Tag, type SavedFilter } from '@/lib/helpdeskApi';
+import { listTickets, listTeams, listTags, addTags, removeTag, replyTicket, createTicket, changeTeam, changeStatus, relatedTickets, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type Tag, type SavedFilter } from '@/lib/helpdeskApi';
 
 // Все 5 статусов HelpDesk (значения API; on hold = onhold).
 const STATUSES: [string, string][] = [
@@ -111,6 +111,7 @@ export default function TicketsPage() {
   const [selId, setSelId] = useState('');
   const [reply, setReply] = useState('');
   const [replyPrivate, setReplyPrivate] = useState(false);
+  const [replyStatus, setReplyStatus] = useState('keep'); // статус после отправки
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState('');
   const [searched, setSearched] = useState(false);
@@ -173,6 +174,10 @@ export default function TicketsPage() {
     if (!teamID || !selId) return;
     setTeamChangeKey(k => k + 1);
     try { await changeTeam(selId, teamID); await load(); setNotice('Группа изменена'); } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
+  }
+  async function changeTicketStatus(status: string) {
+    if (!status || !selId || status === selected?.status) return;
+    try { await changeStatus(selId, status); await load(); setNotice('Статус изменён'); } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
   }
 
   // Все фильтры применяются на сервере (по всей базе). Любая смена фильтра = запрос.
@@ -266,10 +271,9 @@ export default function TicketsPage() {
     if (!reply.trim() || !selId) return;
     setSending(true); setErr(''); setNotice('');
     try {
-      await replyTicket(selId, reply.trim(), replyPrivate);
-      setReply(''); setNotice(replyPrivate ? 'Заметка добавлена' : 'Ответ отправлен');
-      const data = await listTickets({ query: query.trim() || undefined });
-      setRows(data);
+      await replyTicket(selId, reply.trim(), replyPrivate, replyStatus !== 'keep' ? replyStatus : undefined);
+      setReply(''); setReplyStatus('keep'); setNotice(replyPrivate ? 'Заметка добавлена' : 'Ответ отправлен');
+      await load();
     } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка отправки'); }
     finally { setSending(false); }
   }
@@ -412,7 +416,11 @@ export default function TicketsPage() {
                   <div style={{ ...box, padding: 16, marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <div style={{ fontSize: 16, fontWeight: 600 }}>{selected.subject || '(без темы)'}</div>
-                      <StatusBadge status={selected.status} />
+                      <select value={STATUSES.some(([v]) => v === selected.status) ? selected.status : ''} onChange={e => changeTicketStatus(e.target.value)} title="Сменить статус"
+                        style={{ ...input, cursor: 'pointer', padding: '4px 10px', fontSize: 12, color: statusColor(selected.status), borderColor: `${statusColor(selected.status)}66`, fontWeight: 600 }}>
+                        {!STATUSES.some(([v]) => v === selected.status) && <option value="">{selected.status || '—'}</option>}
+                        {STATUSES.map(([v, l]) => <option key={v} value={v} style={{ color: t.text }}>{l}</option>)}
+                      </select>
                     </div>
                     <div style={{ fontFamily: mono, fontSize: 11, color: t.faint }}>#{selected.shortID} · {fmt(selected.createdAt)}</div>
                   </div>
@@ -452,7 +460,14 @@ export default function TicketsPage() {
                       ))}
                     </div>
                     <textarea value={reply} onChange={e => setReply(e.target.value)} placeholder={replyPrivate ? 'Приватная заметка для команды (клиент не увидит)…' : 'Ответ клиенту…'} rows={4} style={{ ...input, width: '100%', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
-                    <button onClick={send} disabled={sending || !reply.trim()} style={{ ...input, cursor: 'pointer', background: reply.trim() ? (replyPrivate ? '#c79100' : '#4f8ef7') : t.border, borderColor: 'transparent', color: '#fff', fontWeight: 600 }}>{sending ? 'Отправка…' : replyPrivate ? 'Добавить заметку' : 'Отправить ответ'}</button>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <button onClick={send} disabled={sending || !reply.trim()} style={{ ...input, cursor: 'pointer', background: reply.trim() ? (replyPrivate ? '#c79100' : '#4f8ef7') : t.border, borderColor: 'transparent', color: '#fff', fontWeight: 600 }}>{sending ? 'Отправка…' : replyPrivate ? 'Добавить заметку' : 'Отправить ответ'}</button>
+                      <span style={{ fontSize: 12, color: t.faint, fontFamily: mono }}>статус:</span>
+                      <select value={replyStatus} onChange={e => setReplyStatus(e.target.value)} title="Статус после отправки" style={{ ...input, cursor: 'pointer' }}>
+                        <option value="keep">не менять</option>
+                        {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
 

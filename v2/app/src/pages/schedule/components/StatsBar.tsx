@@ -19,7 +19,11 @@ interface StatsBarProps {
 }
 
 function isOperatorPosition(position: string): boolean {
-  return position === 'Support' || position === 'VIP';
+  // Оператор = саппорт-уровень, не супервайзер. По вхождению подстроки, чтобы
+  // работали и SG («Support», «VIP»), и НК («Support NC», «Support (SG)»).
+  const p = position.toLowerCase();
+  if (p.includes('supervisor') || p.includes('vip sup')) return false;
+  return p.includes('support') || p.includes('vip');
 }
 
 const StatsBar: React.FC<StatsBarProps> = ({

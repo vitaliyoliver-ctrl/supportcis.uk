@@ -18,13 +18,52 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return data.data as T;
 }
 
+// ── Формы данных HelpDesk (то, что реально приходит, с уже замаскированными почтами) ──
+export interface TicketEvent {
+  ID: number;
+  type: 'message' | 'status' | 'tags' | 'assignment' | 'customFields' | 'followers' | 'teamVisibility' | string;
+  date: string;
+  author?: { type?: string; ID?: string; name?: string; email?: string };
+  message?: { isPrivate?: boolean; text?: string; richTextHtml?: string | null };
+  status?: { new?: string; old?: string };
+}
+export interface Ticket {
+  ID: string;
+  shortID?: string;
+  subject?: string;
+  status?: string;
+  createdAt?: string;
+  lastMessageAt?: string;
+  requester?: { email?: string; name?: string };
+  assignment?: { team?: { name?: string } | null; agent?: { name?: string } | null };
+  events?: TicketEvent[];
+  customFields?: Record<string, string>;
+  [k: string]: unknown;
+}
+
 /** Список/поиск тикетов. Почты в ответе уже замаскированы псевдонимами. */
-export function listTickets(opts: { query?: string; cursor?: string; status?: string } = {}): Promise<unknown> {
+export async function listTickets(opts: { query?: string; cursor?: string; status?: string } = {}): Promise<Ticket[]> {
   const p = new URLSearchParams();
   if (opts.query) p.set('query', opts.query);
   if (opts.cursor) p.set('cursor', opts.cursor);
   if (opts.status) p.set('status', opts.status);
-  return call(`/tickets${p.toString() ? '?' + p : ''}`);
+  const data = await call<unknown>(`/tickets${p.toString() ? '?' + p : ''}`);
+  // HelpDesk может вернуть массив напрямую или в обёртке — нормализуем.
+  if (Array.isArray(data)) return data as Ticket[];
+  const d = (data || {}) as Record<string, unknown>;
+  for (const k of ['tickets', 'records', 'items', 'data', 'results']) {
+    if (Array.isArray(d[k])) return d[k] as Ticket[];
+  }
+  return [];
+}
+
+/** Создание нового тикета. */
+export function createTicket(payload: Record<string, unknown>): Promise<unknown> {
+  return call('/tickets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 /** Один тикет с перепиской (замаскировано). */

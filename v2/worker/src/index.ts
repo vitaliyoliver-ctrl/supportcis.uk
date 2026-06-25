@@ -920,6 +920,29 @@ app.get('/api/helpdesk/tickets', async (c) => {
   return c.json({ ok: true, data: maskDeep(data) });
 });
 
+// Создание тикета. Тело прокидываем как есть (subject/message/requester/teamIDs),
+// ответ маскируем. Форма тела — по HelpDesk API; при расхождении правится здесь.
+app.post('/api/helpdesk/tickets', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  if (!(await hdRateLimit(c.env, session.email))) return c.json({ ok: false, error: 'Слишком много запросов, подождите' }, 429);
+
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ ok: false, error: 'Некорректный запрос' }, 400); }
+  await hdAudit(c.env, session.email, 'create', (body as { subject?: string })?.subject || '(новый)');
+
+  const res = await helpdeskFetch(c.env, '/tickets', { method: 'POST', body: JSON.stringify(body) });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    console.error('helpdesk create failed', res.status, detail);
+    return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  }
+  const data = await res.json().catch(() => null);
+  return c.json({ ok: true, data: maskDeep(data) });
+});
+
+
 // Один тикет с перепиской. Маскируется целиком, включая тела сообщений.
 app.get('/api/helpdesk/tickets/:id', async (c) => {
   const session = await getSession(c);

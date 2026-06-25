@@ -1010,6 +1010,71 @@ app.get('/api/helpdesk/audit', async (c) => {
   return c.json({ ok: true, log });
 });
 
+// Диагностика API HelpDesk (только TL). Определяет рабочие эндпоинты по кодам
+// ответа, не зная закрытой документации:
+//  • GET на POST-only путь обычно даёт 405 (путь есть) либо 404 (пути нет) —
+//    так находим эндпоинт отправки сообщения/заметки, не создавая ничего лишнего;
+//  • GET на коллекции команд → 200 у правильного пути;
+//  • пробуем серверную фильтрацию тикетов по статусу/команде и считаем результат.
+// Использование: /api/helpdesk/diagnose?ticket=<ID любого тикета>
+app.get('/api/helpdesk/diagnose', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (session.role !== 'tl') return c.json({ ok: false, error: 'Доступ только для TL' }, 403);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+
+  const ticket = c.req.query('ticket') || '';
+  const probe = async (method: string, path: string) => {
+    try {
+      const r = await helpdeskFetch(c.env, path, { method });
+      return { method, path, status: r.status };
+    } catch (e) { return { method, path, status: 'ERR', error: String(e) }; }
+  };
+
+  const result: Record<string, unknown> = {};
+
+  // Эндпоинты списка команд/групп (ищем тот, что вернёт 200)
+  result.teams = await Promise.all([
+    probe('GET', '/teams'),
+    probe('GET', '/agents/teams'),
+    probe('GET', '/groups'),
+    probe('GET', '/agents'),
+  ]);
+
+  // Серверная фильтрация тикетов (200 + длина массива говорят, что параметр принят)
+  const filterProbe = async (qs: string) => {
+    try {
+      const r = await helpdeskFetch(c.env, `/tickets?${qs}`);
+      let len: number | string = '—';
+      if (r.ok) { const j = await r.json().catch(() => null); len = Array.isArray(j) ? j.length : (Array.isArray((j as any)?.tickets) ? (j as any).tickets.length : '?'); }
+      return { qs, status: r.status, count: len };
+    } catch (e) { return { qs, status: 'ERR', error: String(e) }; }
+  };
+  result.filters = await Promise.all([
+    filterProbe('status=on-hold'),
+    filterProbe('status=onHold'),
+    filterProbe('status=on_hold'),
+    filterProbe('status=open'),
+  ]);
+
+  // Пути отправки сообщения/заметки (GET → 405 значит POST-путь существует)
+  if (ticket) {
+    const id = encodeURIComponent(ticket);
+    result.messagePaths = await Promise.all([
+      probe('GET', `/tickets/${id}/messages`),
+      probe('GET', `/tickets/${id}/notes`),
+      probe('GET', `/tickets/${id}/reply`),
+      probe('GET', `/tickets/${id}/message`),
+      probe('GET', `/tickets/${id}/events`),
+      probe('GET', `/tickets/${id}`),
+    ]);
+  } else {
+    result.messagePaths = 'передайте ?ticket=<ID> чтобы проверить пути сообщений';
+  }
+
+  return c.json({ ok: true, result });
+});
+
 // ── Health (liveness для Docker/реверс-прокси) ──────────────────────────────────
 
 app.get('/api/health', (c) => c.json({ ok: true }));

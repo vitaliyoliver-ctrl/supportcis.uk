@@ -963,6 +963,47 @@ app.get('/api/helpdesk/teams', async (c) => {
   return c.json({ ok: true, teams });
 });
 
+// Список тегов аккаунта (ID + имя) — для отображения и добавления.
+app.get('/api/helpdesk/tags', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  const res = await helpdeskFetch(c.env, '/tags');
+  if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  const j = await res.json().catch(() => null);
+  const arr = Array.isArray(j) ? j : (j as { tags?: unknown[] } | null)?.tags;
+  const tags = Array.isArray(arr)
+    ? arr.map((t) => ({ ID: (t as { ID?: string }).ID, name: (t as { name?: string }).name })).filter(t => t.ID && t.name)
+    : [];
+  return c.json({ ok: true, tags });
+});
+
+// Добавить теги тикету. Тело: { tagIDs: [...] }.
+app.post('/api/helpdesk/tickets/:id/tags', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  const id = c.req.param('id');
+  let tagIDs: string[] = [];
+  try { const b = await c.req.json<{ tagIDs?: string[] }>(); tagIDs = Array.isArray(b.tagIDs) ? b.tagIDs : []; } catch { return c.json({ ok: false, error: 'Некорректный запрос' }, 400); }
+  if (!tagIDs.length) return c.json({ ok: false, error: 'Нет тегов' }, 400);
+  await hdAudit(c.env, session.email, 'tag', id);
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}/tags`, { method: 'POST', body: JSON.stringify({ tagIDs }) });
+  if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  return c.json({ ok: true });
+});
+
+// Снять тег с тикета.
+app.delete('/api/helpdesk/tickets/:id/tags/:tagId', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  const id = c.req.param('id'), tagId = c.req.param('tagId');
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}/tags/${encodeURIComponent(tagId)}`, { method: 'DELETE' });
+  if (!res.ok) return c.json({ ok: false, error: `HelpDesk ${res.status}` }, 502);
+  return c.json({ ok: true });
+});
+
 // Персональные сохранённые фильтры — по email пользователя.
 app.get('/api/helpdesk/saved-filters', async (c) => {
   const session = await getSession(c);

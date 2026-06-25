@@ -46,6 +46,7 @@ function Spinner() {
 
 const HomePage        = React.lazy(() => import('./pages/HomePage'));
 const SupportPage     = React.lazy(() => import('./pages/SupportPage'));
+const TicketsPage     = React.lazy(() => import('./pages/TicketsPage'));
 
 const SchedulePage    = React.lazy(() => import('./pages/schedule/SchedulePage'));
 const BreaksPage      = React.lazy(() => import('./pages/BreaksPage'));
@@ -61,6 +62,7 @@ const TLDailyReport   = React.lazy(() => import('./pages/tl/TLDailyReport'));
 const TLFcrPage       = React.lazy(() => import('./pages/tl/TLFcrPage'));
 const TLRolesPage     = React.lazy(() => import('./pages/tl/TLRolesPage'));
 const TLCsatPage      = React.lazy(() => import('./pages/tl/TLCsatPage'));
+const TLHelpdeskAuditPage = React.lazy(() => import('./pages/tl/TLHelpdeskAuditPage'));
 
 const OpsPage         = React.lazy(() => import('./pages/ops/OpsPage'));
 const OpsStructure    = React.lazy(() => import('./pages/ops/OpsStructure'));
@@ -79,6 +81,7 @@ export default function App() {
 
         {/* Support */}
         <Route path="/support"          element={<RequireAuth><SupportPage /></RequireAuth>} />
+        <Route path="/support/tickets"  element={<RequireAuth><TicketsPage /></RequireAuth>} />
         <Route path="/support/schedule"    element={<RequireAuth><SchedulePage project="sg" /></RequireAuth>} />
         <Route path="/support/schedule-nc" element={<RequireAuth><SchedulePage project="nk" /></RequireAuth>} />
         <Route path="/support/breaks"   element={<RequireAuth><BreaksPage /></RequireAuth>} />
@@ -95,6 +98,7 @@ export default function App() {
         <Route path="/tl/fcr"          element={<RequireRole roles={['tl','ops']}><TLFcrPage /></RequireRole>} />
         <Route path="/tl/csat"         element={<RequireRole roles={['tl','ops']}><TLCsatPage /></RequireRole>} />
         <Route path="/tl/roles"        element={<RequireRole roles={['tl','ops']}><TLRolesPage /></RequireRole>} />
+        <Route path="/tl/helpdesk-audit" element={<RequireRole roles={['tl']}><TLHelpdeskAuditPage /></RequireRole>} />
 
         {/* Ops */}
         <Route path="/ops"             element={<RequireRole roles={['ops','tl']}><OpsPage /></RequireRole>} />

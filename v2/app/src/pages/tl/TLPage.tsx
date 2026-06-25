@@ -8,6 +8,7 @@ const cards = [
   { to: '/tl/main',         icon: '📈', title: 'Main Metrics',        desc: 'Анализатор метрик поддержки по проектам из выгрузок Excel' },
   { to: '/tl/csat',         icon: '😊', title: 'КСАТ Анализатор',      desc: 'Подсчёт КСАТ из выгрузки Chatwoot с исключением спам-дизлайков' },
   { to: '/tl/roles',        icon: '🔑', title: 'Управление ролями',   desc: 'Доступы команды по ролям: TL, супервайзеры, ops' },
+  { to: '/tl/helpdesk-audit', icon: '🕵️', title: 'Аудит тикетов',     desc: 'Журнал действий операторов в тикет-системе HelpDesk' },
 ];
 
 const S = {

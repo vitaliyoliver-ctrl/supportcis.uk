@@ -279,7 +279,7 @@ export default function TicketsPage() {
         subject: nf.subject.trim(),
         message: { text: nf.text.trim() },
         requester: { email: nf.email.trim(), name: nf.name.trim() || undefined },
-        ...(nf.teamID ? { assignment: { team: { ID: nf.teamID } } } : {}),
+        ...(nf.teamID ? { teamIDs: [nf.teamID] } : {}),
         priority: Number(nf.priority),
         status: nf.status,
       });
@@ -488,9 +488,12 @@ export default function TicketsPage() {
                     <div style={{ ...box, padding: 16 }}>
                       <div style={{ ...sectionTitle, marginBottom: 10 }}>Тикеты этого клиента ({requesterTickets.length})</div>
                       {requesterTickets.map(r => (
-                        <div key={r.ID} onClick={() => setSelId(r.ID)} style={{ cursor: 'pointer', padding: '8px 0', borderTop: `1px solid ${t.border}`, display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <StatusBadge status={r.status} />
-                          <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.subject || '(без темы)'}</span>
+                        <div key={r.ID} onClick={() => setSelId(r.ID)} style={{ cursor: 'pointer', padding: '8px 0', borderTop: `1px solid ${t.border}` }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <StatusBadge status={r.status} />
+                            <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.subject || '(без темы)'}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: t.faint, fontFamily: mono, marginTop: 3, marginLeft: 2 }}>{r.assignment?.team?.name || 'без группы'}</div>
                         </div>
                       ))}
                     </div>

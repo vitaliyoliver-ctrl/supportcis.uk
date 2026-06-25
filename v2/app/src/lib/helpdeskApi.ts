@@ -42,6 +42,7 @@ export interface Ticket {
   assignment?: { team?: { name?: string } | null; agent?: { name?: string } | null };
   events?: TicketEvent[];
   customFields?: Record<string, string>;
+  tagIDs?: string[];
   [k: string]: unknown;
 }
 
@@ -99,6 +100,23 @@ export async function saveSavedFilters(filters: SavedFilter[]): Promise<void> {
   });
   const data = await res.json().catch(() => ({})) as { ok: boolean; error?: string };
   if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+}
+
+// Теги
+export interface Tag { ID: string; name: string; }
+export async function listTags(): Promise<Tag[]> {
+  const res = await fetch(`${API}/tags`, { credentials: 'include' });
+  const data = await res.json().catch(() => ({})) as { ok: boolean; tags?: Tag[] };
+  if (!res.ok || !data.ok) return [];
+  return data.tags || [];
+}
+export function addTags(ticketID: string, tagIDs: string[]): Promise<unknown> {
+  return call(`/tickets/${encodeURIComponent(ticketID)}/tags`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tagIDs }),
+  });
+}
+export function removeTag(ticketID: string, tagID: string): Promise<unknown> {
+  return call(`/tickets/${encodeURIComponent(ticketID)}/tags/${encodeURIComponent(tagID)}`, { method: 'DELETE' });
 }
 
 /** Создание нового тикета. */

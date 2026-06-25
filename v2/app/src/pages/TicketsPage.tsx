@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import BackButton from '@/components/BackButton';
-import { listTickets, listTeams, replyTicket, createTicket, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type SavedFilter } from '@/lib/helpdeskApi';
+import { listTickets, listTeams, listTags, addTags, removeTag, replyTicket, createTicket, getSavedFilters, saveSavedFilters, type Ticket, type TicketEvent, type Team, type Tag, type SavedFilter } from '@/lib/helpdeskApi';
 
 // Все 5 статусов HelpDesk (значения API; on hold = onhold).
 const STATUSES: [string, string][] = [
@@ -136,6 +136,20 @@ export default function TicketsPage() {
   useEffect(() => { listTeams().then(setAllTeams).catch(() => { /* список групп опционален */ }); }, []);
   // Команды по алфавиту — для фильтра и формы создания.
   const sortedTeams = useMemo(() => [...allTeams].sort((a, b) => a.name.localeCompare(b.name, 'ru')), [allTeams]);
+
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  useEffect(() => { listTags().then(setAllTags).catch(() => { /* теги опциональны */ }); }, []);
+  const tagName = (id: string) => allTags.find(x => x.ID === id)?.name || id;
+  const [tagComboKey, setTagComboKey] = useState(0);
+  async function addTicketTag(tagId: string) {
+    if (!tagId || !selId || selected?.tagIDs?.includes(tagId)) return;
+    setTagComboKey(k => k + 1);
+    try { await addTags(selId, [tagId]); await load(); } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
+  }
+  async function removeTicketTag(tagId: string) {
+    if (!selId) return;
+    try { await removeTag(selId, tagId); await load(); } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка'); }
+  }
 
   // Вся фильтрация серверная — показываем rows как есть.
   const filtered = rows;
@@ -423,7 +437,22 @@ export default function TicketsPage() {
                     <div style={{ marginBottom: 14 }}>
                       <div style={sectionTitle}>Клиент</div>
                       <Field t={t} label="Имя" value={selected.requester?.name || '—'} />
+                      {selected.customFields?.user_id && <Field t={t} label="ID" value={selected.customFields.user_id} mono />}
                       <Field t={t} label="Контакт" value={selected.requester?.email || '—'} mono />
+                    </div>
+                    {/* Теги */}
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={sectionTitle}>Теги</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {(selected.tagIDs || []).map(tid => (
+                          <span key={tid} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: mono, background: 'rgba(124,92,255,0.15)', color: '#7c5cff', border: '1px solid #7c5cff55', borderRadius: 14, padding: '3px 9px' }}>
+                            {tagName(tid)}<span onClick={() => removeTicketTag(tid)} style={{ cursor: 'pointer', fontWeight: 700 }}>×</span>
+                          </span>
+                        ))}
+                        {!(selected.tagIDs || []).length && <span style={{ fontSize: 12, color: t.faint }}>нет тегов</span>}
+                      </div>
+                      <TeamCombo key={tagComboKey} teams={allTags.filter(x => !(selected.tagIDs || []).includes(x.ID))} valueID=""
+                        placeholder="+ добавить тег" onPick={addTicketTag} style={{ ...input, width: '100%', boxSizing: 'border-box', cursor: 'text' }} />
                     </div>
                     <div style={{ marginBottom: 14 }}>
                       <div style={sectionTitle}>Назначение</div>
@@ -433,7 +462,7 @@ export default function TicketsPage() {
                     {selected.customFields && Object.keys(selected.customFields).length > 0 && (
                       <div>
                         <div style={sectionTitle}>Доп. поля</div>
-                        {Object.entries(selected.customFields).map(([k, v]) => <Field key={k} t={t} label={k} value={String(v)} mono />)}
+                        {Object.entries(selected.customFields).filter(([k]) => k !== 'user_id').map(([k, v]) => <Field key={k} t={t} label={k} value={String(v)} mono />)}
                       </div>
                     )}
                   </div>

@@ -48,13 +48,21 @@ export async function listTickets(opts: { query?: string; cursor?: string; statu
   if (opts.cursor) p.set('cursor', opts.cursor);
   if (opts.status) p.set('status', opts.status);
   const data = await call<unknown>(`/tickets${p.toString() ? '?' + p : ''}`);
-  // HelpDesk может вернуть массив напрямую или в обёртке — нормализуем.
   if (Array.isArray(data)) return data as Ticket[];
   const d = (data || {}) as Record<string, unknown>;
   for (const k of ['tickets', 'records', 'items', 'data', 'results']) {
     if (Array.isArray(d[k])) return d[k] as Ticket[];
   }
   return [];
+}
+
+export interface Team { ID: string; name: string; }
+/** Все команды (группы) — для фильтра. */
+export async function listTeams(): Promise<Team[]> {
+  const res = await fetch(`${API}/teams`, { credentials: 'include' });
+  const data = await res.json().catch(() => ({})) as { ok: boolean; teams?: Team[]; error?: string };
+  if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data.teams || [];
 }
 
 /** Создание нового тикета. */

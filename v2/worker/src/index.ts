@@ -1024,13 +1024,6 @@ app.get('/api/helpdesk/diagnose', async (c) => {
   if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
 
   const ticket = c.req.query('ticket') || '';
-  const probe = async (method: string, path: string) => {
-    try {
-      const r = await helpdeskFetch(c.env, path, { method });
-      return { method, path, status: r.status };
-    } catch (e) { return { method, path, status: 'ERR', error: String(e) }; }
-  };
-
   const result: Record<string, unknown> = {};
 
   // Если ID не передан — берём первый тикет из списка автоматически.
@@ -1045,15 +1038,15 @@ app.get('/api/helpdesk/diagnose', async (c) => {
   }
   result.usedTicketId = ticketId || '(не найден)';
 
-  // Эндпоинты списка команд/групп (ищем тот, что вернёт 200)
-  result.teams = await Promise.all([
-    probe('GET', '/teams'),
-    probe('GET', '/agents/teams'),
-    probe('GET', '/groups'),
-    probe('GET', '/agents'),
-  ]);
+  // Содержимое /teams — увидеть все группы и структуру (id/name).
+  try {
+    const r = await helpdeskFetch(c.env, '/teams');
+    const j = await r.json().catch(() => null);
+    const arr = Array.isArray(j) ? j : (j as any)?.teams;
+    result.teamsSample = { status: r.status, count: Array.isArray(arr) ? arr.length : '?', first: Array.isArray(arr) ? arr.slice(0, 3) : j };
+  } catch (e) { result.teamsSample = { error: String(e) }; }
 
-  // Серверная фильтрация тикетов (200 + длина массива говорят, что параметр принят)
+  // Подбор значения статуса «on hold» и проверка остальных.
   const filterProbe = async (qs: string) => {
     try {
       const r = await helpdeskFetch(c.env, `/tickets?${qs}`);
@@ -1062,26 +1055,51 @@ app.get('/api/helpdesk/diagnose', async (c) => {
       return { qs, status: r.status, count: len };
     } catch (e) { return { qs, status: 'ERR', error: String(e) }; }
   };
-  result.filters = await Promise.all([
-    filterProbe('status=on-hold'),
-    filterProbe('status=onHold'),
-    filterProbe('status=on_hold'),
-    filterProbe('status=open'),
-  ]);
+  result.statusValues = await Promise.all(
+    ['open', 'pending', 'solved', 'closed', 'onhold', 'on hold', 'hold', 'snoozed', 'on_hold', 'on-hold', 'onHold'].map(s => filterProbe(`status=${encodeURIComponent(s)}`)),
+  );
 
-  // Пути отправки сообщения/заметки (GET → 405 значит POST-путь существует)
-  if (ticketId) {
+  // Имя параметра фильтра по команде (берём id первой команды).
+  let teamId = '';
+  try {
+    const r = await helpdeskFetch(c.env, '/teams');
+    const j = await r.json().catch(() => null);
+    const arr = Array.isArray(j) ? j : (j as any)?.teams;
+    if (Array.isArray(arr) && (arr[0]?.ID || arr[0]?.id)) teamId = String(arr[0].ID || arr[0].id);
+  } catch { /* noop */ }
+  result.teamFilter = teamId
+    ? await Promise.all([`teamIDs=${teamId}`, `teamID=${teamId}`, `teamIds=${teamId}`, `team=${teamId}`].map(filterProbe))
+    : 'team id не найден';
+
+  // Реальные POST-пробы отправки сообщения (приватной заметкой — безопасно, видна
+  // только команде). Запускается только с ?post=1, чтобы не создавать заметки случайно.
+  if (c.req.query('post') === '1' && ticketId) {
     const id = encodeURIComponent(ticketId);
-    result.messagePaths = await Promise.all([
-      probe('GET', `/tickets/${id}/messages`),
-      probe('GET', `/tickets/${id}/notes`),
-      probe('GET', `/tickets/${id}/reply`),
-      probe('GET', `/tickets/${id}/message`),
-      probe('GET', `/tickets/${id}/events`),
-      probe('GET', `/tickets/${id}`),
-    ]);
+    const tag = '[portal-diagnostic ' + Date.now() + ']';
+    const postProbe = async (path: string, body: unknown) => {
+      try {
+        const r = await helpdeskFetch(c.env, path, { method: 'POST', body: JSON.stringify(body) });
+        const txt = await r.text().catch(() => '');
+        return { path, body: Object.keys(body as object).join('+'), status: r.status, resp: txt.slice(0, 160) };
+      } catch (e) { return { path, status: 'ERR', error: String(e) }; }
+    };
+    result.postProbes = [];
+    const candidates: Array<[string, unknown]> = [
+      [`/tickets/${id}/messages`, { text: tag, isPrivate: true }],
+      [`/tickets/${id}/messages`, { message: { text: tag, isPrivate: true } }],
+      [`/tickets/${id}/notes`, { text: tag }],
+      [`/tickets/${id}/note`, { text: tag }],
+      [`/tickets/${id}/replies`, { text: tag, isPrivate: true }],
+      [`/tickets/${id}/comments`, { text: tag, isPrivate: true }],
+      [`/tickets/${id}/respond`, { text: tag, isPrivate: true }],
+    ];
+    for (const [p, b] of candidates) {
+      const res = await postProbe(p, b);
+      (result.postProbes as unknown[]).push(res);
+      if (typeof res.status === 'number' && res.status >= 200 && res.status < 300) break; // нашли — дальше не спамим
+    }
   } else {
-    result.messagePaths = 'тикет не найден — передайте ?ticket=<ID>';
+    result.postProbes = 'добавьте &post=1 для реальных POST-проб (создаст 1 приватную заметку на тест-тикете)';
   }
 
   return c.json({ ok: true, result });

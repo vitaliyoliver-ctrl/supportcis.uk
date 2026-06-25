@@ -403,8 +403,8 @@ export default function TicketsPage() {
             </div>
           </div>
 
-          {/* ── Деталь ── */}
-          <div style={{ flex: '2 1 520px', minWidth: 380 }}>
+          {/* ── Деталь (прилипает при прокрутке списка) ── */}
+          <div style={{ flex: '2 1 520px', minWidth: 380, position: 'sticky', top: 16, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}>
             {!selected && <div style={{ ...box, padding: 20, color: t.dim, fontSize: 13 }}>Выберите тикет слева.</div>}
             {selected && (
               <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>

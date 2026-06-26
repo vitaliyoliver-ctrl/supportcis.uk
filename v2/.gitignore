@@ -2,3 +2,6 @@
 .env
 docker-compose.override.yml
 kv-dump.json
+
+# Локальная тестовая копия без Docker: данные нативного Postgres
+.localpg/

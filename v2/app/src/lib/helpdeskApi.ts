@@ -149,12 +149,19 @@ export async function relatedTickets(ticketID: string): Promise<Ticket[]> {
   return [];
 }
 
-/** Ответ оператора по ticket_id. isPrivate=true — приватная заметка для команды. */
-export function replyTicket(id: string, text: string, isPrivate = false): Promise<unknown> {
+/** Ответ оператора по ticket_id. isPrivate=true — приватная заметка; status — новый статус (опц.). */
+export function replyTicket(id: string, text: string, isPrivate = false, status?: string): Promise<unknown> {
   return call(`/tickets/${encodeURIComponent(id)}/reply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, isPrivate }),
+    body: JSON.stringify({ text, isPrivate, status }),
+  });
+}
+
+/** Сменить статус тикета. */
+export function changeStatus(id: string, status: string): Promise<unknown> {
+  return call(`/tickets/${encodeURIComponent(id)}/status`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
   });
 }
 

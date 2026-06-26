@@ -1056,6 +1056,21 @@ app.post('/api/helpdesk/tickets/:id/assign', async (c) => {
   return c.json({ ok: true });
 });
 
+// Сменить статус тикета.
+app.post('/api/helpdesk/tickets/:id/status', async (c) => {
+  const session = await getSession(c);
+  if (!session) return c.json({ ok: false }, 401);
+  if (!helpdeskConfigured(c.env)) return c.json({ ok: false, error: 'HelpDesk не настроен' }, 503);
+  const id = c.req.param('id');
+  let status = '';
+  try { const b = await c.req.json<{ status?: string }>(); status = (b.status || '').trim(); } catch { return c.json({ ok: false, error: 'Некорректный запрос' }, 400); }
+  if (!status) return c.json({ ok: false, error: 'Не указан статус' }, 400);
+  await hdAudit(c.env, session.email, 'status', `${id} → ${status}`);
+  const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  if (!res.ok) { const d = await res.text().catch(() => ''); return c.json({ ok: false, error: `HelpDesk ${res.status}: ${d.slice(0, 200)}` }, 502); }
+  return c.json({ ok: true });
+});
+
 // Тикеты этого же клиента: берём реальную почту тикета (она на сервере) и ищем
 // по ней полнотекстово — так находятся все обращения клиента, даже не из выдачи.
 app.get('/api/helpdesk/tickets/:id/related', async (c) => {
@@ -1087,10 +1102,12 @@ app.post('/api/helpdesk/tickets/:id/reply', async (c) => {
   const id = c.req.param('id');
   let text = '';
   let isPrivate = false;
+  let status = '';
   try {
-    const body = await c.req.json<{ text?: string; isPrivate?: boolean }>();
+    const body = await c.req.json<{ text?: string; isPrivate?: boolean; status?: string }>();
     text = (body.text || '').trim();
     isPrivate = body.isPrivate === true;
+    status = (body.status || '').trim();
   } catch {
     return c.json({ ok: false, error: 'Некорректный запрос' }, 400);
   }
@@ -1100,9 +1117,12 @@ app.post('/api/helpdesk/tickets/:id/reply', async (c) => {
 
   // По документации HelpDesk сообщение/заметка добавляются через PATCH тикета:
   // author.type=agent, message.text, isPrivate (верхний уровень). true — заметка.
+  // status (если задан) меняется тем же PATCH.
+  const payload: Record<string, unknown> = { author: { type: 'agent' }, message: { text }, isPrivate };
+  if (status) payload.status = status;
   const res = await helpdeskFetch(c.env, `/tickets/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    body: JSON.stringify({ author: { type: 'agent' }, message: { text }, isPrivate }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');

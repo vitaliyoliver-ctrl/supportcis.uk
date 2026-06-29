@@ -1,6 +1,5 @@
-// Seed данные: EMPLOYEES, BASE_PATTERNS, SECTIONS из v1.
-// В v2 это временный слой — после применения SQL-миграции 002_seed.sql
-// все эти данные приходят из API и этот файл удаляется.
+// Статические справочные данные: EMPLOYEES, BASE_PATTERNS, SECTIONS.
+// Постоянное решение — изменяемое состояние в Postgres (kv), сотрудники и паттерны здесь.
 
 const CYCLE_START = new Date(2026, 5, 1);
 

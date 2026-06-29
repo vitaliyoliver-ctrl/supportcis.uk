@@ -1,0 +1,50 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-06-29T00:00:00Z",
+    "last_updated": "2026-06-29T00:00:00Z",
+    "completed": "2026-06-29T00:00:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "C:/Users/user/supportcis.uk/v2",
+  "project_knowledge": "C:/Users/user/supportcis.uk/docs",
+  "completed_steps": [
+    { "step": "step_1", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Classified as multi-part: app (web) + worker (backend)" },
+    { "step": "step_2", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Found 3 existing docs: ARCHITECTURE.md, DEPLOY.md, HANDOFF.md" },
+    { "step": "step_3", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Tech stack: React 18 + Hono + PostgreSQL" },
+    { "step": "step_4", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "APIs: 30+ endpoints; Data: 1 table kv; Components: 10 schedule components" },
+    { "step": "step_5", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Source tree written" },
+    { "step": "step_6", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Dev and deployment guides written" },
+    { "step": "step_8", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Architecture doc written" },
+    { "step": "step_9", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "All supporting docs written" },
+    { "step": "step_10", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Master index generated" },
+    { "step": "step_12", "status": "completed", "timestamp": "2026-06-29T00:00:00Z", "summary": "Workflow complete" }
+  ],
+  "current_step": "completed",
+  "project_types": [
+    { "part_id": "app", "project_type_id": "web", "display_name": "React SPA" },
+    { "part_id": "worker", "project_type_id": "backend", "display_name": "Hono Node Server" }
+  ],
+  "findings": {
+    "project_classification": "multi-part: app (React/Vite/TS) + worker (Hono/Node/pg), Docker monorepo",
+    "technology_stack": "React 18, Vite 5, TanStack Query v5, Tailwind v3 / Hono 4, @hono/node-server, pg 8 / PostgreSQL 14+",
+    "api_count": "30+ endpoints in worker/src/index.ts",
+    "data": "1 table kv (key TEXT PK, value TEXT, expires_at TIMESTAMPTZ)",
+    "components": "10 schedule components + 8 TL pages + 3 Ops pages",
+    "notes": "supabase/migrations/001_schema.sql contains normalized schema not yet used in production code"
+  },
+  "outputs_generated": [
+    "project-overview.md",
+    "architecture.md",
+    "api-contracts.md",
+    "data-models.md",
+    "ui-components.md",
+    "development-guide.md",
+    "deployment-guide.md",
+    "source-tree.md",
+    "index.md",
+    "project-scan-report.json"
+  ],
+  "resume_instructions": "Workflow complete"
+}
